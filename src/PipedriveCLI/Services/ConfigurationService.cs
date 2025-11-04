@@ -101,9 +101,7 @@ public sealed class ConfigurationService
         var effectiveProfile = new ProfileConfig
         {
             ApiKey = GetEnvironmentVariableOrValue("PIPEDRIVE_API_KEY", profile.ApiKey),
-            Domain = GetEnvironmentVariableOrValue("PIPEDRIVE_DOMAIN", profile.Domain),
-            EmailGatewayUrl = GetEnvironmentVariableOrValue("EMAIL_GATEWAY_URL", profile.EmailGatewayUrl),
-            EmailGatewayApiKey = GetEnvironmentVariableOrValue("EMAIL_GATEWAY_API_KEY", profile.EmailGatewayApiKey)
+            Domain = GetEnvironmentVariableOrValue("PIPEDRIVE_DOMAIN", profile.Domain)
         };
 
         return effectiveProfile;
@@ -146,8 +144,7 @@ public sealed class ConfigurationService
     /// <summary>
     /// Sets multiple configuration values at once
     /// </summary>
-    public async Task SetConfigAsync(string? apiKey = null, string? domain = null,
-        string? emailGatewayUrl = null, string? emailGatewayApiKey = null)
+    public async Task SetConfigAsync(string? apiKey = null, string? domain = null)
     {
         var config = await LoadConfigAsync();
         var profileName = config.ActiveProfile;
@@ -161,8 +158,6 @@ public sealed class ConfigurationService
 
         if (apiKey != null) profile.ApiKey = apiKey;
         if (domain != null) profile.Domain = domain;
-        if (emailGatewayUrl != null) profile.EmailGatewayUrl = emailGatewayUrl;
-        if (emailGatewayApiKey != null) profile.EmailGatewayApiKey = emailGatewayApiKey;
 
         await SaveConfigAsync(config);
     }

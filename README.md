@@ -63,9 +63,7 @@ The CLI stores configuration in `~/.pipedrive/config.json` with secure file perm
   "profiles": {
     "default": {
       "apiKey": "YOUR_API_KEY",
-      "domain": "company.pipedrive.com",
-      "emailGatewayUrl": "https://gateway.example.com",
-      "emailGatewayApiKey": "GATEWAY_KEY"
+      "domain": "company.pipedrive.com"
     },
     "staging": {
       "apiKey": "STAGING_API_KEY",
@@ -82,8 +80,6 @@ You can override configuration values using environment variables:
 
 - `PIPEDRIVE_API_KEY` - Override the API key
 - `PIPEDRIVE_DOMAIN` - Override the domain
-- `EMAIL_GATEWAY_URL` - Override the email gateway URL
-- `EMAIL_GATEWAY_API_KEY` - Override the email gateway API key
 
 Example:
 ```bash
@@ -126,14 +122,9 @@ Set one or more configuration values for the active profile.
 # Set API key and domain
 pipedrive config set --api-key YOUR_KEY --domain company.pipedrive.com
 
-# Set email gateway configuration (optional)
-pipedrive config set --email-gateway-url https://gateway.example.com --email-gateway-api-key GATEWAY_KEY
-
 # Options:
-#   --api-key, -k              Pipedrive API key
-#   --domain, -d               Pipedrive domain (e.g., company.pipedrive.com)
-#   --email-gateway-url, -e    Email Gateway URL for approval workflow
-#   --email-gateway-api-key, -g Email Gateway API key
+#   --api-key, -k    Pipedrive API key
+#   --domain, -d     Pipedrive domain (e.g., company.pipedrive.com)
 ```
 
 #### `config get` - Display Current Configuration
@@ -146,16 +137,14 @@ pipedrive config get
 
 Output:
 ```
-╭───────────────────────┬────────────────────────────────────────────╮
-│ Setting               │ Value                                      │
-├───────────────────────┼────────────────────────────────────────────┤
-│ Profile               │ default                                    │
-│ API Key               │ abc1****xyz9                               │
-│ Domain                │ company.pipedrive.com                      │
-│ Email Gateway URL     │ https://gateway.example.com                │
-│ Email Gateway API Key │ gate****key8                               │
-│ Config File           │ /home/user/.pipedrive/config.json          │
-╰───────────────────────┴────────────────────────────────────────────╯
+╭─────────────┬───────────────────────────────────────╮
+│ Setting     │ Value                                 │
+├─────────────┼───────────────────────────────────────┤
+│ Profile     │ default                               │
+│ API Key     │ abc1****xyz9                          │
+│ Domain      │ company.pipedrive.com                 │
+│ Config File │ /home/user/.pipedrive/config.json     │
+╰─────────────┴───────────────────────────────────────╯
 ```
 
 #### `config test` - Test API Connection
@@ -248,11 +237,6 @@ The following features are planned for future releases:
 - **AI-Powered Cleanup** - Analyze and sanitize CRM data
 - **Duplicate Detection** - Find and merge duplicate records
 - **Data Quality Reports** - Identify incomplete or invalid data
-
-### Email Integration
-- **Email Gateway** - Compose and send emails with approval workflow
-- **Template Support** - Use email templates for common scenarios
-- **Batch Operations** - Send bulk emails with personalization
 
 ## Architecture
 
