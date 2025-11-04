@@ -15,7 +15,7 @@ public class OrganizationsApiClientTests
     [Fact]
     public void Organization_Deserialization_HandlesFullApiResponse()
     {
-        // Arrange - Full API response with all fields
+        // Arrange - Full API response with all fields (owner_id is an object in real API)
         var json = """
         {
             "success": true,
@@ -23,7 +23,12 @@ public class OrganizationsApiClientTests
                 "id": 123,
                 "name": "Acme Corporation",
                 "people_count": 50,
-                "owner_id": 456,
+                "owner_id": {
+                    "id": 456,
+                    "name": "John Smith",
+                    "email": "john@example.com",
+                    "value": 456
+                },
                 "address": "123 Main St, San Francisco, CA 94105",
                 "add_time": "2024-01-15T10:30:00Z",
                 "update_time": "2024-01-16T14:20:00Z"
@@ -41,7 +46,9 @@ public class OrganizationsApiClientTests
         Assert.Equal(123, response.Data.Id);
         Assert.Equal("Acme Corporation", response.Data.Name);
         Assert.Equal(50, response.Data.PeopleCount);
-        Assert.Equal(456, response.Data.OwnerId);
+        Assert.NotNull(response.Data.OwnerId);
+        Assert.Equal(456, response.Data.OwnerId.Id);
+        Assert.Equal("John Smith", response.Data.OwnerId.Name);
         Assert.Equal("123 Main St, San Francisco, CA 94105", response.Data.Address);
         Assert.Equal("2024-01-15T10:30:00Z", response.Data.AddTime);
         Assert.Equal("2024-01-16T14:20:00Z", response.Data.UpdateTime);
@@ -53,7 +60,7 @@ public class OrganizationsApiClientTests
     [Fact]
     public void OrganizationsList_Deserialization_WithPagination()
     {
-        // Arrange
+        // Arrange - API returns owner_id as an object
         var json = """
         {
             "success": true,
@@ -62,7 +69,12 @@ public class OrganizationsApiClientTests
                     "id": 100,
                     "name": "Tech Startup Inc",
                     "people_count": 25,
-                    "owner_id": 200,
+                    "owner_id": {
+                        "id": 200,
+                        "name": "Jane Doe",
+                        "email": "jane@example.com",
+                        "value": 200
+                    },
                     "address": "456 Innovation Way, Austin, TX 78701",
                     "add_time": "2024-01-01T10:00:00Z",
                     "update_time": "2024-01-01T10:00:00Z"
@@ -102,7 +114,9 @@ public class OrganizationsApiClientTests
         Assert.Equal(100, org1.Id);
         Assert.Equal("Tech Startup Inc", org1.Name);
         Assert.Equal(25, org1.PeopleCount);
-        Assert.Equal(200, org1.OwnerId);
+        Assert.NotNull(org1.OwnerId);
+        Assert.Equal(200, org1.OwnerId.Id);
+        Assert.Equal("Jane Doe", org1.OwnerId.Name);
         Assert.Equal("456 Innovation Way, Austin, TX 78701", org1.Address);
 
         // Second organization
@@ -220,7 +234,7 @@ public class OrganizationsApiClientTests
                 "id": 600,
                 "name": "Large Corporation",
                 "people_count": 10000,
-                "owner_id": 999,
+                "owner_id": null,
                 "address": "1 Corporate Plaza, Chicago, IL 60601",
                 "add_time": "2024-01-01T00:00:00Z",
                 "update_time": "2024-01-01T00:00:00Z"
@@ -284,7 +298,7 @@ public class OrganizationsApiClientTests
                 "id": 700,
                 "name": "Remote Company",
                 "people_count": 15,
-                "owner_id": 123,
+                "owner_id": null,
                 "address": null,
                 "add_time": "2024-03-01T00:00:00Z",
                 "update_time": "2024-03-01T00:00:00Z"
