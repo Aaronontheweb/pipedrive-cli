@@ -17,6 +17,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Expose internals to test project -->
+    <InternalsVisibleTo Include="PipedriveCLI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- CLI Framework -->
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Spectre.Console" />

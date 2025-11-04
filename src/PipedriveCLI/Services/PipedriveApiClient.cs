@@ -89,6 +89,26 @@ public sealed class PipedriveApiClient : IDisposable
     }
 
     /// <summary>
+    /// Makes a PATCH request to the Pipedrive API and returns raw JSON string
+    /// </summary>
+    public async Task<string> PatchAsync(string endpoint, string jsonData, Dictionary<string, string>? queryParams = null)
+    {
+        EnsureConfigured();
+
+        var url = await BuildUrlWithApiKeyAsync(endpoint, queryParams);
+        var content = new StringContent(jsonData, System.Text.Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url)
+        {
+            Content = content
+        };
+        var response = await _httpClient.SendAsync(request);
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    /// <summary>
     /// Makes a DELETE request to the Pipedrive API
     /// </summary>
     public async Task<bool> DeleteAsync(string endpoint, Dictionary<string, string>? queryParams = null)
@@ -100,6 +120,83 @@ public sealed class PipedriveApiClient : IDisposable
 
         return response.IsSuccessStatusCode;
     }
+
+    #region Leads Operations
+
+    /// <summary>
+    /// Gets all leads
+    /// </summary>
+    public async Task<PipedriveResponse<List<Lead>>?> GetLeadsAsync(int? limit = null, int? start = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+
+        var jsonResponse = await GetAsync("leads", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListLead);
+    }
+
+    /// <summary>
+    /// Gets a specific lead by ID
+    /// </summary>
+    public async Task<PipedriveResponse<Lead>?> GetLeadByIdAsync(string id)
+    {
+        var jsonResponse = await GetAsync($"leads/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseLead);
+    }
+
+    /// <summary>
+    /// Creates a new lead
+    /// </summary>
+    public async Task<PipedriveResponse<Lead>?> CreateLeadAsync(Lead lead)
+    {
+        var jsonData = JsonSerializer.Serialize(lead, ApiJsonContext.Default.Lead);
+        var jsonResponse = await PostAsync("leads", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseLead);
+    }
+
+    /// <summary>
+    /// Updates an existing lead
+    /// </summary>
+    public async Task<PipedriveResponse<Lead>?> UpdateLeadAsync(string id, Lead lead)
+    {
+        var jsonData = JsonSerializer.Serialize(lead, ApiJsonContext.Default.Lead);
+        var jsonResponse = await PatchAsync($"leads/{id}", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseLead);
+    }
+
+    /// <summary>
+    /// Deletes a lead
+    /// </summary>
+    public async Task<bool> DeleteLeadAsync(string id)
+    {
+        return await DeleteAsync($"leads/{id}");
+    }
+
+    /// <summary>
+    /// Searches for leads (uses API v2)
+    /// </summary>
+    public async Task<PipedriveResponse<List<Lead>>?> SearchLeadsAsync(string term, int? limit = null)
+    {
+        // Update base URL temporarily for v2 API
+        var originalBaseAddress = _httpClient.BaseAddress;
+        _httpClient.BaseAddress = new Uri($"https://{(await _configService.GetActiveProfileAsync()).Domain}/api/v2/");
+
+        try
+        {
+            var queryParams = new Dictionary<string, string> { ["term"] = term };
+            if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+
+            var jsonResponse = await GetAsync("leads/search", queryParams);
+            return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListLead);
+        }
+        finally
+        {
+            _httpClient.BaseAddress = originalBaseAddress;
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Tests the API connection by making a simple request
