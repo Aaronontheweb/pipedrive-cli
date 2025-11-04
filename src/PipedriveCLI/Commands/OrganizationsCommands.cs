@@ -405,7 +405,7 @@ public static class OrganizationsCommands
                             org.Name ?? "-",
                             org.PeopleCount.ToString(),
                             org.Address ?? "-",
-                            org.OwnerId?.ToString() ?? "-"
+                            org.OwnerId?.Id.ToString() ?? "-"
                         );
                     }
 
