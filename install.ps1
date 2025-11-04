@@ -40,7 +40,7 @@ if ($Help) {
 }
 
 # Configuration
-$RepoOwner = "stannardlabs"
+$RepoOwner = "Aaronontheweb"
 $RepoName = "pipedrive-cli"
 $BinaryName = "pipedrive.exe"
 

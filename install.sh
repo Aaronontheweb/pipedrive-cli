@@ -15,7 +15,7 @@
 set -e
 
 # Configuration
-REPO_OWNER="stannardlabs"
+REPO_OWNER="Aaronontheweb"
 REPO_NAME="pipedrive-cli"
 BINARY_NAME="pipedrive"
 INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
