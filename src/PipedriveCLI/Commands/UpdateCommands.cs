@@ -21,18 +21,24 @@ public static class UpdateCommands
             "Skip confirmation prompt"
         );
 
+        var betaOption = new Option<bool>(
+            new[] { "--beta", "-b" },
+            "Include beta/pre-release versions"
+        );
+
         updateCommand.AddOption(checkOption);
         updateCommand.AddOption(forceOption);
+        updateCommand.AddOption(betaOption);
 
-        updateCommand.SetHandler(async (checkOnly, force) =>
+        updateCommand.SetHandler(async (checkOnly, force, beta) =>
         {
-            await HandleUpdateCommand(checkOnly, force);
-        }, checkOption, forceOption);
+            await HandleUpdateCommand(checkOnly, force, beta);
+        }, checkOption, forceOption, betaOption);
 
         return updateCommand;
     }
 
-    private static async Task<int> HandleUpdateCommand(bool checkOnly, bool force)
+    private static async Task<int> HandleUpdateCommand(bool checkOnly, bool force, bool includeBeta)
     {
         // Get version information from assembly
         var assembly = Assembly.GetExecutingAssembly();
@@ -44,16 +50,26 @@ public static class UpdateCommands
             using var httpClient = new HttpClient();
             var updateService = new UpdateService(httpClient, currentVersion);
 
-            AnsiConsole.MarkupLine("[bold]Checking for updates...[/]");
-            var update = await updateService.CheckForUpdateAsync();
+            if (includeBeta)
+            {
+                AnsiConsole.MarkupLine("[bold]Checking for updates (including beta/pre-releases)...[/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[bold]Checking for updates...[/]");
+            }
+
+            var update = await updateService.CheckForUpdateAsync(includeBeta);
 
             if (update == null)
             {
-                AnsiConsole.MarkupLine($"[green]✓[/] You're running the latest version (v{currentVersion})");
+                var versionType = includeBeta ? "version (including pre-releases)" : "stable version";
+                AnsiConsole.MarkupLine($"[green]✓[/] You're running the latest {versionType} (v{currentVersion})");
                 return 0;
             }
 
-            var panel = new Panel(new Markup($"[yellow]New version available:[/] [bold]v{update.Version}[/]\n[dim]Current version: v{currentVersion}[/]"))
+            var versionLabel = update.IsPrerelease ? "[yellow]New pre-release available:[/]" : "[yellow]New version available:[/]";
+            var panel = new Panel(new Markup($"{versionLabel} [bold]v{update.Version}[/]\n[dim]Current version: v{currentVersion}[/]"))
             {
                 Border = BoxBorder.Rounded,
                 BorderStyle = new Style(Color.Yellow)

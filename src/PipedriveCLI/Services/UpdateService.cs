@@ -8,13 +8,14 @@ namespace PipedriveCLI.Services;
 
 public interface IUpdateService
 {
-    Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken cancellationToken = default);
+    Task<UpdateInfo?> CheckForUpdateAsync(bool includePrereleases = false, CancellationToken cancellationToken = default);
     Task<bool> PerformUpdateAsync(UpdateInfo update, CancellationToken cancellationToken = default);
 }
 
 public sealed class UpdateService : IUpdateService
 {
-    private const string GITHUB_API_URL = "https://api.github.com/repos/Aaronontheweb/pipedrive-cli/releases/latest";
+    private const string GITHUB_API_URL_LATEST = "https://api.github.com/repos/Aaronontheweb/pipedrive-cli/releases/latest";
+    private const string GITHUB_API_URL_ALL = "https://api.github.com/repos/Aaronontheweb/pipedrive-cli/releases";
     private readonly HttpClient _httpClient;
     private readonly string _currentVersion;
 
@@ -30,12 +31,30 @@ public sealed class UpdateService : IUpdateService
         }
     }
 
-    public async Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+    public async Task<UpdateInfo?> CheckForUpdateAsync(bool includePrereleases = false, CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await _httpClient.GetStringAsync(GITHUB_API_URL, cancellationToken);
-            var release = JsonSerializer.Deserialize(response, UpdateJsonContext.Default.GitHubRelease);
+            GitHubRelease? release = null;
+
+            if (includePrereleases)
+            {
+                // Get all releases and find the latest one (including pre-releases)
+                var response = await _httpClient.GetStringAsync(GITHUB_API_URL_ALL, cancellationToken);
+                var releases = JsonSerializer.Deserialize(response, UpdateJsonContext.Default.GitHubReleaseArray);
+
+                if (releases != null && releases.Length > 0)
+                {
+                    // Get the first release (most recent)
+                    release = releases[0];
+                }
+            }
+            else
+            {
+                // Get only the latest stable release
+                var response = await _httpClient.GetStringAsync(GITHUB_API_URL_LATEST, cancellationToken);
+                release = JsonSerializer.Deserialize(response, UpdateJsonContext.Default.GitHubRelease);
+            }
 
             if (release == null)
                 return null;
@@ -56,7 +75,8 @@ public sealed class UpdateService : IUpdateService
                         DownloadUrl = asset.BrowserDownloadUrl,
                         FileName = asset.Name,
                         ReleaseNotes = release.Body,
-                        PublishedAt = release.PublishedAt
+                        PublishedAt = release.PublishedAt,
+                        IsPrerelease = release.Prerelease
                     };
                 }
             }
@@ -355,6 +375,7 @@ public sealed class UpdateInfo
     public required string FileName { get; init; }
     public string? ReleaseNotes { get; init; }
     public DateTimeOffset PublishedAt { get; init; }
+    public bool IsPrerelease { get; init; }
 }
 
 public sealed class GitHubRelease
@@ -367,6 +388,9 @@ public sealed class GitHubRelease
 
     [JsonPropertyName("published_at")]
     public DateTimeOffset PublishedAt { get; init; }
+
+    [JsonPropertyName("prerelease")]
+    public bool Prerelease { get; init; }
 
     [JsonPropertyName("assets")]
     public required GitHubAsset[] Assets { get; init; }
@@ -386,6 +410,7 @@ public sealed class GitHubAsset
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 [JsonSerializable(typeof(GitHubRelease))]
+[JsonSerializable(typeof(GitHubRelease[]))]
 [JsonSerializable(typeof(GitHubAsset))]
 [JsonSerializable(typeof(GitHubAsset[]))]
 internal partial class UpdateJsonContext : JsonSerializerContext
