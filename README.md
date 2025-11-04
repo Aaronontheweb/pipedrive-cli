@@ -1,70 +1,278 @@
-# build-system-template
-Akka.NET project build system template that provides standardized build and CI/CD configuration for all Akka.NET projects.
+# Pipedrive CLI
 
-## Build System Overview
-This repository contains our standardized build system setup that can be used across all Akka.NET projects. Here are the key components and practices we follow:
+A fast, lightweight command-line interface for managing your Pipedrive CRM. Built with .NET 8 and Native AOT compilation for lightning-fast startup times (~13ms).
 
-### CI/CD Configuration
-We primarily use GitHub Actions for our CI/CD pipelines, but also maintain Azure DevOps pipeline examples. You can find the configuration examples in:
-- `.github/workflows/` - GitHub Actions pipeline examples
-- `.azuredevops/` - Azure DevOps pipeline examples
+## Features
 
-### SDK Version Management
-We use `global.json` to pin the .NET SDK version for both CI/CD environments and local development. This ensures consistent builds across all environments and developers.
+- **⚡ Native AOT Compiled** - 13ms cold start with 12MB binary size
+- **🔐 Secure Configuration** - Profile-based config stored at `~/.pipedrive/config.json`
+- **🌍 Environment Variables** - Override config values via environment variables
+- **🎨 Beautiful Console UI** - Rich formatting with Spectre.Console
+- **🔄 Multi-Profile Support** - Manage multiple Pipedrive environments (dev, staging, prod)
 
-### .NET Tools
-We use local .NET tools to enhance our build and documentation process. The tools are configured in `.config/dotnet-tools.json` and include:
+## Installation
 
-- [Incrementalist](https://github.com/petabridge/Incrementalist) (v1.0.0-beta4) - Used for determining which projects need to be rebuilt based on Git changes
-- [DocFx](https://dotnet.github.io/docfx/) (v2.78.3) - Used for generating documentation
+### From Source
 
-To restore these tools in your local environment, run:
-```powershell
-dotnet tool restore
+```bash
+# Clone the repository
+git clone https://github.com/stannardlabs/pipedrive-cli.git
+cd pipedrive-cli
+
+# Build and publish Native AOT binary
+dotnet publish src/PipedriveCLI/PipedriveCLI.csproj -c Release -r linux-x64 --no-self-contained
+
+# Copy binary to your PATH
+sudo cp src/PipedriveCLI/bin/Release/net8.0/linux-x64/publish/pipedrive /usr/local/bin/
 ```
 
-This command is automatically executed in our CI/CD pipelines (both GitHub Actions and Azure DevOps) to ensure tools are available during builds.
+### Using .NET Runtime (Development)
 
-### Centralized Package and Build Management
-We utilize two key MSBuild files for centralized configuration:
-
-1. `Directory.Packages.props` - Implements [Central Package Version Management](https://learn.microsoft.com/nuget/consume-packages/Central-Package-Management) for consistent NuGet package versions across all projects in the solution.
-
-2. `Directory.Build.props` - Defines common build properties, including:
-   - Copyright and author information
-   - Source linking configuration
-   - NuGet package metadata
-   - Common compiler settings
-   - Target framework definitions
-
-### Code Coverage Configuration
-The `coverlet.runsettings` file configures code coverage collection using Coverlet, with settings for:
-- Multiple coverage report formats (JSON, Cobertura, LCOV, TeamCity, OpenCover)
-- Test assembly exclusions
-- Source linking integration
-- Performance optimizations
-
-### Release Management
-Our release process is streamlined through:
-- `RELEASE_NOTES.md` - Contains version history and release notes
-- `build.ps1` - PowerShell script that processes release notes and updates version information
-- Supporting scripts in `/scripts`:
-  - `bumpVersion.ps1` - Updates version numbers
-  - `getReleaseNotes.ps1` - Parses release notes
-
-The build system primarily relies on standard `dotnet` CLI commands, with the PowerShell scripts mainly handling release note processing and version management.
-
-### Solution Format
-We prefer the new `.slnx` XML-based solution format over the traditional `.sln` format. This requires .NET 9 SDK or later. The new format is more concise and easier to work with. You can migrate existing solutions using:
-
-```powershell
-dotnet sln migrate
+```bash
+dotnet run --project src/PipedriveCLI/PipedriveCLI.csproj -- [command] [options]
 ```
 
-For more information about the new `.slnx` format, see the [official announcement](https://devblogs.microsoft.com/dotnet/introducing-slnx-support-dotnet-cli/).
+## Quick Start
 
-## Getting Started
-1. Ensure you have the correct .NET SDK version installed (check `global.json`)
-2. Clone this repository
-3. Run `dotnet build` to verify the build system
-4. Customize the configuration files for your specific project needs
+1. **Configure your Pipedrive credentials:**
+
+```bash
+pipedrive config set --api-key YOUR_API_KEY --domain company.pipedrive.com
+```
+
+2. **Test the connection:**
+
+```bash
+pipedrive config test
+```
+
+3. **View your configuration:**
+
+```bash
+pipedrive config get
+```
+
+## Configuration
+
+### Configuration File
+
+The CLI stores configuration in `~/.pipedrive/config.json` with secure file permissions (600 on Unix systems):
+
+```json
+{
+  "profiles": {
+    "default": {
+      "apiKey": "YOUR_API_KEY",
+      "domain": "company.pipedrive.com",
+      "emailGatewayUrl": "https://gateway.example.com",
+      "emailGatewayApiKey": "GATEWAY_KEY"
+    },
+    "staging": {
+      "apiKey": "STAGING_API_KEY",
+      "domain": "staging.pipedrive.com"
+    }
+  },
+  "activeProfile": "default"
+}
+```
+
+### Environment Variables
+
+You can override configuration values using environment variables:
+
+- `PIPEDRIVE_API_KEY` - Override the API key
+- `PIPEDRIVE_DOMAIN` - Override the domain
+- `EMAIL_GATEWAY_URL` - Override the email gateway URL
+- `EMAIL_GATEWAY_API_KEY` - Override the email gateway API key
+
+Example:
+```bash
+export PIPEDRIVE_API_KEY="temporary-key"
+pipedrive config get  # Will show the overridden value
+```
+
+### Managing Profiles
+
+**List all profiles:**
+```bash
+pipedrive config profile list
+```
+
+**Switch to a different profile:**
+```bash
+pipedrive config profile switch staging
+```
+
+**Set configuration for a specific profile:**
+```bash
+# First switch to the profile
+pipedrive config profile switch staging
+
+# Then configure it
+pipedrive config set --api-key STAGING_KEY --domain staging.pipedrive.com
+```
+
+## Commands
+
+### `config` - Configuration Management
+
+Manage CLI configuration and profiles.
+
+#### `config set` - Set Configuration Values
+
+Set one or more configuration values for the active profile.
+
+```bash
+# Set API key and domain
+pipedrive config set --api-key YOUR_KEY --domain company.pipedrive.com
+
+# Set email gateway configuration (optional)
+pipedrive config set --email-gateway-url https://gateway.example.com --email-gateway-api-key GATEWAY_KEY
+
+# Options:
+#   --api-key, -k              Pipedrive API key
+#   --domain, -d               Pipedrive domain (e.g., company.pipedrive.com)
+#   --email-gateway-url, -e    Email Gateway URL for approval workflow
+#   --email-gateway-api-key, -g Email Gateway API key
+```
+
+#### `config get` - Display Current Configuration
+
+View the current configuration with masked API keys.
+
+```bash
+pipedrive config get
+```
+
+Output:
+```
+╭───────────────────────┬────────────────────────────────────────────╮
+│ Setting               │ Value                                      │
+├───────────────────────┼────────────────────────────────────────────┤
+│ Profile               │ default                                    │
+│ API Key               │ abc1****xyz9                               │
+│ Domain                │ company.pipedrive.com                      │
+│ Email Gateway URL     │ https://gateway.example.com                │
+│ Email Gateway API Key │ gate****key8                               │
+│ Config File           │ /home/user/.pipedrive/config.json          │
+╰───────────────────────┴────────────────────────────────────────────╯
+```
+
+#### `config test` - Test API Connection
+
+Verify that your API credentials are valid by making a test request to Pipedrive.
+
+```bash
+pipedrive config test
+```
+
+#### `config profile list` - List All Profiles
+
+Display all available configuration profiles.
+
+```bash
+pipedrive config profile list
+```
+
+Output:
+```
+╭───────────┬─────────────────────────┬─────────────╮
+│ Profile   │ Domain                  │ Status      │
+├───────────┼─────────────────────────┼─────────────┤
+│ default   │ company.pipedrive.com   │ ✓ Active    │
+│ staging   │ staging.pipedrive.com   │             │
+│ prod      │ prod.pipedrive.com      │             │
+╰───────────┴─────────────────────────┴─────────────╯
+```
+
+#### `config profile switch` - Switch Active Profile
+
+Change which profile is currently active.
+
+```bash
+pipedrive config profile switch [profile-name]
+
+# Example:
+pipedrive config profile switch staging
+```
+
+## Getting Your API Key
+
+1. Log in to your Pipedrive account
+2. Go to **Settings** → **Personal preferences** → **API**
+3. Copy your personal API token
+4. Use it with `pipedrive config set --api-key YOUR_TOKEN`
+
+For more information, see the [Pipedrive API Documentation](https://developers.pipedrive.com/docs/api/v1).
+
+## Building from Source
+
+### Prerequisites
+
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
+- Linux, macOS, or Windows
+
+### Build Commands
+
+```bash
+# Standard build
+dotnet build
+
+# Run tests
+dotnet test
+
+# Publish Native AOT binary (Linux)
+dotnet publish src/PipedriveCLI/PipedriveCLI.csproj -c Release -r linux-x64
+
+# Publish Native AOT binary (macOS)
+dotnet publish src/PipedriveCLI/PipedriveCLI.csproj -c Release -r osx-arm64  # M1/M2 Mac
+dotnet publish src/PipedriveCLI/PipedriveCLI.csproj -c Release -r osx-x64    # Intel Mac
+
+# Publish Native AOT binary (Windows)
+dotnet publish src/PipedriveCLI/PipedriveCLI.csproj -c Release -r win-x64
+```
+
+## Roadmap
+
+The following features are planned for future releases:
+
+### Data Management Commands
+- **Leads** - List, create, update, delete, search, and convert leads
+- **Deals** - Manage deals and pipeline stages
+- **Persons** - Manage contacts and people
+- **Organizations** - Manage companies and organizations
+- **Activities** - Manage tasks, calls, meetings, and other activities
+
+### Export & Analysis
+- **Bulk Export** - Export leads, deals, and contacts to CSV
+- **AI-Powered Cleanup** - Analyze and sanitize CRM data
+- **Duplicate Detection** - Find and merge duplicate records
+- **Data Quality Reports** - Identify incomplete or invalid data
+
+### Email Integration
+- **Email Gateway** - Compose and send emails with approval workflow
+- **Template Support** - Use email templates for common scenarios
+- **Batch Operations** - Send bulk emails with personalization
+
+## Architecture
+
+- **Native AOT Compilation** - Fast startup and small binary size
+- **JSON Source Generators** - AOT-compatible serialization
+- **System.CommandLine** - Modern CLI framework
+- **Spectre.Console** - Beautiful console UI
+- **Multi-Profile Support** - Manage multiple environments
+- **Secure Storage** - Config files protected with Unix file permissions
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+Copyright © 2025 Stannard Labs
+
+## Support
+
+For issues and questions:
+- Create an issue on [GitHub](https://github.com/stannardlabs/pipedrive-cli/issues)
+- Check the [Pipedrive API Documentation](https://developers.pipedrive.com/docs/api/v1)

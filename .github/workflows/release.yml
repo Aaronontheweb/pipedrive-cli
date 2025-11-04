@@ -1,0 +1,223 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  build-binaries:
+    name: Build-${{matrix.runtime}}
+    runs-on: ${{matrix.os}}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            runtime: linux-x64
+            archive: tar.gz
+          - os: windows-latest
+            runtime: win-x64
+            archive: zip
+          - os: macos-latest
+            runtime: osx-x64
+            archive: tar.gz
+          - os: macos-latest
+            runtime: osx-arm64
+            archive: tar.gz
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: "Install .NET SDK"
+        uses: actions/setup-dotnet@v5.0.0
+        with:
+          global-json-file: "./global.json"
+
+      - name: "Run build script"
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: "Set version"
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          # Extract numeric version for AssemblyVersion (e.g., 1.0.0 from 1.0.0-beta1)
+          ASSEMBLY_VERSION=$(echo $VERSION | cut -d'-' -f1)
+          echo "ASSEMBLY_VERSION=$ASSEMBLY_VERSION" >> $GITHUB_ENV
+
+          echo "Building version: $VERSION"
+          echo "Assembly version: $ASSEMBLY_VERSION"
+
+      - name: "Restore dependencies"
+        run: dotnet restore
+
+      - name: "Publish AOT binary (Unix)"
+        if: runner.os != 'Windows'
+        run: |
+          dotnet publish src/PipedriveCLI \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained \
+            -o ./publish/${{ matrix.runtime }} \
+            -p:Version=${{ env.VERSION }} \
+            -p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }} \
+            -p:FileVersion=${{ env.ASSEMBLY_VERSION }} \
+            /p:PublishTrimmed=true \
+            /p:PublishSingleFile=true
+
+      - name: "Publish AOT binary (Windows)"
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          dotnet publish src/PipedriveCLI `
+            -c Release `
+            -r ${{ matrix.runtime }} `
+            --self-contained `
+            -o ./publish/${{ matrix.runtime }} `
+            -p:Version=${{ env.VERSION }} `
+            -p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }} `
+            -p:FileVersion=${{ env.ASSEMBLY_VERSION }} `
+            /p:PublishTrimmed=true `
+            /p:PublishSingleFile=true
+
+      - name: "Create archive (Linux/macOS)"
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          cd ./publish/${{ matrix.runtime }}
+          tar -czf ../../pipedrive-${{ env.VERSION }}-${{ matrix.runtime }}.tar.gz *
+          cd ../..
+          echo "ARCHIVE_PATH=pipedrive-${{ env.VERSION }}-${{ matrix.runtime }}.tar.gz" >> $GITHUB_ENV
+
+      - name: "Create archive (Windows)"
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "./publish/${{ matrix.runtime }}/*" -DestinationPath "pipedrive-${{ env.VERSION }}-${{ matrix.runtime }}.zip"
+          echo "ARCHIVE_PATH=pipedrive-${{ env.VERSION }}-${{ matrix.runtime }}.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: "Calculate checksums"
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            shasum -a 256 ${{ env.ARCHIVE_PATH }} > ${{ env.ARCHIVE_PATH }}.sha256
+          else
+            sha256sum ${{ env.ARCHIVE_PATH }} > ${{ env.ARCHIVE_PATH }}.sha256
+          fi
+          cat ${{ env.ARCHIVE_PATH }}.sha256
+
+      - name: "Upload release artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.runtime }}
+          path: |
+            ${{ env.ARCHIVE_PATH }}
+            ${{ env.ARCHIVE_PATH }}.sha256
+          retention-days: 7
+
+  create-release:
+    name: Create Release
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: "Download artifacts"
+        uses: actions/download-artifact@v5
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: ./releases
+
+      - name: "Extract version"
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: "Generate release notes"
+        run: |
+          cat > release-notes.md << EOF
+          # Pipedrive CLI v${{ env.VERSION }}
+
+          ## Quick Installation
+
+          ### Linux/macOS
+          \`\`\`bash
+          # Download and install
+          curl -L https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pipedrive-${{ env.VERSION }}-linux-x64.tar.gz | tar xz
+          sudo mv pipedrive /usr/local/bin/
+          \`\`\`
+
+          ### Windows (PowerShell)
+          \`\`\`powershell
+          # Download
+          Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pipedrive-${{ env.VERSION }}-win-x64.zip" -OutFile "pipedrive.zip"
+
+          # Extract
+          Expand-Archive -Path "pipedrive.zip" -DestinationPath "."
+          \`\`\`
+
+          ## Getting Started
+
+          After installation, configure your Pipedrive credentials:
+
+          \`\`\`bash
+          pipedrive config set --api-key YOUR_API_KEY --domain company.pipedrive.com
+          pipedrive config test
+          \`\`\`
+
+          ## Available Downloads
+
+          | Platform | Architecture | Download |
+          |----------|-------------|----------|
+          | Linux | x64 | [pipedrive-${{ env.VERSION }}-linux-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pipedrive-${{ env.VERSION }}-linux-x64.tar.gz) |
+          | Windows | x64 | [pipedrive-${{ env.VERSION }}-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pipedrive-${{ env.VERSION }}-win-x64.zip) |
+          | macOS | x64 (Intel) | [pipedrive-${{ env.VERSION }}-osx-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pipedrive-${{ env.VERSION }}-osx-x64.tar.gz) |
+          | macOS | ARM64 (Apple Silicon) | [pipedrive-${{ env.VERSION }}-osx-arm64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pipedrive-${{ env.VERSION }}-osx-arm64.tar.gz) |
+
+          ## Verify Downloads
+
+          All downloads include SHA256 checksums. To verify:
+
+          \`\`\`bash
+          sha256sum -c pipedrive-${{ env.VERSION }}-linux-x64.tar.gz.sha256
+          \`\`\`
+
+          ## What's Changed
+          EOF
+
+      - name: "Create GitHub Release"
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.VERSION }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
+          files: |
+            ./releases/*
+          generate_release_notes: true
