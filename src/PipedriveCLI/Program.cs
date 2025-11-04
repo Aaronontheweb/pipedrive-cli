@@ -36,7 +36,13 @@ public static class Program
         // Add activities command
         rootCommand.AddCommand(ActivitiesCommands.CreateActivitiesCommand(apiClient));
 
-        // TODO: Add more commands (persons, organizations, export)
+        // Add persons command
+        rootCommand.AddCommand(PersonsCommands.CreatePersonsCommand(apiClient));
+
+        // Add organizations command
+        rootCommand.AddCommand(OrganizationsCommands.CreateOrganizationsCommand(apiClient));
+
+        // TODO: Add more commands (export)
 
         // Execute command
         return await rootCommand.InvokeAsync(args);
