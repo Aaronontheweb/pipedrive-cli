@@ -162,23 +162,19 @@ jobs:
           cat > release-notes.md << EOF
           # Pipedrive CLI v${{ env.VERSION }}
 
-          ## Quick Installation
+          ## Installation
 
           ### Linux/macOS
           \`\`\`bash
-          # Download and install
-          curl -L https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pipedrive-${{ env.VERSION }}-linux-x64.tar.gz | tar xz
-          sudo mv pipedrive /usr/local/bin/
+          curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/dev/install.sh | bash
           \`\`\`
 
           ### Windows (PowerShell)
           \`\`\`powershell
-          # Download
-          Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/pipedrive-${{ env.VERSION }}-win-x64.zip" -OutFile "pipedrive.zip"
-
-          # Extract
-          Expand-Archive -Path "pipedrive.zip" -DestinationPath "."
+          iwr -useb https://raw.githubusercontent.com/${{ github.repository }}/dev/install.ps1 | iex
           \`\`\`
+
+          **Note:** No sudo/admin permissions required. Installs to your home directory.
 
           ## Getting Started
 
