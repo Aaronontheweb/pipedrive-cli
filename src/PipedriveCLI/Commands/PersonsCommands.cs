@@ -108,13 +108,13 @@ public static class PersonsCommands
                         }
                         else
                         {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch persons: {response?.Error ?? "Unknown error"}");
+                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch persons: {Markup.Escape(response?.Error ?? "Unknown error")}");
                         }
                     });
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, limitOption, startOption);
 
@@ -157,19 +157,23 @@ public static class PersonsCommands
                         ? string.Join(", ", person.Phone.Select(p => $"{p.Value}{(p.Primary ? " (primary)" : "")}"))
                         : "N/A";
 
+                    var ownerInfo = person.OwnerId != null
+                        ? $"{person.OwnerId.Id} ({person.OwnerId.Name})"
+                        : "N/A";
+
                     var panel = new Panel(new Markup(
-                        $"[bold]Name:[/] {person.Name}\n" +
+                        $"[bold]Name:[/] {Markup.Escape(person.Name ?? "")}\n" +
                         $"[bold]ID:[/] {person.Id}\n" +
-                        $"[bold]First Name:[/] {person.FirstName ?? "N/A"}\n" +
-                        $"[bold]Last Name:[/] {person.LastName ?? "N/A"}\n" +
-                        $"[bold]Email(s):[/] {emails}\n" +
-                        $"[bold]Phone(s):[/] {phones}\n" +
+                        $"[bold]First Name:[/] {Markup.Escape(person.FirstName ?? "N/A")}\n" +
+                        $"[bold]Last Name:[/] {Markup.Escape(person.LastName ?? "N/A")}\n" +
+                        $"[bold]Email(s):[/] {Markup.Escape(emails)}\n" +
+                        $"[bold]Phone(s):[/] {Markup.Escape(phones)}\n" +
                         $"[bold]Organization ID:[/] {person.OrgId?.ToString() ?? "N/A"}\n" +
-                        $"[bold]Owner ID:[/] {person.OwnerId?.ToString() ?? "N/A"}\n" +
-                        $"[bold]Added:[/] {person.AddTime}\n" +
-                        $"[bold]Updated:[/] {person.UpdateTime}"))
+                        $"[bold]Owner:[/] {Markup.Escape(ownerInfo)}\n" +
+                        $"[bold]Added:[/] {Markup.Escape(person.AddTime ?? "N/A")}\n" +
+                        $"[bold]Updated:[/] {Markup.Escape(person.UpdateTime ?? "N/A")}"))
                     {
-                        Header = new PanelHeader($"[green]Person: {person.Name}[/]"),
+                        Header = new PanelHeader($"[green]Person: {Markup.Escape(person.Name ?? "")}[/]"),
                         Border = BoxBorder.Rounded
                     };
 
@@ -177,12 +181,12 @@ public static class PersonsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch person: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch person: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument);
 
@@ -259,17 +263,17 @@ public static class PersonsCommands
                 if (response?.Success == true && response.Data != null)
                 {
                     AnsiConsole.MarkupLine($"[green]✓[/] Person created successfully");
-                    AnsiConsole.MarkupLine($"[dim]ID:[/] {response.Data.Id}");
-                    AnsiConsole.MarkupLine($"[dim]Name:[/] {response.Data.Name}");
+                    AnsiConsole.MarkupLine($"[dim]ID:[/] {Markup.Escape(response.Data.Id.ToString())}");
+                    AnsiConsole.MarkupLine($"[dim]Name:[/] {Markup.Escape(response.Data.Name ?? "")}");
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create person: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create person: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, nameOption, emailOption, phoneOption, orgIdOption);
 
@@ -348,12 +352,12 @@ public static class PersonsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update person: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update person: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, nameOption, emailOption, phoneOption);
 
@@ -411,7 +415,7 @@ public static class PersonsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, forceOption);
 
@@ -488,12 +492,12 @@ public static class PersonsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Search failed: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Search failed: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, termArgument, limitOption);
 

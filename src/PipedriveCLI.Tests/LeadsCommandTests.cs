@@ -25,7 +25,7 @@ public class LeadsApiClientTests
             "data": {
                 "id": "a5c5e7b5-28f7-4b57-96fe-3a5e7fb24d5b",
                 "title": "Potential deal",
-                "owner_id": 123,
+                "owner_id": null,
                 "creator_id": 123,
                 "label_ids": ["label-uuid-1", "label-uuid-2"],
                 "person_id": 456,
@@ -60,7 +60,7 @@ public class LeadsApiClientTests
         Assert.NotNull(response.Data);
         Assert.Equal("a5c5e7b5-28f7-4b57-96fe-3a5e7fb24d5b", response.Data.Id);
         Assert.Equal("Potential deal", response.Data.Title);
-        Assert.Equal(123, response.Data.OwnerId);
+        Assert.Null(response.Data.OwnerId);
         Assert.Equal(456, response.Data.PersonId);
         Assert.Null(response.Data.OrganizationId);
         Assert.True(response.Data.WasSeen);
@@ -90,7 +90,7 @@ public class LeadsApiClientTests
                 {
                     "id": "lead-1",
                     "title": "Lead One",
-                    "owner_id": 100,
+                    "owner_id": null,
                     "person_id": 200,
                     "organization_id": null,
                     "value": {
@@ -104,7 +104,7 @@ public class LeadsApiClientTests
                 {
                     "id": "lead-2",
                     "title": "Lead Two",
-                    "owner_id": 100,
+                    "owner_id": null,
                     "person_id": null,
                     "organization_id": 300,
                     "value": {
@@ -239,7 +239,7 @@ public class LeadsApiClientTests
             "data": {
                 "id": "minimal-lead",
                 "title": "Minimal Lead",
-                "owner_id": 999,
+                "owner_id": null,
                 "person_id": 111,
                 "organization_id": null,
                 "value": null,
@@ -279,7 +279,7 @@ public class LeadsApiClientTests
             "data": {
                 "id": "org-lead",
                 "title": "Corporate Lead",
-                "owner_id": 999,
+                "owner_id": null,
                 "person_id": null,
                 "organization_id": 555,
                 "was_seen": true,

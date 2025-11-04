@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace PipedriveCLI.Models;
@@ -52,6 +53,68 @@ public sealed class Pagination
 }
 
 /// <summary>
+/// Custom JSON converter for Pipedrive reference fields that can be either int or object with "value" property
+/// Used for org_id and person_id fields which return as objects in GET responses but accept ints in POST/PUT
+/// </summary>
+public sealed class PipedriveReferenceConverter : JsonConverter<int?>
+{
+    public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            return null;
+        }
+
+        if (reader.TokenType == JsonTokenType.Number)
+        {
+            return reader.GetInt32();
+        }
+
+        if (reader.TokenType == JsonTokenType.StartObject)
+        {
+            // Read the object and extract the "value" field
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    return null;
+                }
+
+                if (reader.TokenType == JsonTokenType.PropertyName)
+                {
+                    var propertyName = reader.GetString();
+                    reader.Read();
+
+                    if (propertyName == "value" && reader.TokenType == JsonTokenType.Number)
+                    {
+                        var value = reader.GetInt32();
+                        // Skip to end of object
+                        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                        {
+                        }
+                        return value;
+                    }
+                }
+            }
+        }
+
+        throw new JsonException($"Cannot convert {reader.TokenType} to int?");
+    }
+
+    public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options)
+    {
+        if (value.HasValue)
+        {
+            writer.WriteNumberValue(value.Value);
+        }
+        else
+        {
+            writer.WriteNullValue();
+        }
+    }
+}
+
+/// <summary>
 /// Pipedrive Lead model
 /// </summary>
 public sealed class Lead
@@ -69,7 +132,7 @@ public sealed class Lead
     public int? OrganizationId { get; set; }
 
     [JsonPropertyName("owner_id")]
-    public int? OwnerId { get; set; }
+    public Owner? OwnerId { get; set; }
 
     [JsonPropertyName("value")]
     public LeadValue? Value { get; set; }
@@ -117,9 +180,11 @@ public sealed class Deal
     public string? Currency { get; set; }
 
     [JsonPropertyName("person_id")]
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
     public int? PersonId { get; set; }
 
     [JsonPropertyName("org_id")]
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
     public int? OrgId { get; set; }
 
     [JsonPropertyName("stage_id")]
@@ -171,10 +236,11 @@ public sealed class Person
     public List<Phone>? Phone { get; set; }
 
     [JsonPropertyName("org_id")]
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
     public int? OrgId { get; set; }
 
     [JsonPropertyName("owner_id")]
-    public int? OwnerId { get; set; }
+    public Owner? OwnerId { get; set; }
 
     [JsonPropertyName("add_time")]
     public string? AddTime { get; set; }
@@ -282,12 +348,15 @@ public sealed class Activity
     public bool Done { get; set; }
 
     [JsonPropertyName("deal_id")]
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
     public int? DealId { get; set; }
 
     [JsonPropertyName("person_id")]
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
     public int? PersonId { get; set; }
 
     [JsonPropertyName("org_id")]
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
     public int? OrgId { get; set; }
 
     [JsonPropertyName("note")]
