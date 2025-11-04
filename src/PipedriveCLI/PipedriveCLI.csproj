@@ -19,6 +19,7 @@
   <ItemGroup>
     <!-- CLI Framework -->
     <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="Spectre.Console" />
 
     <!-- HTTP and DI -->
     <PackageReference Include="Microsoft.Extensions.Http" />
