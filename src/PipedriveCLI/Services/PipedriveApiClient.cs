@@ -318,6 +318,138 @@ public sealed class PipedriveApiClient : IDisposable
 
     #endregion
 
+    #region Persons Operations
+
+    /// <summary>
+    /// Gets all persons (contacts)
+    /// </summary>
+    public async Task<PipedriveResponse<List<Person>>?> GetPersonsAsync(int? limit = null, int? start = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+
+        var jsonResponse = await GetAsync("persons", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListPerson);
+    }
+
+    /// <summary>
+    /// Gets a specific person by ID
+    /// </summary>
+    public async Task<PipedriveResponse<Person>?> GetPersonByIdAsync(int id)
+    {
+        var jsonResponse = await GetAsync($"persons/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponsePerson);
+    }
+
+    /// <summary>
+    /// Creates a new person
+    /// </summary>
+    public async Task<PipedriveResponse<Person>?> CreatePersonAsync(Person person)
+    {
+        var jsonData = JsonSerializer.Serialize(person, ApiJsonContext.Default.Person);
+        var jsonResponse = await PostAsync("persons", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponsePerson);
+    }
+
+    /// <summary>
+    /// Updates an existing person
+    /// </summary>
+    public async Task<PipedriveResponse<Person>?> UpdatePersonAsync(int id, Person person)
+    {
+        var jsonData = JsonSerializer.Serialize(person, ApiJsonContext.Default.Person);
+        var jsonResponse = await PutAsync($"persons/{id}", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponsePerson);
+    }
+
+    /// <summary>
+    /// Deletes a person
+    /// </summary>
+    public async Task<bool> DeletePersonAsync(int id)
+    {
+        return await DeleteAsync($"persons/{id}");
+    }
+
+    /// <summary>
+    /// Searches for persons
+    /// </summary>
+    public async Task<PipedriveResponse<List<Person>>?> SearchPersonsAsync(string term, int? limit = null)
+    {
+        var queryParams = new Dictionary<string, string> { ["term"] = term };
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+
+        var jsonResponse = await GetAsync("persons/search", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListPerson);
+    }
+
+    #endregion
+
+    #region Organizations Operations
+
+    /// <summary>
+    /// Gets all organizations
+    /// </summary>
+    public async Task<PipedriveResponse<List<Organization>>?> GetOrganizationsAsync(int? limit = null, int? start = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+
+        var jsonResponse = await GetAsync("organizations", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListOrganization);
+    }
+
+    /// <summary>
+    /// Gets a specific organization by ID
+    /// </summary>
+    public async Task<PipedriveResponse<Organization>?> GetOrganizationByIdAsync(int id)
+    {
+        var jsonResponse = await GetAsync($"organizations/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseOrganization);
+    }
+
+    /// <summary>
+    /// Creates a new organization
+    /// </summary>
+    public async Task<PipedriveResponse<Organization>?> CreateOrganizationAsync(Organization organization)
+    {
+        var jsonData = JsonSerializer.Serialize(organization, ApiJsonContext.Default.Organization);
+        var jsonResponse = await PostAsync("organizations", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseOrganization);
+    }
+
+    /// <summary>
+    /// Updates an existing organization
+    /// </summary>
+    public async Task<PipedriveResponse<Organization>?> UpdateOrganizationAsync(int id, Organization organization)
+    {
+        var jsonData = JsonSerializer.Serialize(organization, ApiJsonContext.Default.Organization);
+        var jsonResponse = await PutAsync($"organizations/{id}", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseOrganization);
+    }
+
+    /// <summary>
+    /// Deletes an organization
+    /// </summary>
+    public async Task<bool> DeleteOrganizationAsync(int id)
+    {
+        return await DeleteAsync($"organizations/{id}");
+    }
+
+    /// <summary>
+    /// Searches for organizations
+    /// </summary>
+    public async Task<PipedriveResponse<List<Organization>>?> SearchOrganizationsAsync(string term, int? limit = null)
+    {
+        var queryParams = new Dictionary<string, string> { ["term"] = term };
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+
+        var jsonResponse = await GetAsync("organizations/search", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListOrganization);
+    }
+
+    #endregion
+
     /// <summary>
     /// Tests the API connection by making a simple request
     /// </summary>
