@@ -1,0 +1,324 @@
+using System.Text.Json;
+using PipedriveCLI.Models;
+using Xunit;
+
+namespace PipedriveCLI.Tests;
+
+/// <summary>
+/// Tests for Deals API client methods and JSON serialization
+/// </summary>
+public class DealsApiClientTests
+{
+    /// <summary>
+    /// Test that Deal deserialization handles the full Pipedrive API response
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_HandlesFullApiResponse()
+    {
+        // Arrange - Full API response with all fields
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 123,
+                "title": "Enterprise Deal",
+                "value": 50000.00,
+                "currency": "USD",
+                "person_id": 456,
+                "org_id": 789,
+                "stage_id": 1,
+                "status": "open",
+                "probability": 75.5,
+                "expected_close_date": "2024-12-31",
+                "add_time": "2024-01-15T10:30:00Z",
+                "update_time": "2024-01-16T14:20:00Z",
+                "won_time": null,
+                "lost_time": null,
+                "pipeline_id": 1,
+                "owner_id": 999,
+                "creator_user_id": 888
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(123, response.Data.Id);
+        Assert.Equal("Enterprise Deal", response.Data.Title);
+        Assert.Equal(50000.00m, response.Data.Value);
+        Assert.Equal("USD", response.Data.Currency);
+        Assert.Equal(456, response.Data.PersonId);
+        Assert.Equal(789, response.Data.OrgId);
+        Assert.Equal(1, response.Data.StageId);
+        Assert.Equal("open", response.Data.Status);
+        Assert.Equal(75.5m, response.Data.Probability);
+        Assert.Equal("2024-12-31", response.Data.ExpectedCloseDate);
+        Assert.Equal("2024-01-15T10:30:00Z", response.Data.AddTime);
+        Assert.Equal("2024-01-16T14:20:00Z", response.Data.UpdateTime);
+        Assert.Null(response.Data.WonTime);
+        Assert.Null(response.Data.LostTime);
+    }
+
+    /// <summary>
+    /// Test deserializing a list of deals
+    /// </summary>
+    [Fact]
+    public void DealsList_Deserialization_WithPagination()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": [
+                {
+                    "id": 100,
+                    "title": "Deal One",
+                    "value": 10000.00,
+                    "currency": "USD",
+                    "person_id": 200,
+                    "org_id": null,
+                    "stage_id": 1,
+                    "status": "open",
+                    "probability": 50.0,
+                    "add_time": "2024-01-01T10:00:00Z",
+                    "update_time": "2024-01-01T10:00:00Z"
+                },
+                {
+                    "id": 101,
+                    "title": "Deal Two",
+                    "value": 25000.50,
+                    "currency": "EUR",
+                    "person_id": null,
+                    "org_id": 300,
+                    "stage_id": 2,
+                    "status": "won",
+                    "probability": 100.0,
+                    "expected_close_date": "2024-06-30",
+                    "won_time": "2024-05-15T12:00:00Z",
+                    "add_time": "2024-01-02T11:00:00Z",
+                    "update_time": "2024-05-15T12:00:00Z"
+                }
+            ],
+            "additional_data": {
+                "pagination": {
+                    "start": 0,
+                    "limit": 100,
+                    "more_items_in_collection": false,
+                    "next_start": null
+                }
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(2, response.Data.Count);
+
+        // First deal
+        var deal1 = response.Data[0];
+        Assert.Equal(100, deal1.Id);
+        Assert.Equal("Deal One", deal1.Title);
+        Assert.Equal(10000.00m, deal1.Value);
+        Assert.Equal("USD", deal1.Currency);
+        Assert.Equal(200, deal1.PersonId);
+        Assert.Null(deal1.OrgId);
+        Assert.Equal("open", deal1.Status);
+
+        // Second deal
+        var deal2 = response.Data[1];
+        Assert.Equal(101, deal2.Id);
+        Assert.Equal("Deal Two", deal2.Title);
+        Assert.Equal(25000.50m, deal2.Value);
+        Assert.Equal("EUR", deal2.Currency);
+        Assert.Null(deal2.PersonId);
+        Assert.Equal(300, deal2.OrgId);
+        Assert.Equal("won", deal2.Status);
+        Assert.Equal("2024-05-15T12:00:00Z", deal2.WonTime);
+
+        // Pagination
+        Assert.NotNull(response.AdditionalData?.Pagination);
+        Assert.Equal(0, response.AdditionalData.Pagination.Start);
+        Assert.Equal(100, response.AdditionalData.Pagination.Limit);
+        Assert.False(response.AdditionalData.Pagination.MoreItemsInCollection);
+    }
+
+    /// <summary>
+    /// Test that Deal serialization works for create/update operations
+    /// </summary>
+    [Fact]
+    public void Deal_Serialization_ForCreateUpdate()
+    {
+        // Arrange
+        var deal = new Deal
+        {
+            Title = "New Deal",
+            Value = 15000m,
+            Currency = "USD",
+            PersonId = 123,
+            OrgId = null,
+            StageId = 1,
+            ExpectedCloseDate = "2024-12-31"
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(deal, ApiJsonContext.Default.Deal);
+        var deserialized = JsonSerializer.Deserialize(json, ApiJsonContext.Default.Deal);
+
+        // Assert
+        Assert.NotNull(deserialized);
+        Assert.Equal("New Deal", deserialized.Title);
+        Assert.Equal(15000m, deserialized.Value);
+        Assert.Equal("USD", deserialized.Currency);
+        Assert.Equal(123, deserialized.PersonId);
+        Assert.Null(deserialized.OrgId);
+        Assert.Equal(1, deserialized.StageId);
+        Assert.Equal("2024-12-31", deserialized.ExpectedCloseDate);
+    }
+
+    /// <summary>
+    /// Test handling API error responses
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_HandlesErrorResponse()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": false,
+            "error": "Deal not found",
+            "error_info": "No deal found with ID: 999999",
+            "data": null
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.False(response.Success);
+        Assert.Equal("Deal not found", response.Error);
+        Assert.Equal("No deal found with ID: 999999", response.ErrorInfo);
+        Assert.Null(response.Data);
+    }
+
+    /// <summary>
+    /// Test deal with minimal required fields
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_MinimalFields()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 500,
+                "title": "Minimal Deal",
+                "value": 0,
+                "currency": "USD",
+                "person_id": null,
+                "org_id": null,
+                "stage_id": null,
+                "status": "open",
+                "add_time": "2024-01-01T00:00:00Z",
+                "update_time": "2024-01-01T00:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(500, response.Data.Id);
+        Assert.Equal("Minimal Deal", response.Data.Title);
+        Assert.Equal(0m, response.Data.Value);
+        Assert.Equal("USD", response.Data.Currency);
+        Assert.Null(response.Data.PersonId);
+        Assert.Null(response.Data.OrgId);
+    }
+
+    /// <summary>
+    /// Test deal with won status and won_time
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_WonDeal()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 600,
+                "title": "Won Deal",
+                "value": 75000.00,
+                "currency": "USD",
+                "person_id": 111,
+                "org_id": 222,
+                "status": "won",
+                "probability": 100.0,
+                "won_time": "2024-03-15T16:30:00Z",
+                "add_time": "2024-01-01T00:00:00Z",
+                "update_time": "2024-03-15T16:30:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal("won", response.Data.Status);
+        Assert.Equal(100.0m, response.Data.Probability);
+        Assert.Equal("2024-03-15T16:30:00Z", response.Data.WonTime);
+        Assert.Null(response.Data.LostTime);
+    }
+
+    /// <summary>
+    /// Test that empty list response deserializes correctly
+    /// </summary>
+    [Fact]
+    public void DealsList_Deserialization_EmptyList()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": [],
+            "additional_data": {
+                "pagination": {
+                    "start": 0,
+                    "limit": 100,
+                    "more_items_in_collection": false
+                }
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Empty(response.Data);
+    }
+}
