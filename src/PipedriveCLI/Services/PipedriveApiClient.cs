@@ -474,11 +474,6 @@ public sealed class PipedriveApiClient : IDisposable
     {
         var profile = await _configService.GetActiveProfileAsync();
 
-        var uriBuilder = new UriBuilder(_httpClient.BaseAddress!)
-        {
-            Path = endpoint.TrimStart('/')
-        };
-
         // Build query string with API key
         var query = new List<string> { $"api_token={Uri.EscapeDataString(profile.ApiKey!)}" };
 
@@ -490,9 +485,10 @@ public sealed class PipedriveApiClient : IDisposable
             }
         }
 
-        uriBuilder.Query = string.Join("&", query);
+        var queryString = string.Join("&", query);
+        var trimmedEndpoint = endpoint.TrimStart('/');
 
-        return uriBuilder.Uri.PathAndQuery;
+        return $"{trimmedEndpoint}?{queryString}";
     }
 
     private void EnsureConfigured()
