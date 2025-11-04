@@ -27,7 +27,10 @@ public static class Program
         // Add config command
         rootCommand.AddCommand(ConfigCommands.CreateConfigCommand(configService, apiClient));
 
-        // TODO: Add more commands (leads, deals, persons, organizations, activities, export)
+        // Add leads command
+        rootCommand.AddCommand(LeadsCommands.CreateLeadsCommand(apiClient));
+
+        // TODO: Add more commands (deals, persons, organizations, activities, export)
 
         // Execute command
         return await rootCommand.InvokeAsync(args);
