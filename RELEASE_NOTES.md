@@ -1,3 +1,61 @@
+#### 0.1.0-beta2 January 4th 2025 ####
+
+This release adds comprehensive auto-update functionality to the Pipedrive CLI, making it easy to stay up-to-date with the latest features and improvements.
+
+**New Features**
+
+- **Auto-Update System** ([#12](https://github.com/Aaronontheweb/pipedrive-cli/pull/12))
+  - Background update checking on CLI startup (non-blocking, 3-second timeout)
+  - Update notification banner when newer version available
+  - `pipedrive update` command with multiple options:
+    - `--check` - Check for updates without installing
+    - `--force` - Install updates without confirmation prompt
+  - Platform-specific self-update mechanism (Windows PowerShell, Unix bash)
+  - Automatic backup and rollback on update failure
+  - Progress indicators for download operations
+  - Support for tar.gz (Unix) and zip (Windows) archives
+  - GitHub releases integration via REST API
+  - AOT-compatible JSON serialization with source generators
+
+- **Beta/Pre-release Update Support** ([#13](https://github.com/Aaronontheweb/pipedrive-cli/pull/13))
+  - `--beta` flag to opt into pre-release updates
+  - Default behavior checks stable releases only
+  - Clear distinction between stable and pre-release versions in notifications
+  - Usage:
+    - `pipedrive update --beta` - Update to latest including betas
+    - `pipedrive update --beta --check` - Check for beta without installing
+    - `pipedrive update --beta --force` - Install beta without confirmation
+
+**Improvements**
+
+- Fixed installation scripts to use correct repository owner
+- Simplified release notes to focus on installation instructions
+
+**Technical Details**
+
+- Version comparison using semantic versioning
+- Platform detection (linux-x64, win-x64, osx-x64, osx-arm64)
+- Binary download with progress tracking
+- Archive extraction with proper error handling
+- Self-replacement with backup/rollback capability
+- Silent failure on background check errors to prevent CLI delays
+
+**Installation**
+
+The installation scripts now support beta releases:
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash -s -- --beta
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.1.0-beta2).
+
+---
+
 #### 0.1.0-beta1 November 4th 2025 ####
 
 This is the first beta release of the Pipedrive CLI - a fast, lightweight command-line interface for managing your Pipedrive CRM. Built with .NET 8 and Native AOT compilation for lightning-fast startup times (~13ms) and small binary size (~12MB).
