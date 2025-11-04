@@ -1,3 +1,36 @@
+#### 0.1.0-beta3 January 4th 2025 ####
+
+**CRITICAL HOTFIX RELEASE** - All users of 0.1.0-beta2 must upgrade immediately.
+
+**Bug Fixes**
+
+- **Fixed API URL Construction Bug** (commit 8464db1)
+  - **Impact**: All API operations in 0.1.0-beta2 were completely broken, returning 401 Unauthorized errors
+  - **Root Cause**: `UriBuilder.Path` was replacing the entire path, removing the `/api/v1/` prefix from API requests
+  - **Symptom**: Requests were going to `https://domain.com/leads` instead of `https://domain.com/api/v1/leads`
+  - **Resolution**: Fixed URL construction to preserve the BaseAddress path when HttpClient makes requests
+  - **Result**: All API endpoints (leads, deals, activities, persons, organizations) now work correctly
+
+**Technical Details**
+
+The bug was introduced by using `UriBuilder.Path` to set the endpoint path, which replaces the entire path component of the URI rather than appending to it. This caused the `/api/v1/` prefix from the HttpClient's BaseAddress to be stripped out.
+
+The fix constructs the relative URL path directly as a string, allowing HttpClient to properly combine it with the BaseAddress that includes the `/api/v1/` prefix.
+
+**Installation**
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash -s -- --beta
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.1.0-beta3).
+
+---
+
 #### 0.1.0-beta2 January 4th 2025 ####
 
 This release adds comprehensive auto-update functionality to the Pipedrive CLI, making it easy to stay up-to-date with the latest features and improvements.
