@@ -80,7 +80,7 @@ public static class OrganizationsCommands
                                     org.Name ?? "-",
                                     org.PeopleCount.ToString(),
                                     org.Address ?? "-",
-                                    org.OwnerId?.ToString() ?? "-",
+                                    org.OwnerId?.Id.ToString() ?? "-",
                                     org.AddTime ?? "-"
                                 );
                             }
@@ -104,7 +104,7 @@ public static class OrganizationsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, limitOption, startOption);
 
@@ -138,17 +138,20 @@ public static class OrganizationsCommands
                 if (response?.Success == true && response.Data != null)
                 {
                     var org = response.Data;
+                    var ownerInfo = org.OwnerId != null
+                        ? $"{org.OwnerId.Id} ({org.OwnerId.Name})"
+                        : "N/A";
 
                     var panel = new Panel(new Markup(
-                        $"[bold]Name:[/] {org.Name}\n" +
+                        $"[bold]Name:[/] {Markup.Escape(org.Name ?? "")}\n" +
                         $"[bold]ID:[/] {org.Id}\n" +
                         $"[bold]People Count:[/] {org.PeopleCount}\n" +
-                        $"[bold]Address:[/] {org.Address ?? "N/A"}\n" +
-                        $"[bold]Owner ID:[/] {org.OwnerId?.ToString() ?? "N/A"}\n" +
-                        $"[bold]Added:[/] {org.AddTime}\n" +
-                        $"[bold]Updated:[/] {org.UpdateTime}"))
+                        $"[bold]Address:[/] {Markup.Escape(org.Address ?? "N/A")}\n" +
+                        $"[bold]Owner:[/] {Markup.Escape(ownerInfo)}\n" +
+                        $"[bold]Added:[/] {Markup.Escape(org.AddTime ?? "N/A")}\n" +
+                        $"[bold]Updated:[/] {Markup.Escape(org.UpdateTime ?? "N/A")}"))
                     {
-                        Header = new PanelHeader($"[green]Organization: {org.Name}[/]"),
+                        Header = new PanelHeader($"[green]Organization: {Markup.Escape(org.Name ?? "")}[/]"),
                         Border = BoxBorder.Rounded
                     };
 
@@ -161,7 +164,7 @@ public static class OrganizationsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument);
 
@@ -209,18 +212,18 @@ public static class OrganizationsCommands
 
                 if (response?.Success == true && response.Data != null)
                 {
-                    AnsiConsole.MarkupLine($"[green]✓[/] Organization created successfully");
-                    AnsiConsole.MarkupLine($"[dim]ID:[/] {response.Data.Id}");
-                    AnsiConsole.MarkupLine($"[dim]Name:[/] {response.Data.Name}");
+                    AnsiConsole.MarkupLine("[green]✓[/] Organization created successfully");
+                    AnsiConsole.MarkupLine($"[dim]ID:[/] {Markup.Escape(response.Data.Id.ToString())}");
+                    AnsiConsole.MarkupLine($"[dim]Name:[/] {Markup.Escape(response.Data.Name ?? "")}");
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create organization: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create organization: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, nameOption, addressOption);
 
@@ -284,7 +287,7 @@ public static class OrganizationsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, nameOption, addressOption);
 
@@ -342,7 +345,7 @@ public static class OrganizationsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, forceOption);
 
@@ -416,7 +419,7 @@ public static class OrganizationsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, termArgument, limitOption);
 

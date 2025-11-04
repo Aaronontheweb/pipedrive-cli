@@ -214,6 +214,24 @@ public sealed class Phone
 }
 
 /// <summary>
+/// Pipedrive Owner/User reference
+/// </summary>
+public sealed class Owner
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("value")]
+    public int Value { get; set; }
+}
+
+/// <summary>
 /// Pipedrive Organization model
 /// </summary>
 public sealed class Organization
@@ -228,7 +246,7 @@ public sealed class Organization
     public int PeopleCount { get; set; }
 
     [JsonPropertyName("owner_id")]
-    public int? OwnerId { get; set; }
+    public Owner? OwnerId { get; set; }
 
     [JsonPropertyName("address")]
     public string? Address { get; set; }
@@ -288,7 +306,7 @@ public sealed class Activity
 [JsonSourceGenerationOptions(
     WriteIndented = true,
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault)]
 [JsonSerializable(typeof(PipedriveResponse<object>))]
 [JsonSerializable(typeof(PipedriveResponse<Lead>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Lead>>))]
@@ -310,6 +328,7 @@ public sealed class Activity
 [JsonSerializable(typeof(List<Person>))]
 [JsonSerializable(typeof(List<Organization>))]
 [JsonSerializable(typeof(List<Activity>))]
+[JsonSerializable(typeof(Owner))]
 internal partial class ApiJsonContext : JsonSerializerContext
 {
 }
