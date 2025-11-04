@@ -30,7 +30,13 @@ public static class Program
         // Add leads command
         rootCommand.AddCommand(LeadsCommands.CreateLeadsCommand(apiClient));
 
-        // TODO: Add more commands (deals, persons, organizations, activities, export)
+        // Add deals command
+        rootCommand.AddCommand(DealsCommands.CreateDealsCommand(apiClient));
+
+        // Add activities command
+        rootCommand.AddCommand(ActivitiesCommands.CreateActivitiesCommand(apiClient));
+
+        // TODO: Add more commands (persons, organizations, export)
 
         // Execute command
         return await rootCommand.InvokeAsync(args);

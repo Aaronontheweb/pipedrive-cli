@@ -198,6 +198,126 @@ public sealed class PipedriveApiClient : IDisposable
 
     #endregion
 
+    #region Deals Operations
+
+    /// <summary>
+    /// Gets all deals
+    /// </summary>
+    public async Task<PipedriveResponse<List<Deal>>?> GetDealsAsync(int? limit = null, int? start = null, string? status = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(status)) queryParams["status"] = status;
+
+        var jsonResponse = await GetAsync("deals", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListDeal);
+    }
+
+    /// <summary>
+    /// Gets a specific deal by ID
+    /// </summary>
+    public async Task<PipedriveResponse<Deal>?> GetDealByIdAsync(int id)
+    {
+        var jsonResponse = await GetAsync($"deals/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseDeal);
+    }
+
+    /// <summary>
+    /// Creates a new deal
+    /// </summary>
+    public async Task<PipedriveResponse<Deal>?> CreateDealAsync(Deal deal)
+    {
+        var jsonData = JsonSerializer.Serialize(deal, ApiJsonContext.Default.Deal);
+        var jsonResponse = await PostAsync("deals", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseDeal);
+    }
+
+    /// <summary>
+    /// Updates an existing deal
+    /// </summary>
+    public async Task<PipedriveResponse<Deal>?> UpdateDealAsync(int id, Deal deal)
+    {
+        var jsonData = JsonSerializer.Serialize(deal, ApiJsonContext.Default.Deal);
+        var jsonResponse = await PutAsync($"deals/{id}", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseDeal);
+    }
+
+    /// <summary>
+    /// Deletes a deal
+    /// </summary>
+    public async Task<bool> DeleteDealAsync(int id)
+    {
+        return await DeleteAsync($"deals/{id}");
+    }
+
+    #endregion
+
+    #region Activities Operations
+
+    /// <summary>
+    /// Gets all activities
+    /// </summary>
+    public async Task<PipedriveResponse<List<Activity>>?> GetActivitiesAsync(int? limit = null, int? start = null, bool? done = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        if (done.HasValue) queryParams["done"] = done.Value ? "1" : "0";
+
+        var jsonResponse = await GetAsync("activities", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
+    }
+
+    /// <summary>
+    /// Gets a specific activity by ID
+    /// </summary>
+    public async Task<PipedriveResponse<Activity>?> GetActivityByIdAsync(int id)
+    {
+        var jsonResponse = await GetAsync($"activities/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseActivity);
+    }
+
+    /// <summary>
+    /// Creates a new activity
+    /// </summary>
+    public async Task<PipedriveResponse<Activity>?> CreateActivityAsync(Activity activity)
+    {
+        var jsonData = JsonSerializer.Serialize(activity, ApiJsonContext.Default.Activity);
+        var jsonResponse = await PostAsync("activities", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseActivity);
+    }
+
+    /// <summary>
+    /// Updates an existing activity
+    /// </summary>
+    public async Task<PipedriveResponse<Activity>?> UpdateActivityAsync(int id, Activity activity)
+    {
+        var jsonData = JsonSerializer.Serialize(activity, ApiJsonContext.Default.Activity);
+        var jsonResponse = await PutAsync($"activities/{id}", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseActivity);
+    }
+
+    /// <summary>
+    /// Deletes an activity
+    /// </summary>
+    public async Task<bool> DeleteActivityAsync(int id)
+    {
+        return await DeleteAsync($"activities/{id}");
+    }
+
+    /// <summary>
+    /// Marks an activity as done
+    /// </summary>
+    public async Task<PipedriveResponse<Activity>?> MarkActivityDoneAsync(int id)
+    {
+        var jsonData = JsonSerializer.Serialize(new { done = true }, ApiJsonContext.Default.Object);
+        var jsonResponse = await PutAsync($"activities/{id}", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseActivity);
+    }
+
+    #endregion
+
     /// <summary>
     /// Tests the API connection by making a simple request
     /// </summary>
