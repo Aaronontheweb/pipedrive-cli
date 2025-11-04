@@ -44,7 +44,7 @@ public class PersonsApiClientTests
                     }
                 ],
                 "org_id": 456,
-                "owner_id": 789,
+                "owner_id": null,
                 "add_time": "2024-01-15T10:30:00Z",
                 "update_time": "2024-01-16T14:20:00Z"
             }
@@ -63,7 +63,7 @@ public class PersonsApiClientTests
         Assert.Equal("John", response.Data.FirstName);
         Assert.Equal("Doe", response.Data.LastName);
         Assert.Equal(456, response.Data.OrgId);
-        Assert.Equal(789, response.Data.OwnerId);
+        Assert.Null(response.Data.OwnerId);
         Assert.Equal("2024-01-15T10:30:00Z", response.Data.AddTime);
         Assert.Equal("2024-01-16T14:20:00Z", response.Data.UpdateTime);
 
@@ -106,7 +106,7 @@ public class PersonsApiClientTests
                     ],
                     "phone": null,
                     "org_id": 200,
-                    "owner_id": 300,
+                    "owner_id": null,
                     "add_time": "2024-01-01T10:00:00Z",
                     "update_time": "2024-01-01T10:00:00Z"
                 },
@@ -124,7 +124,7 @@ public class PersonsApiClientTests
                         }
                     ],
                     "org_id": null,
-                    "owner_id": 300,
+                    "owner_id": null,
                     "add_time": "2024-01-02T11:00:00Z",
                     "update_time": "2024-01-02T11:00:00Z"
                 }

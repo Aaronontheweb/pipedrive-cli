@@ -33,7 +33,7 @@ public class ActivitiesApiClientTests
                 "add_time": "2024-01-15T10:30:00Z",
                 "update_time": "2024-01-16T14:20:00Z",
                 "marked_as_done_time": null,
-                "owner_id": 999,
+                "owner_id": null,
                 "creator_user_id": 888
             }
         }

@@ -35,7 +35,7 @@ public class DealsApiClientTests
                 "won_time": null,
                 "lost_time": null,
                 "pipeline_id": 1,
-                "owner_id": 999,
+                "owner_id": null,
                 "creator_user_id": 888
             }
         }

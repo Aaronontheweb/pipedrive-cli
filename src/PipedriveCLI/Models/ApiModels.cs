@@ -69,7 +69,7 @@ public sealed class Lead
     public int? OrganizationId { get; set; }
 
     [JsonPropertyName("owner_id")]
-    public int? OwnerId { get; set; }
+    public Owner? OwnerId { get; set; }
 
     [JsonPropertyName("value")]
     public LeadValue? Value { get; set; }
@@ -174,7 +174,7 @@ public sealed class Person
     public int? OrgId { get; set; }
 
     [JsonPropertyName("owner_id")]
-    public int? OwnerId { get; set; }
+    public Owner? OwnerId { get; set; }
 
     [JsonPropertyName("add_time")]
     public string? AddTime { get; set; }
