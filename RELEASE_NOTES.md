@@ -1,3 +1,96 @@
+#### 0.1.0 January 4th 2025 ####
+
+**FIRST STABLE RELEASE** - The Pipedrive CLI is now production-ready!
+
+This release promotes 0.1.0-beta3 to stable status. After successful beta testing, the CLI is ready for production use with all core features tested and working correctly.
+
+**What's Included**
+
+This is the first stable release of the Pipedrive CLI - a fast, lightweight command-line interface for managing your Pipedrive CRM. Built with .NET 8 and Native AOT compilation for lightning-fast startup times (~13ms) and small binary size (~12MB).
+
+**Core Features**
+
+- **Configuration Management**
+  - Multi-profile support (default, staging, production)
+  - Secure credential storage with Unix file permissions (600)
+  - Environment variable overrides (PIPEDRIVE_API_KEY, PIPEDRIVE_DOMAIN)
+  - Profile switching and API connection testing
+
+- **CRM Entity Management**
+  - **Leads**: List, get, create, update, delete, and search
+  - **Deals**: Full CRUD operations with status filtering
+  - **Activities**: Management with due date/time and completion tracking
+  - **Persons (Contacts)**: Complete contact management with email/phone support
+  - **Organizations**: Company management with search capabilities
+
+- **Auto-Update System**
+  - Background update checking on CLI startup (non-blocking)
+  - `pipedrive update` command with check, force, and beta options
+  - Platform-specific self-update mechanism (Windows PowerShell, Unix bash)
+  - Automatic backup and rollback on update failure
+  - Support for both stable and pre-release versions
+
+- **Installation Scripts**
+  - `install.sh` for Linux/macOS with multi-architecture support
+  - `install.ps1` for Windows with architecture detection
+  - Beta/pre-release support with `--beta` flag
+  - Uninstall functionality with config directory cleanup
+
+**Why This Release Matters**
+
+The stable release fixes a critical issue with the auto-update checker. Previous beta versions would get 404 errors when checking for updates because the GitHub releases API's `/latest` endpoint only returns stable releases (not pre-releases). With 0.1.0 stable now published, the auto-update system will work correctly for all users.
+
+**Installation**
+
+Using the installer script (recommended):
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.1.0).
+
+**Getting Started**
+
+1. Configure your Pipedrive API key:
+```bash
+pipedrive config set --api-key YOUR_API_KEY --domain company.pipedrive.com
+```
+
+2. Test the connection:
+```bash
+pipedrive config test
+```
+
+3. Start managing your CRM:
+```bash
+pipedrive leads list
+pipedrive deals list --status won
+pipedrive persons search "John Doe"
+```
+
+**Technical Highlights**
+
+- **Native AOT Compilation**: 13ms cold start time, 12MB binary size
+- **JSON Source Generators**: Full AOT compatibility
+- **Cross-Platform**: Linux, macOS (Intel/ARM), Windows support
+- **Comprehensive Testing**: 38 unit tests covering all API operations
+
+**Documentation**
+
+- Full documentation: https://github.com/Aaronontheweb/pipedrive-cli/blob/dev/README.md
+- Pipedrive API: https://developers.pipedrive.com/docs/api/v1
+
+**Feedback**
+
+Please report any issues or feature requests at https://github.com/Aaronontheweb/pipedrive-cli/issues
+
+---
+
 #### 0.1.0-beta3 January 4th 2025 ####
 
 **CRITICAL HOTFIX RELEASE** - All users of 0.1.0-beta2 must upgrade immediately.
