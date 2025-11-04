@@ -38,18 +38,6 @@ public sealed class ProfileConfig
     public string? Domain { get; set; }
 
     /// <summary>
-    /// Optional: Email Gateway URL for email approval workflow
-    /// </summary>
-    [JsonPropertyName("emailGatewayUrl")]
-    public string? EmailGatewayUrl { get; set; }
-
-    /// <summary>
-    /// Optional: Email Gateway API key for submitting drafts
-    /// </summary>
-    [JsonPropertyName("emailGatewayApiKey")]
-    public string? EmailGatewayApiKey { get; set; }
-
-    /// <summary>
     /// Validates that required fields are present
     /// </summary>
     public bool IsValid()

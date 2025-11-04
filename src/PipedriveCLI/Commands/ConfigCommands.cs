@@ -40,34 +40,21 @@ public static class ConfigCommands
             aliases: new[] { "--domain", "-d" },
             description: "Pipedrive domain (e.g., company.pipedrive.com)");
 
-        var emailGatewayUrlOption = new Option<string?>(
-            aliases: new[] { "--email-gateway-url", "-e" },
-            description: "Email Gateway URL for approval workflow");
-
-        var emailGatewayApiKeyOption = new Option<string?>(
-            aliases: new[] { "--email-gateway-api-key", "-g" },
-            description: "Email Gateway API key");
-
         setCommand.AddOption(apiKeyOption);
         setCommand.AddOption(domainOption);
-        setCommand.AddOption(emailGatewayUrlOption);
-        setCommand.AddOption(emailGatewayApiKeyOption);
 
-        setCommand.SetHandler(async (apiKey, domain, emailGatewayUrl, emailGatewayApiKey) =>
+        setCommand.SetHandler(async (apiKey, domain) =>
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(apiKey) &&
-                    string.IsNullOrWhiteSpace(domain) &&
-                    string.IsNullOrWhiteSpace(emailGatewayUrl) &&
-                    string.IsNullOrWhiteSpace(emailGatewayApiKey))
+                if (string.IsNullOrWhiteSpace(apiKey) && string.IsNullOrWhiteSpace(domain))
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one configuration value must be specified.");
-                    AnsiConsole.MarkupLine("Use [cyan]--api-key[/], [cyan]--domain[/], [cyan]--email-gateway-url[/], or [cyan]--email-gateway-api-key[/]");
+                    AnsiConsole.MarkupLine("Use [cyan]--api-key[/] or [cyan]--domain[/]");
                     return;
                 }
 
-                await configService.SetConfigAsync(apiKey, domain, emailGatewayUrl, emailGatewayApiKey);
+                await configService.SetConfigAsync(apiKey, domain);
 
                 AnsiConsole.MarkupLine("[green]✓[/] Configuration updated successfully");
 
@@ -85,10 +72,6 @@ public static class ConfigCommands
                     table.AddRow("API Key", $"[dim]{MaskApiKey(profile.ApiKey)}[/]");
                 if (!string.IsNullOrWhiteSpace(domain))
                     table.AddRow("Domain", $"[cyan]{profile.Domain}[/]");
-                if (!string.IsNullOrWhiteSpace(emailGatewayUrl))
-                    table.AddRow("Email Gateway URL", $"[cyan]{profile.EmailGatewayUrl ?? "Not set"}[/]");
-                if (!string.IsNullOrWhiteSpace(emailGatewayApiKey))
-                    table.AddRow("Email Gateway API Key", $"[dim]{MaskApiKey(profile.EmailGatewayApiKey)}[/]");
 
                 AnsiConsole.Write(table);
             }
@@ -96,7 +79,7 @@ public static class ConfigCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
             }
-        }, apiKeyOption, domainOption, emailGatewayUrlOption, emailGatewayApiKeyOption);
+        }, apiKeyOption, domainOption);
 
         return setCommand;
     }
@@ -123,8 +106,6 @@ public static class ConfigCommands
                 table.AddRow("Profile", $"[cyan]{profileName}[/]");
                 table.AddRow("API Key", profile.ApiKey != null ? $"[dim]{MaskApiKey(profile.ApiKey)}[/]" : "[dim]Not set[/]");
                 table.AddRow("Domain", !string.IsNullOrWhiteSpace(profile.Domain) ? $"[cyan]{profile.Domain}[/]" : "[dim]Not set[/]");
-                table.AddRow("Email Gateway URL", !string.IsNullOrWhiteSpace(profile.EmailGatewayUrl) ? $"[cyan]{profile.EmailGatewayUrl}[/]" : "[dim]Not set[/]");
-                table.AddRow("Email Gateway API Key", profile.EmailGatewayApiKey != null ? $"[dim]{MaskApiKey(profile.EmailGatewayApiKey)}[/]" : "[dim]Not set[/]");
                 table.AddRow("Config File", $"[dim]{configService.ConfigFilePath}[/]");
 
                 AnsiConsole.Write(table);
