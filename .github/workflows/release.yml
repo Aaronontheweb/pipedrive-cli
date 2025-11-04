@@ -79,8 +79,7 @@ jobs:
             -p:Version=${{ env.VERSION }} \
             -p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }} \
             -p:FileVersion=${{ env.ASSEMBLY_VERSION }} \
-            /p:PublishTrimmed=true \
-            /p:PublishSingleFile=true
+            /p:PublishTrimmed=true
 
       - name: "Publish AOT binary (Windows)"
         if: runner.os == 'Windows'
@@ -94,8 +93,7 @@ jobs:
             -p:Version=${{ env.VERSION }} `
             -p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }} `
             -p:FileVersion=${{ env.ASSEMBLY_VERSION }} `
-            /p:PublishTrimmed=true `
-            /p:PublishSingleFile=true
+            /p:PublishTrimmed=true
 
       - name: "Create archive (Linux/macOS)"
         if: matrix.archive == 'tar.gz'
