@@ -9,6 +9,10 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
 - **🌍 Environment Variables** - Override config values via environment variables
 - **🎨 Beautiful Console UI** - Rich formatting with Spectre.Console
 - **🔄 Multi-Profile Support** - Manage multiple Pipedrive environments (dev, staging, prod)
+- **📝 Full CRM Management** - Complete CRUD operations for leads, deals, persons, organizations, activities, and notes
+- **🔀 Entity Merging** - Merge duplicate persons, deals, and organizations with confirmation prompts
+- **🏷️ Custom Fields** - Automatic display of custom fields when viewing entities
+- **⬆️ Auto-Update** - Background update checking with self-update capability
 
 ## Installation
 
@@ -185,6 +189,172 @@ pipedrive config profile switch [profile-name]
 pipedrive config profile switch staging
 ```
 
+### `leads` - Leads Management
+
+Manage Pipedrive leads with full CRUD operations and search capabilities.
+
+```bash
+# List all leads
+pipedrive leads list [--limit 100] [--start 0]
+
+# Get specific lead details
+pipedrive leads get <id>
+
+# Create a new lead
+pipedrive leads create --title "Enterprise Deal" [--value 50000] [--expected-close-date "2025-12-31"]
+
+# Update an existing lead
+pipedrive leads update <id> --title "Updated Title" [--value 75000]
+
+# Delete a lead
+pipedrive leads delete <id> [--force]
+
+# Search leads
+pipedrive leads search "search term" [--limit 100]
+```
+
+### `deals` - Deals Management
+
+Manage deals with status filtering and merge capabilities.
+
+```bash
+# List all deals
+pipedrive deals list [--status open|won|lost] [--limit 100] [--start 0]
+
+# Get specific deal details (includes custom fields)
+pipedrive deals get <id>
+
+# Create a new deal
+pipedrive deals create --title "Q4 License" --value 25000 [--currency USD] [--person-id 123] [--org-id 456]
+
+# Update an existing deal
+pipedrive deals update <id> --title "Updated Deal" [--value 30000] [--status won]
+
+# Delete a deal
+pipedrive deals delete <id> [--force]
+
+# Merge duplicate deals
+pipedrive deals merge <source-id> <target-id> [--force]
+# Note: Source deal will be deleted, target deal takes priority in conflicts
+```
+
+### `persons` - Persons (Contacts) Management
+
+Manage contacts with email, phone, and organization associations.
+
+```bash
+# List all persons
+pipedrive persons list [--limit 100] [--start 0]
+
+# Get specific person details (includes custom fields)
+pipedrive persons get <id>
+
+# Create a new person
+pipedrive persons create --name "John Doe" [--email john@example.com] [--phone "+1234567890"] [--org-id 123]
+
+# Update an existing person
+pipedrive persons update <id> --name "Jane Doe" [--email jane@example.com]
+
+# Delete a person
+pipedrive persons delete <id> [--force]
+
+# Search persons
+pipedrive persons search "search term" [--limit 100]
+
+# Merge duplicate persons
+pipedrive persons merge <source-id> <target-id> [--force]
+```
+
+### `organizations` - Organizations Management
+
+Manage companies and organizations with search and merge capabilities.
+
+```bash
+# List all organizations
+pipedrive organizations list [--limit 100] [--start 0]
+
+# Get specific organization details (includes custom fields)
+pipedrive organizations get <id>
+
+# Create a new organization
+pipedrive organizations create --name "Acme Corp" [--address "123 Main St, City, State"]
+
+# Update an existing organization
+pipedrive organizations update <id> --name "Updated Corp" [--address "New Address"]
+
+# Delete an organization
+pipedrive organizations delete <id> [--force]
+
+# Search organizations
+pipedrive organizations search "search term" [--limit 100]
+
+# Merge duplicate organizations
+pipedrive organizations merge <source-id> <target-id> [--force]
+```
+
+### `activities` - Activities Management
+
+Manage tasks, calls, meetings, and other activities with due date tracking.
+
+```bash
+# List all activities
+pipedrive activities list [--done 0|1] [--limit 100] [--start 0]
+
+# Get specific activity details
+pipedrive activities get <id>
+
+# Create a new activity
+pipedrive activities create --subject "Follow-up call" --type call [--due-date "2025-12-31"] [--due-time "14:00"]
+
+# Update an existing activity
+pipedrive activities update <id> --subject "Updated subject" [--due-date "2026-01-15"]
+
+# Delete an activity
+pipedrive activities delete <id> [--force]
+
+# Mark activity as done
+pipedrive activities mark-done <id>
+```
+
+### `notes` - Notes Management
+
+Manage notes with HTML content support and entity associations.
+
+```bash
+# List all notes
+pipedrive notes list [--limit 100] [--start 0]
+
+# Get specific note details
+pipedrive notes get <id>
+
+# Create a new note
+pipedrive notes create --content "Meeting notes here" [--deal-id 123] [--person-id 456] [--org-id 789]
+
+# Update an existing note
+pipedrive notes update <id> --content "Updated notes"
+
+# Delete a note
+pipedrive notes delete <id> [--force]
+```
+
+### `update` - Auto-Update
+
+Check for and install CLI updates.
+
+```bash
+# Check for updates (stable releases only)
+pipedrive update --check
+
+# Install latest stable update
+pipedrive update
+
+# Check for updates including beta/pre-releases
+pipedrive update --check --beta
+
+# Install latest update (including betas) without confirmation
+pipedrive update --beta --force
+```
+
 ## Getting Your API Key
 
 1. Log in to your Pipedrive account
@@ -225,18 +395,13 @@ dotnet publish src/PipedriveCLI/PipedriveCLI.csproj -c Release -r win-x64
 
 The following features are planned for future releases:
 
-### Data Management Commands
-- **Leads** - List, create, update, delete, search, and convert leads
-- **Deals** - Manage deals and pipeline stages
-- **Persons** - Manage contacts and people
-- **Organizations** - Manage companies and organizations
-- **Activities** - Manage tasks, calls, meetings, and other activities
-
 ### Export & Analysis
 - **Bulk Export** - Export leads, deals, and contacts to CSV
 - **AI-Powered Cleanup** - Analyze and sanitize CRM data
-- **Duplicate Detection** - Find and merge duplicate records
 - **Data Quality Reports** - Identify incomplete or invalid data
+- **Advanced Reporting** - Generate custom reports and analytics
+
+For the full list of planned features and to suggest new ones, visit the [GitHub Issues](https://github.com/stannardlabs/pipedrive-cli/issues) page.
 
 ## Architecture
 
