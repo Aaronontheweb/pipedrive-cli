@@ -144,7 +144,7 @@ public sealed class Lead
     public int? OrganizationId { get; set; }
 
     [JsonPropertyName("owner_id")]
-    public Owner? OwnerId { get; set; }
+    public int? OwnerId { get; set; }
 
     [JsonPropertyName("value")]
     public LeadValue? Value { get; set; }
@@ -160,6 +160,97 @@ public sealed class Lead
 
     [JsonPropertyName("update_time")]
     public string? UpdateTime { get; set; }
+}
+
+/// <summary>
+/// Lead model for search results (v2 API search endpoint)
+/// Different from standard Lead - value/currency are separate fields
+/// </summary>
+public sealed class LeadSearchResultLead
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+
+    [JsonPropertyName("person_id")]
+    public int? PersonId { get; set; }
+
+    [JsonPropertyName("organization_id")]
+    public int? OrganizationId { get; set; }
+
+    [JsonPropertyName("owner_id")]
+    public int? OwnerId { get; set; }
+
+    [JsonPropertyName("value")]
+    public decimal? ValueAmount { get; set; }
+
+    [JsonPropertyName("currency")]
+    public string? Currency { get; set; }
+
+    [JsonPropertyName("expected_close_date")]
+    public string? ExpectedCloseDate { get; set; }
+
+    [JsonPropertyName("was_seen")]
+    public bool WasSeen { get; set; }
+
+    [JsonPropertyName("add_time")]
+    public string? AddTime { get; set; }
+
+    [JsonPropertyName("update_time")]
+    public string? UpdateTime { get; set; }
+
+    /// <summary>
+    /// Convert search result lead to standard Lead model
+    /// </summary>
+    public Lead ToLead()
+    {
+        var lead = new Lead
+        {
+            Id = Id,
+            Title = Title,
+            PersonId = PersonId,
+            OrganizationId = OrganizationId,
+            OwnerId = OwnerId,
+            ExpectedCloseDate = ExpectedCloseDate,
+            WasSeen = WasSeen,
+            AddTime = AddTime,
+            UpdateTime = UpdateTime
+        };
+
+        if (ValueAmount.HasValue && !string.IsNullOrWhiteSpace(Currency))
+        {
+            lead.Value = new LeadValue
+            {
+                Amount = ValueAmount.Value,
+                Currency = Currency
+            };
+        }
+
+        return lead;
+    }
+}
+
+/// <summary>
+/// Lead search result item (v2 API search endpoint)
+/// </summary>
+public sealed class LeadSearchItem
+{
+    [JsonPropertyName("result_score")]
+    public decimal ResultScore { get; set; }
+
+    [JsonPropertyName("item")]
+    public LeadSearchResultLead? Item { get; set; }
+}
+
+/// <summary>
+/// Lead search data wrapper (v2 API search endpoint)
+/// </summary>
+public sealed class LeadSearchData
+{
+    [JsonPropertyName("items")]
+    public List<LeadSearchItem>? Items { get; set; }
 }
 
 /// <summary>
@@ -382,6 +473,72 @@ public sealed class Activity
 }
 
 /// <summary>
+/// Merge request model for merging two entities
+/// </summary>
+public sealed class MergeRequest
+{
+    [JsonPropertyName("merge_with_id")]
+    public int MergeWithId { get; set; }
+}
+
+/// <summary>
+/// Pipedrive Note model
+/// </summary>
+public sealed class Note
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("content")]
+    public string? Content { get; set; }
+
+    [JsonPropertyName("active_flag")]
+    public bool ActiveFlag { get; set; }
+
+    [JsonPropertyName("add_time")]
+    public string? AddTime { get; set; }
+
+    [JsonPropertyName("update_time")]
+    public string? UpdateTime { get; set; }
+
+    [JsonPropertyName("user_id")]
+    public int? UserId { get; set; }
+
+    [JsonPropertyName("deal_id")]
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
+    public int? DealId { get; set; }
+
+    [JsonPropertyName("person_id")]
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
+    public int? PersonId { get; set; }
+
+    [JsonPropertyName("org_id")]
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
+    public int? OrgId { get; set; }
+
+    [JsonPropertyName("lead_id")]
+    public string? LeadId { get; set; }
+
+    [JsonPropertyName("project_id")]
+    public int? ProjectId { get; set; }
+
+    [JsonPropertyName("pinned_to_deal_flag")]
+    public bool? PinnedToDealFlag { get; set; }
+
+    [JsonPropertyName("pinned_to_person_flag")]
+    public bool? PinnedToPersonFlag { get; set; }
+
+    [JsonPropertyName("pinned_to_organization_flag")]
+    public bool? PinnedToOrganizationFlag { get; set; }
+
+    [JsonPropertyName("pinned_to_lead_flag")]
+    public bool? PinnedToLeadFlag { get; set; }
+
+    [JsonPropertyName("pinned_to_project_flag")]
+    public bool? PinnedToProjectFlag { get; set; }
+}
+
+/// <summary>
 /// JSON source generator context for API models (Native AOT compatibility)
 /// </summary>
 [JsonSourceGenerationOptions(
@@ -391,6 +548,7 @@ public sealed class Activity
 [JsonSerializable(typeof(PipedriveResponse<object>))]
 [JsonSerializable(typeof(PipedriveResponse<Lead>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Lead>>))]
+[JsonSerializable(typeof(PipedriveResponse<LeadSearchData>))]
 [JsonSerializable(typeof(PipedriveResponse<Deal>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Deal>>))]
 [JsonSerializable(typeof(PipedriveResponse<Person>))]
@@ -399,16 +557,25 @@ public sealed class Activity
 [JsonSerializable(typeof(PipedriveResponse<List<Organization>>))]
 [JsonSerializable(typeof(PipedriveResponse<Activity>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Activity>>))]
+[JsonSerializable(typeof(PipedriveResponse<Note>))]
+[JsonSerializable(typeof(PipedriveResponse<List<Note>>))]
 [JsonSerializable(typeof(Lead))]
+[JsonSerializable(typeof(LeadSearchResultLead))]
+[JsonSerializable(typeof(LeadSearchItem))]
+[JsonSerializable(typeof(LeadSearchData))]
 [JsonSerializable(typeof(Deal))]
 [JsonSerializable(typeof(Person))]
 [JsonSerializable(typeof(Organization))]
 [JsonSerializable(typeof(Activity))]
+[JsonSerializable(typeof(Note))]
+[JsonSerializable(typeof(MergeRequest))]
 [JsonSerializable(typeof(List<Lead>))]
+[JsonSerializable(typeof(List<LeadSearchItem>))]
 [JsonSerializable(typeof(List<Deal>))]
 [JsonSerializable(typeof(List<Person>))]
 [JsonSerializable(typeof(List<Organization>))]
 [JsonSerializable(typeof(List<Activity>))]
+[JsonSerializable(typeof(List<Note>))]
 [JsonSerializable(typeof(Owner))]
 internal partial class ApiJsonContext : JsonSerializerContext
 {

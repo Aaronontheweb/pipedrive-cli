@@ -317,6 +317,19 @@ public static class LeadsCommands
                     return;
                 }
 
+                // Validate that value and currency are provided together
+                if (value.HasValue && string.IsNullOrWhiteSpace(currency))
+                {
+                    AnsiConsole.MarkupLine("[red]Error:[/] Currency (--currency) is required when specifying a value");
+                    return;
+                }
+
+                if (!value.HasValue && !string.IsNullOrWhiteSpace(currency))
+                {
+                    AnsiConsole.MarkupLine("[red]Error:[/] Value amount (--value) is required when specifying a currency");
+                    return;
+                }
+
                 await apiClient.InitializeAsync();
 
                 var lead = new Lead();
@@ -324,11 +337,12 @@ public static class LeadsCommands
                 if (!string.IsNullOrWhiteSpace(title)) lead.Title = title;
                 if (!string.IsNullOrWhiteSpace(expectedCloseDate)) lead.ExpectedCloseDate = expectedCloseDate;
 
-                if (value.HasValue || !string.IsNullOrWhiteSpace(currency))
+                // Only set Value if both value and currency are provided
+                if (value.HasValue && !string.IsNullOrWhiteSpace(currency))
                 {
                     lead.Value = new LeadValue
                     {
-                        Amount = value ?? 0,
+                        Amount = value.Value,
                         Currency = currency
                     };
                 }
