@@ -7,50 +7,71 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.1.0</VersionPrefix>
-    <PackageReleaseNotes>**FIRST STABLE RELEASE** - The Pipedrive CLI is now production-ready!
+    <VersionPrefix>0.2.0</VersionPrefix>
+    <PackageReleaseNotes>This release adds powerful new features for managing notes and merging duplicate entities, along with custom field support and important stability improvements.
 
-This release promotes 0.1.0-beta3 to stable status. After successful beta testing, the CLI is ready for production use with all core features tested and working correctly.
+**New Features**
 
-**What's Included**
+- **Notes API** ([#20](https://github.com/Aaronontheweb/pipedrive-cli/pull/20))
+  - Complete CRUD operations for notes (list, get, create, update, delete)
+  - Support for associations with deals, persons, organizations, leads, and projects
+  - HTML content support with automatic sanitization
+  - Rich filtering options by entity type and ID
+  - Commands:
+    - `pipedrive notes list` - List all notes with filtering
+    - `pipedrive notes get &lt;id&gt;` - Get specific note details
+    - `pipedrive notes create` - Create new notes with content and associations
+    - `pipedrive notes update &lt;id&gt;` - Update existing notes
+    - `pipedrive notes delete &lt;id&gt;` - Delete notes with confirmation
 
-This is the first stable release of the Pipedrive CLI - a fast, lightweight command-line interface for managing your Pipedrive CRM. Built with .NET 8 and Native AOT compilation for lightning-fast startup times (~13ms) and small binary size (~12MB).
+- **Entity Merge Commands** ([#20](https://github.com/Aaronontheweb/pipedrive-cli/pull/20))
+  - Merge duplicate persons, deals, and organizations
+  - Automatic conflict resolution (target entity takes priority)
+  - Confirmation prompts to prevent accidental data loss
+  - Source entity is deleted after successful merge
+  - Commands:
+    - `pipedrive persons merge &lt;id&gt; &lt;merge-with-id&gt;` - Merge two persons
+    - `pipedrive deals merge &lt;id&gt; &lt;merge-with-id&gt;` - Merge two deals
+    - `pipedrive organizations merge &lt;id&gt; &lt;merge-with-id&gt;` - Merge two organizations
 
-**Core Features**
+- **Custom Fields Support** ([#24](https://github.com/Aaronontheweb/pipedrive-cli/pull/24))
+  - Automatically displays custom fields when viewing entities
+  - Works with deals, persons, and organizations
+  - Uses `JsonExtensionData` to capture Pipedrive's hash-based field keys
+  - AOT-compatible implementation with manual JSON parsing
+  - Custom fields appear in the output of:
+    - `pipedrive deals get &lt;id&gt;`
+    - `pipedrive persons get &lt;id&gt;`
+    - `pipedrive organizations get &lt;id&gt;`
 
-- **Configuration Management**
-  - Multi-profile support (default, staging, production)
-  - Secure credential storage with Unix file permissions (600)
-  - Environment variable overrides (PIPEDRIVE_API_KEY, PIPEDRIVE_DOMAIN)
-  - Profile switching and API connection testing
+**Bug Fixes**
 
-- **CRM Entity Management**
-  - **Leads**: List, get, create, update, delete, and search
-  - **Deals**: Full CRUD operations with status filtering
-  - **Activities**: Management with due date/time and completion tracking
-  - **Persons (Contacts)**: Complete contact management with email/phone support
-  - **Organizations**: Company management with search capabilities
+- **Fixed Reference Field Serialization** ([#17](https://github.com/Aaronontheweb/pipedrive-cli/pull/17), [#18](https://github.com/Aaronontheweb/pipedrive-cli/pull/18), [#19](https://github.com/Aaronontheweb/pipedrive-cli/pull/19))
+  - Resolved "read too much or not enough" errors in `PipedriveReferenceConverter`
+  - Fixed API model serialization to prevent 400 Bad Request errors
+  - Corrected Owner type handling across all entity models
+  - Added proper null handling for reference fields
 
-- **Auto-Update System**
-  - Background update checking on CLI startup (non-blocking)
-  - `pipedrive update` command with check, force, and beta options
-  - Platform-specific self-update mechanism (Windows PowerShell, Unix bash)
-  - Automatic backup and rollback on update failure
-  - Support for both stable and pre-release versions
+- **Fixed Display Issues** ([#19](https://github.com/Aaronontheweb/pipedrive-cli/pull/19))
+  - Fixed 41 markup injection vulnerabilities in entity display code
+  - Properly escape special characters in entity names and field values
+  - Prevents display formatting errors when data contains special characters like `[`, `]`, or `{`
 
-- **Installation Scripts**
-  - `install.sh` for Linux/macOS with multi-architecture support
-  - `install.ps1` for Windows with architecture detection
-  - Beta/pre-release support with `--beta` flag
-  - Uninstall functionality with config directory cleanup
+**Improvements**
 
-**Why This Release Matters**
+- **Enhanced Test Coverage** ([#19](https://github.com/Aaronontheweb/pipedrive-cli/pull/19))
+  - Added comprehensive deserialization tests covering all entity types
+  - Tests verify correct handling of reference fields and null values
+  - Improved reliability and reduced crash scenarios
 
-The stable release fixes a critical issue with the auto-update checker. Previous beta versions would get 404 errors when checking for updates because the GitHub releases API's `/latest` endpoint only returns stable releases (not pre-releases). With 0.1.0 stable now published, the auto-update system will work correctly for all users.
+**Technical Highlights**
+
+- All new features maintain Native AOT compatibility
+- JSON serialization uses source generators throughout
+- Comprehensive test coverage for merge operations
+- Follows existing architectural patterns and code style
 
 **Installation**
-
-Using the installer script (recommended):
 
 ```bash
 # Linux/macOS
@@ -60,33 +81,31 @@ curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/ins
 iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
 ```
 
-Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.1.0).
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.2.0).
 
-**Getting Started**
+**Upgrade from 0.1.0**
 
-1. Configure your Pipedrive API key:
+The CLI includes auto-update functionality. Simply run:
+
 ```bash
-pipedrive config set --api-key YOUR_API_KEY --domain company.pipedrive.com
+pipedrive update
 ```
 
-2. Test the connection:
+**Example Usage**
+
 ```bash
-pipedrive config test
+# View a deal with custom fields
+pipedrive deals get 123
+
+# Add a note to a deal
+pipedrive notes create --content "Follow up next week" --deal-id 123
+
+# Merge duplicate persons
+pipedrive persons merge 456 789
+
+# List all notes for a specific organization
+pipedrive notes list --org-id 101
 ```
-
-3. Start managing your CRM:
-```bash
-pipedrive leads list
-pipedrive deals list --status won
-pipedrive persons search "John Doe"
-```
-
-**Technical Highlights**
-
-- **Native AOT Compilation**: 13ms cold start time, 12MB binary size
-- **JSON Source Generators**: Full AOT compatibility
-- **Cross-Platform**: Linux, macOS (Intel/ARM), Windows support
-- **Comprehensive Testing**: 38 unit tests covering all API operations
 
 **Documentation**
 

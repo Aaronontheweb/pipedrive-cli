@@ -1,3 +1,115 @@
+#### 0.2.0 November 4th 2025 ####
+
+This release adds powerful new features for managing notes and merging duplicate entities, along with custom field support and important stability improvements.
+
+**New Features**
+
+- **Notes API** ([#20](https://github.com/Aaronontheweb/pipedrive-cli/pull/20))
+  - Complete CRUD operations for notes (list, get, create, update, delete)
+  - Support for associations with deals, persons, organizations, leads, and projects
+  - HTML content support with automatic sanitization
+  - Rich filtering options by entity type and ID
+  - Commands:
+    - `pipedrive notes list` - List all notes with filtering
+    - `pipedrive notes get <id>` - Get specific note details
+    - `pipedrive notes create` - Create new notes with content and associations
+    - `pipedrive notes update <id>` - Update existing notes
+    - `pipedrive notes delete <id>` - Delete notes with confirmation
+
+- **Entity Merge Commands** ([#20](https://github.com/Aaronontheweb/pipedrive-cli/pull/20))
+  - Merge duplicate persons, deals, and organizations
+  - Automatic conflict resolution (target entity takes priority)
+  - Confirmation prompts to prevent accidental data loss
+  - Source entity is deleted after successful merge
+  - Commands:
+    - `pipedrive persons merge <id> <merge-with-id>` - Merge two persons
+    - `pipedrive deals merge <id> <merge-with-id>` - Merge two deals
+    - `pipedrive organizations merge <id> <merge-with-id>` - Merge two organizations
+
+- **Custom Fields Support** ([#24](https://github.com/Aaronontheweb/pipedrive-cli/pull/24))
+  - Automatically displays custom fields when viewing entities
+  - Works with deals, persons, and organizations
+  - Uses `JsonExtensionData` to capture Pipedrive's hash-based field keys
+  - AOT-compatible implementation with manual JSON parsing
+  - Custom fields appear in the output of:
+    - `pipedrive deals get <id>`
+    - `pipedrive persons get <id>`
+    - `pipedrive organizations get <id>`
+
+**Bug Fixes**
+
+- **Fixed Reference Field Serialization** ([#17](https://github.com/Aaronontheweb/pipedrive-cli/pull/17), [#18](https://github.com/Aaronontheweb/pipedrive-cli/pull/18), [#19](https://github.com/Aaronontheweb/pipedrive-cli/pull/19))
+  - Resolved "read too much or not enough" errors in `PipedriveReferenceConverter`
+  - Fixed API model serialization to prevent 400 Bad Request errors
+  - Corrected Owner type handling across all entity models
+  - Added proper null handling for reference fields
+
+- **Fixed Display Issues** ([#19](https://github.com/Aaronontheweb/pipedrive-cli/pull/19))
+  - Fixed 41 markup injection vulnerabilities in entity display code
+  - Properly escape special characters in entity names and field values
+  - Prevents display formatting errors when data contains special characters like `[`, `]`, or `{`
+
+**Improvements**
+
+- **Enhanced Test Coverage** ([#19](https://github.com/Aaronontheweb/pipedrive-cli/pull/19))
+  - Added comprehensive deserialization tests covering all entity types
+  - Tests verify correct handling of reference fields and null values
+  - Improved reliability and reduced crash scenarios
+
+**Technical Highlights**
+
+- All new features maintain Native AOT compatibility
+- JSON serialization uses source generators throughout
+- Comprehensive test coverage for merge operations
+- Follows existing architectural patterns and code style
+
+**Installation**
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.2.0).
+
+**Upgrade from 0.1.0**
+
+The CLI includes auto-update functionality. Simply run:
+
+```bash
+pipedrive update
+```
+
+**Example Usage**
+
+```bash
+# View a deal with custom fields
+pipedrive deals get 123
+
+# Add a note to a deal
+pipedrive notes create --content "Follow up next week" --deal-id 123
+
+# Merge duplicate persons
+pipedrive persons merge 456 789
+
+# List all notes for a specific organization
+pipedrive notes list --org-id 101
+```
+
+**Documentation**
+
+- Full documentation: https://github.com/Aaronontheweb/pipedrive-cli/blob/dev/README.md
+- Pipedrive API: https://developers.pipedrive.com/docs/api/v1
+
+**Feedback**
+
+Please report any issues or feature requests at https://github.com/Aaronontheweb/pipedrive-cli/issues
+
+---
+
 #### 0.1.0 January 4th 2025 ####
 
 **FIRST STABLE RELEASE** - The Pipedrive CLI is now production-ready!
