@@ -110,13 +110,13 @@ public static class DealsCommands
                         }
                         else
                         {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deals: {response?.Error ?? "Unknown error"}");
+                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deals: {Markup.Escape(response?.Error ?? "Unknown error")}");
                         }
                     });
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, limitOption, startOption, statusOption);
 
@@ -152,19 +152,19 @@ public static class DealsCommands
                     var deal = response.Data;
 
                     var panel = new Panel(new Markup(
-                        $"[bold]Title:[/] {deal.Title}\n" +
+                        $"[bold]Title:[/] {Markup.Escape(deal.Title ?? "")}\n" +
                         $"[bold]ID:[/] {deal.Id}\n" +
-                        $"[bold]Value:[/] {deal.Currency} {deal.Value:N2}\n" +
-                        $"[bold]Status:[/] {deal.Status ?? "N/A"}\n" +
+                        $"[bold]Value:[/] {Markup.Escape(deal.Currency ?? "")} {deal.Value:N2}\n" +
+                        $"[bold]Status:[/] {Markup.Escape(deal.Status ?? "N/A")}\n" +
                         $"[bold]Stage ID:[/] {deal.StageId?.ToString() ?? "N/A"}\n" +
                         $"[bold]Person ID:[/] {deal.PersonId?.ToString() ?? "N/A"}\n" +
                         $"[bold]Organization ID:[/] {deal.OrgId?.ToString() ?? "N/A"}\n" +
                         $"[bold]Probability:[/] {(deal.Probability.HasValue ? $"{deal.Probability.Value}%" : "N/A")}\n" +
-                        $"[bold]Expected Close Date:[/] {deal.ExpectedCloseDate ?? "N/A"}\n" +
-                        $"[bold]Added:[/] {deal.AddTime}\n" +
-                        $"[bold]Updated:[/] {deal.UpdateTime}"))
+                        $"[bold]Expected Close Date:[/] {Markup.Escape(deal.ExpectedCloseDate ?? "N/A")}\n" +
+                        $"[bold]Added:[/] {Markup.Escape(deal.AddTime ?? "N/A")}\n" +
+                        $"[bold]Updated:[/] {Markup.Escape(deal.UpdateTime ?? "N/A")}"))
                     {
-                        Header = new PanelHeader($"[green]Deal: {deal.Title}[/]"),
+                        Header = new PanelHeader($"[green]Deal: {Markup.Escape(deal.Title ?? "")}[/]"),
                         Border = BoxBorder.Rounded
                     };
 
@@ -172,12 +172,12 @@ public static class DealsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deal: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deal: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument);
 
@@ -259,17 +259,17 @@ public static class DealsCommands
                 {
                     AnsiConsole.MarkupLine($"[green]✓[/] Deal created successfully");
                     AnsiConsole.MarkupLine($"[dim]ID:[/] {response.Data.Id}");
-                    AnsiConsole.MarkupLine($"[dim]Title:[/] {response.Data.Title}");
-                    AnsiConsole.MarkupLine($"[dim]Value:[/] {response.Data.Currency} {response.Data.Value:N2}");
+                    AnsiConsole.MarkupLine($"[dim]Title:[/] {Markup.Escape(response.Data.Title ?? "")}");
+                    AnsiConsole.MarkupLine($"[dim]Value:[/] {Markup.Escape(response.Data.Currency ?? "")} {response.Data.Value:N2}");
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create deal: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create deal: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, titleOption, valueOption, currencyOption, personIdOption, orgIdOption, stageIdOption, expectedCloseDateOption);
 
@@ -354,12 +354,12 @@ public static class DealsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update deal: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update deal: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, titleOption, valueOption, currencyOption, stageIdOption, statusOption, expectedCloseDateOption);
 
@@ -417,7 +417,7 @@ public static class DealsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, forceOption);
 

@@ -321,4 +321,127 @@ public class DealsApiClientTests
         Assert.NotNull(response.Data);
         Assert.Empty(response.Data);
     }
+
+    /// <summary>
+    /// Test that Deal deserialization handles reference fields as objects (from actual API GET responses)
+    /// The PipedriveReferenceConverter should extract the "value" property from nested objects
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_HandlesReferenceFieldsAsObjects()
+    {
+        // Arrange - API response with reference fields as complex objects (actual API format)
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 888,
+                "title": "Enterprise Software Deal",
+                "value": 100000.00,
+                "currency": "USD",
+                "person_id": {
+                    "active_flag": true,
+                    "name": "Sarah Johnson",
+                    "email": [
+                        {
+                            "value": "sarah@enterprise.com",
+                            "primary": true,
+                            "label": "work"
+                        }
+                    ],
+                    "phone": [
+                        {
+                            "value": "+1-555-7890",
+                            "primary": true
+                        }
+                    ],
+                    "owner_id": 23920819,
+                    "company_id": 999,
+                    "value": 11111
+                },
+                "org_id": {
+                    "name": "Enterprise Solutions Inc",
+                    "people_count": 150,
+                    "owner_id": 23920819,
+                    "address": "456 Corporate Drive, Seattle, WA",
+                    "active_flag": true,
+                    "cc_email": "enterprise@pipedrive.com",
+                    "value": 22222
+                },
+                "stage_id": 2,
+                "status": "open",
+                "probability": 85.5,
+                "expected_close_date": "2024-12-15",
+                "add_time": "2024-10-01T09:00:00Z",
+                "update_time": "2024-11-01T15:30:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(888, response.Data.Id);
+        Assert.Equal("Enterprise Software Deal", response.Data.Title);
+        Assert.Equal(100000.00m, response.Data.Value);
+        Assert.Equal("USD", response.Data.Currency);
+
+        // Verify that the PipedriveReferenceConverter correctly extracted the "value" property from each object
+        Assert.Equal(11111, response.Data.PersonId);
+        Assert.Equal(22222, response.Data.OrgId);
+
+        Assert.Equal(2, response.Data.StageId);
+        Assert.Equal("open", response.Data.Status);
+        Assert.Equal(85.5m, response.Data.Probability);
+        Assert.Equal("2024-12-15", response.Data.ExpectedCloseDate);
+        Assert.Equal("2024-10-01T09:00:00Z", response.Data.AddTime);
+        Assert.Equal("2024-11-01T15:30:00Z", response.Data.UpdateTime);
+    }
+
+    /// <summary>
+    /// Test that PipedriveReferenceConverter returns null when object doesn't have "value" property
+    /// This is an edge case to ensure robustness
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_HandlesObjectWithoutValueProperty()
+    {
+        // Arrange - API response with person_id as object but without "value" property
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 999,
+                "title": "Edge Case Deal",
+                "value": 5000.00,
+                "currency": "USD",
+                "person_id": {
+                    "name": "Some Person",
+                    "active_flag": true
+                },
+                "org_id": null,
+                "stage_id": 1,
+                "status": "open",
+                "add_time": "2024-11-04T10:00:00Z",
+                "update_time": "2024-11-04T10:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(999, response.Data.Id);
+        Assert.Equal("Edge Case Deal", response.Data.Title);
+
+        // Verify that the converter returns null when no "value" property is found
+        Assert.Null(response.Data.PersonId);
+        Assert.Null(response.Data.OrgId);
+    }
 }

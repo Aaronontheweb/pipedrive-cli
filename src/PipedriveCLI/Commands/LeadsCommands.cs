@@ -106,13 +106,13 @@ public static class LeadsCommands
                         }
                         else
                         {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch leads: {response?.Error ?? "Unknown error"}");
+                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch leads: {Markup.Escape(response?.Error ?? "Unknown error")}");
                         }
                     });
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, limitOption, startOption);
 
@@ -148,8 +148,8 @@ public static class LeadsCommands
                     var lead = response.Data;
 
                     var panel = new Panel(new Markup(
-                        $"[bold]Title:[/] {lead.Title}\n" +
-                        $"[bold]ID:[/] {lead.Id}\n" +
+                        $"[bold]Title:[/] {Markup.Escape(lead.Title ?? "")}\n" +
+                        $"[bold]ID:[/] {Markup.Escape(lead.Id ?? "")}\n" +
                         $"[bold]Person ID:[/] {lead.PersonId?.ToString() ?? "N/A"}\n" +
                         $"[bold]Organization ID:[/] {lead.OrganizationId?.ToString() ?? "N/A"}\n" +
                         $"[bold]Owner ID:[/] {lead.OwnerId?.ToString() ?? "N/A"}\n" +
@@ -159,7 +159,7 @@ public static class LeadsCommands
                         $"[bold]Added:[/] {lead.AddTime}\n" +
                         $"[bold]Updated:[/] {lead.UpdateTime}"))
                     {
-                        Header = new PanelHeader($"[green]Lead: {lead.Title}[/]"),
+                        Header = new PanelHeader($"[green]Lead: {Markup.Escape(lead.Title ?? "")}[/]"),
                         Border = BoxBorder.Rounded
                     };
 
@@ -167,12 +167,12 @@ public static class LeadsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch lead: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch lead: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument);
 
@@ -258,17 +258,17 @@ public static class LeadsCommands
                 if (response?.Success == true && response.Data != null)
                 {
                     AnsiConsole.MarkupLine($"[green]✓[/] Lead created successfully");
-                    AnsiConsole.MarkupLine($"[dim]ID:[/] {response.Data.Id}");
-                    AnsiConsole.MarkupLine($"[dim]Title:[/] {response.Data.Title}");
+                    AnsiConsole.MarkupLine($"[dim]ID:[/] {Markup.Escape(response.Data.Id ?? "")}");
+                    AnsiConsole.MarkupLine($"[dim]Title:[/] {Markup.Escape(response.Data.Title ?? "")}");
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create lead: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create lead: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, titleOption, personIdOption, orgIdOption, valueOption, currencyOption, expectedCloseDateOption);
 
@@ -347,12 +347,12 @@ public static class LeadsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update lead: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update lead: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, titleOption, valueOption, currencyOption, expectedCloseDateOption);
 
@@ -410,7 +410,7 @@ public static class LeadsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, forceOption);
 
@@ -481,12 +481,12 @@ public static class LeadsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Search failed: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Search failed: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, termArgument, limitOption);
 

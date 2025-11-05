@@ -98,7 +98,7 @@ public static class OrganizationsCommands
                         }
                         else
                         {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch organizations: {response?.Error ?? "Unknown error"}");
+                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch organizations: {Markup.Escape(response?.Error ?? "Unknown error")}");
                         }
                     });
             }
@@ -159,7 +159,7 @@ public static class OrganizationsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch organization: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch organization: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
@@ -282,7 +282,7 @@ public static class OrganizationsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update organization: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update organization: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
@@ -414,7 +414,7 @@ public static class OrganizationsCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Search failed: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Search failed: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)

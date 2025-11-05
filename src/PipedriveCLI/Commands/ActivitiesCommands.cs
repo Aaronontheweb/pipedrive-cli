@@ -116,13 +116,13 @@ public static class ActivitiesCommands
                         }
                         else
                         {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch activities: {response?.Error ?? "Unknown error"}");
+                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch activities: {Markup.Escape(response?.Error ?? "Unknown error")}");
                         }
                     });
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, limitOption, startOption, doneOption);
 
@@ -182,12 +182,12 @@ public static class ActivitiesCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch activity: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch activity: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument);
 
@@ -275,18 +275,18 @@ public static class ActivitiesCommands
                 if (response?.Success == true && response.Data != null)
                 {
                     AnsiConsole.MarkupLine($"[green]✓[/] Activity created successfully");
-                    AnsiConsole.MarkupLine($"[dim]ID:[/] {response.Data.Id}");
-                    AnsiConsole.MarkupLine($"[dim]Subject:[/] {response.Data.Subject}");
-                    AnsiConsole.MarkupLine($"[dim]Due:[/] {response.Data.DueDate} {response.Data.DueTime ?? ""}");
+                    AnsiConsole.MarkupLine($"[dim]ID:[/] {Markup.Escape(response.Data.Id.ToString())}");
+                    AnsiConsole.MarkupLine($"[dim]Subject:[/] {Markup.Escape(response.Data.Subject ?? "")}");
+                    AnsiConsole.MarkupLine($"[dim]Due:[/] {Markup.Escape(response.Data.DueDate ?? "")} {Markup.Escape(response.Data.DueTime ?? "")}");
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create activity: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to create activity: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, subjectOption, typeOption, dueDateOption, dueTimeOption, dealIdOption, personIdOption, orgIdOption, noteOption);
 
@@ -365,12 +365,12 @@ public static class ActivitiesCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update activity: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to update activity: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, subjectOption, typeOption, dueDateOption, dueTimeOption, noteOption);
 
@@ -428,7 +428,7 @@ public static class ActivitiesCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument, forceOption);
 
@@ -465,12 +465,12 @@ public static class ActivitiesCommands
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to mark activity as done: {response?.Error ?? "Unknown error"}");
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to mark activity as done: {Markup.Escape(response?.Error ?? "Unknown error")}");
                 }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
         }, idArgument);
 

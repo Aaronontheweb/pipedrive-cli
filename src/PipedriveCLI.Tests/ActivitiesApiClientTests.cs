@@ -367,4 +367,90 @@ public class ActivitiesApiClientTests
         Assert.Null(response.Data.DueTime);
         Assert.Equal("All-day Conference", response.Data.Subject);
     }
+
+    /// <summary>
+    /// Test that Activity deserialization handles reference fields as objects (from actual API GET responses)
+    /// The PipedriveReferenceConverter should extract the "value" property from nested objects
+    /// </summary>
+    [Fact]
+    public void Activity_Deserialization_HandlesReferenceFieldsAsObjects()
+    {
+        // Arrange - API response with reference fields as complex objects (actual API format)
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 999,
+                "subject": "Test Activity with Complex References",
+                "type": "meeting",
+                "due_date": "2024-12-01",
+                "due_time": "15:00",
+                "done": false,
+                "deal_id": {
+                    "active_flag": true,
+                    "title": "Big Enterprise Deal",
+                    "value": 12345,
+                    "currency": "USD",
+                    "stage_id": 1,
+                    "pipeline_id": 1
+                },
+                "person_id": {
+                    "active_flag": true,
+                    "name": "John Doe",
+                    "email": [
+                        {
+                            "value": "john@example.com",
+                            "primary": true,
+                            "label": "work"
+                        }
+                    ],
+                    "phone": [
+                        {
+                            "value": "+1-555-1234",
+                            "primary": true
+                        }
+                    ],
+                    "owner_id": 23920819,
+                    "company_id": 999,
+                    "value": 67890
+                },
+                "org_id": {
+                    "name": "Acme Corporation",
+                    "people_count": 25,
+                    "owner_id": 23920819,
+                    "address": "123 Main St",
+                    "active_flag": true,
+                    "cc_email": "acme@pipedrive.com",
+                    "value": 54321
+                },
+                "note": "Important meeting with nested reference objects",
+                "add_time": "2024-11-01T10:00:00Z",
+                "update_time": "2024-11-01T10:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseActivity);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(999, response.Data.Id);
+        Assert.Equal("Test Activity with Complex References", response.Data.Subject);
+        Assert.Equal("meeting", response.Data.Type);
+        Assert.Equal("2024-12-01", response.Data.DueDate);
+        Assert.Equal("15:00", response.Data.DueTime);
+        Assert.False(response.Data.Done);
+
+        // Verify that the PipedriveReferenceConverter correctly extracted the "value" property from each object
+        Assert.Equal(12345, response.Data.DealId);
+        Assert.Equal(67890, response.Data.PersonId);
+        Assert.Equal(54321, response.Data.OrgId);
+
+        Assert.Equal("Important meeting with nested reference objects", response.Data.Note);
+        Assert.Equal("2024-11-01T10:00:00Z", response.Data.AddTime);
+        Assert.Equal("2024-11-01T10:00:00Z", response.Data.UpdateTime);
+    }
 }

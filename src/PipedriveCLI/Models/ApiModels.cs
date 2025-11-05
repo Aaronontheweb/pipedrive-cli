@@ -72,30 +72,42 @@ public sealed class PipedriveReferenceConverter : JsonConverter<int?>
 
         if (reader.TokenType == JsonTokenType.StartObject)
         {
-            // Read the object and extract the "value" field
+            int? result = null;
+            int depth = 1; // We're already at StartObject
+
             while (reader.Read())
             {
-                if (reader.TokenType == JsonTokenType.EndObject)
+                switch (reader.TokenType)
                 {
-                    return null;
+                    case JsonTokenType.StartObject:
+                    case JsonTokenType.StartArray:
+                        depth++;
+                        break;
+                    case JsonTokenType.EndObject:
+                    case JsonTokenType.EndArray:
+                        depth--;
+                        break;
+                    case JsonTokenType.PropertyName when depth == 1:
+                        var propertyName = reader.GetString();
+                        if (propertyName == "value")
+                        {
+                            reader.Read();
+                            if (reader.TokenType == JsonTokenType.Number)
+                            {
+                                result = reader.GetInt32();
+                            }
+                        }
+                        break;
                 }
 
-                if (reader.TokenType == JsonTokenType.PropertyName)
+                // Exit the loop after processing the final EndObject, but before reading the next token
+                if (depth == 0)
                 {
-                    var propertyName = reader.GetString();
-                    reader.Read();
-
-                    if (propertyName == "value" && reader.TokenType == JsonTokenType.Number)
-                    {
-                        var value = reader.GetInt32();
-                        // Skip to end of object
-                        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
-                        {
-                        }
-                        return value;
-                    }
+                    break;
                 }
             }
+
+            return result;
         }
 
         throw new JsonException($"Cannot convert {reader.TokenType} to int?");
