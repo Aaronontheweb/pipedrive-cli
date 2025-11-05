@@ -93,6 +93,12 @@ pipedrive config get  # Will show the overridden value
 
 ### Managing Profiles
 
+**Create a new profile with credentials:**
+```bash
+# Create and configure a new profile without switching
+pipedrive config set --profile staging --api-key STAGING_KEY --domain staging.pipedrive.com
+```
+
 **List all profiles:**
 ```bash
 pipedrive config profile list
@@ -103,7 +109,7 @@ pipedrive config profile list
 pipedrive config profile switch staging
 ```
 
-**Set configuration for a specific profile:**
+**Alternative: Set configuration for a specific profile after switching:**
 ```bash
 # First switch to the profile
 pipedrive config profile switch staging
@@ -120,15 +126,22 @@ Manage CLI configuration and profiles.
 
 #### `config set` - Set Configuration Values
 
-Set one or more configuration values for the active profile.
+Set one or more configuration values for the active profile or a specific profile.
 
 ```bash
-# Set API key and domain
+# Set API key and domain for the active profile
 pipedrive config set --api-key YOUR_KEY --domain company.pipedrive.com
 
+# Create and configure a new profile without switching to it
+pipedrive config set --profile staging --api-key STAGING_KEY --domain staging.pipedrive.com
+
+# Update a specific profile's API key
+pipedrive config set --profile production --api-key PROD_KEY
+
 # Options:
-#   --api-key, -k    Pipedrive API key
-#   --domain, -d     Pipedrive domain (e.g., company.pipedrive.com)
+#   --api-key, -k     Pipedrive API key
+#   --domain, -d      Pipedrive domain (e.g., company.pipedrive.com)
+#   --profile, -p     Profile name to configure (creates if it doesn't exist)
 ```
 
 #### `config get` - Display Current Configuration

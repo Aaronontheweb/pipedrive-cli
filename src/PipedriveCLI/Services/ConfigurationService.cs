@@ -144,17 +144,20 @@ public sealed class ConfigurationService
     /// <summary>
     /// Sets multiple configuration values at once
     /// </summary>
-    public async Task SetConfigAsync(string? apiKey = null, string? domain = null)
+    /// <param name="apiKey">Optional API key to set</param>
+    /// <param name="domain">Optional domain to set</param>
+    /// <param name="profileName">Optional profile name. If null, uses the active profile</param>
+    public async Task SetConfigAsync(string? apiKey = null, string? domain = null, string? profileName = null)
     {
         var config = await LoadConfigAsync();
-        var profileName = config.ActiveProfile;
+        var targetProfile = profileName ?? config.ActiveProfile;
 
-        if (!config.Profiles.ContainsKey(profileName))
+        if (!config.Profiles.ContainsKey(targetProfile))
         {
-            config.Profiles[profileName] = new ProfileConfig();
+            config.Profiles[targetProfile] = new ProfileConfig();
         }
 
-        var profile = config.Profiles[profileName];
+        var profile = config.Profiles[targetProfile];
 
         if (apiKey != null) profile.ApiKey = apiKey;
         if (domain != null) profile.Domain = domain;
