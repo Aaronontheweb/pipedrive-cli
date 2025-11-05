@@ -24,6 +24,7 @@ public static class OrganizationsCommands
         organizationsCommand.AddCommand(CreateUpdateCommand(apiClient));
         organizationsCommand.AddCommand(CreateDeleteCommand(apiClient));
         organizationsCommand.AddCommand(CreateSearchCommand(apiClient));
+        organizationsCommand.AddCommand(CreateMergeCommand(apiClient));
 
         return organizationsCommand;
     }
@@ -424,5 +425,68 @@ public static class OrganizationsCommands
         }, termArgument, limitOption);
 
         return searchCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'organizations merge' command
+    /// </summary>
+    private static Command CreateMergeCommand(PipedriveApiClient apiClient)
+    {
+        var mergeCommand = new Command("merge", "Merge two organizations");
+
+        var idArgument = new Argument<int>("id", "ID of the organization to be merged (will be deleted)");
+        mergeCommand.AddArgument(idArgument);
+
+        var mergeWithIdArgument = new Argument<int>("merge-with-id", "ID of the organization to merge with (takes priority in conflicts)");
+        mergeCommand.AddArgument(mergeWithIdArgument);
+
+        var forceOption = new Option<bool>(
+            aliases: new[] { "--force", "-f" },
+            description: "Skip confirmation prompt");
+
+        mergeCommand.AddOption(forceOption);
+
+        mergeCommand.SetHandler(async (id, mergeWithId, force) =>
+        {
+            try
+            {
+                if (!force)
+                {
+                    var confirm = AnsiConsole.Confirm($"Are you sure you want to merge organization {id} into organization {mergeWithId}? Organization {id} will be deleted.");
+                    if (!confirm)
+                    {
+                        AnsiConsole.MarkupLine("[yellow]Cancelled[/]");
+                        return;
+                    }
+                }
+
+                await apiClient.InitializeAsync();
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Merging organization {id} into {mergeWithId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.MergeOrganizationAsync(id, mergeWithId);
+                    });
+
+                if (response?.Success == true && response.Data != null)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Organizations merged successfully");
+                    AnsiConsole.MarkupLine($"[dim]Merged organization ID:[/] {response.Data.Id}");
+                    AnsiConsole.MarkupLine($"[dim]Name:[/] {Markup.Escape(response.Data.Name ?? "")}");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to merge organizations: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, idArgument, mergeWithIdArgument, forceOption);
+
+        return mergeCommand;
     }
 }

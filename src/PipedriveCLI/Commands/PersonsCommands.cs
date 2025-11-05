@@ -24,6 +24,7 @@ public static class PersonsCommands
         personsCommand.AddCommand(CreateUpdateCommand(apiClient));
         personsCommand.AddCommand(CreateDeleteCommand(apiClient));
         personsCommand.AddCommand(CreateSearchCommand(apiClient));
+        personsCommand.AddCommand(CreateMergeCommand(apiClient));
 
         return personsCommand;
     }
@@ -502,5 +503,68 @@ public static class PersonsCommands
         }, termArgument, limitOption);
 
         return searchCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'persons merge' command
+    /// </summary>
+    private static Command CreateMergeCommand(PipedriveApiClient apiClient)
+    {
+        var mergeCommand = new Command("merge", "Merge two persons");
+
+        var idArgument = new Argument<int>("id", "ID of the person to be merged (will be deleted)");
+        mergeCommand.AddArgument(idArgument);
+
+        var mergeWithIdArgument = new Argument<int>("merge-with-id", "ID of the person to merge with (takes priority in conflicts)");
+        mergeCommand.AddArgument(mergeWithIdArgument);
+
+        var forceOption = new Option<bool>(
+            aliases: new[] { "--force", "-f" },
+            description: "Skip confirmation prompt");
+
+        mergeCommand.AddOption(forceOption);
+
+        mergeCommand.SetHandler(async (id, mergeWithId, force) =>
+        {
+            try
+            {
+                if (!force)
+                {
+                    var confirm = AnsiConsole.Confirm($"Are you sure you want to merge person {id} into person {mergeWithId}? Person {id} will be deleted.");
+                    if (!confirm)
+                    {
+                        AnsiConsole.MarkupLine("[yellow]Cancelled[/]");
+                        return;
+                    }
+                }
+
+                await apiClient.InitializeAsync();
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Merging person {id} into {mergeWithId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.MergePersonAsync(id, mergeWithId);
+                    });
+
+                if (response?.Success == true && response.Data != null)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Persons merged successfully");
+                    AnsiConsole.MarkupLine($"[dim]Merged person ID:[/] {response.Data.Id}");
+                    AnsiConsole.MarkupLine($"[dim]Name:[/] {Markup.Escape(response.Data.Name ?? "")}");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to merge persons: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, idArgument, mergeWithIdArgument, forceOption);
+
+        return mergeCommand;
     }
 }

@@ -178,22 +178,54 @@ public sealed class PipedriveApiClient : IDisposable
     /// </summary>
     public async Task<PipedriveResponse<List<Lead>>?> SearchLeadsAsync(string term, int? limit = null)
     {
-        // Update base URL temporarily for v2 API
-        var originalBaseAddress = _httpClient.BaseAddress;
-        _httpClient.BaseAddress = new Uri($"https://{(await _configService.GetActiveProfileAsync()).Domain}/api/v2/");
+        EnsureConfigured();
 
-        try
-        {
-            var queryParams = new Dictionary<string, string> { ["term"] = term };
-            if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        var profile = await _configService.GetActiveProfileAsync();
 
-            var jsonResponse = await GetAsync("leads/search", queryParams);
-            return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListLead);
-        }
-        finally
+        // Build query parameters with API key
+        var queryParams = new Dictionary<string, string>
         {
-            _httpClient.BaseAddress = originalBaseAddress;
+            ["term"] = term,
+            ["api_token"] = profile.ApiKey!
+        };
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+
+        // Build full v2 URL with query string
+        var queryString = string.Join("&", queryParams.Select(kvp =>
+            $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
+        var absoluteUrl = $"https://{profile.Domain}/api/v2/leads/search?{queryString}";
+
+        // Use absolute URI to avoid modifying BaseAddress
+        var response = await _httpClient.GetAsync(new Uri(absoluteUrl, UriKind.Absolute));
+        response.EnsureSuccessStatusCode();
+
+        var jsonResponse = await response.Content.ReadAsStringAsync();
+
+        // Deserialize v2 search response format
+        var searchResponse = JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseLeadSearchData);
+
+        // Transform v2 search response to standard list format
+        if (searchResponse?.Success == true && searchResponse.Data?.Items != null)
+        {
+            var leads = searchResponse.Data.Items
+                .Where(item => item.Item != null)
+                .Select(item => item.Item!.ToLead())
+                .ToList();
+
+            return new PipedriveResponse<List<Lead>>
+            {
+                Success = true,
+                Data = leads,
+                AdditionalData = searchResponse.AdditionalData
+            };
         }
+
+        return new PipedriveResponse<List<Lead>>
+        {
+            Success = searchResponse?.Success ?? false,
+            Error = searchResponse?.Error,
+            ErrorInfo = searchResponse?.ErrorInfo
+        };
     }
 
     #endregion
@@ -249,6 +281,19 @@ public sealed class PipedriveApiClient : IDisposable
     public async Task<bool> DeleteDealAsync(int id)
     {
         return await DeleteAsync($"deals/{id}");
+    }
+
+    /// <summary>
+    /// Merges two deals
+    /// </summary>
+    /// <param name="id">ID of the deal to be merged (will be deleted)</param>
+    /// <param name="mergeWithId">ID of the deal to merge with (takes priority in conflicts)</param>
+    public async Task<PipedriveResponse<Deal>?> MergeDealAsync(int id, int mergeWithId)
+    {
+        var mergeRequest = new MergeRequest { MergeWithId = mergeWithId };
+        var jsonData = JsonSerializer.Serialize(mergeRequest, ApiJsonContext.Default.MergeRequest);
+        var jsonResponse = await PutAsync($"deals/{id}/merge", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseDeal);
     }
 
     #endregion
@@ -311,9 +356,64 @@ public sealed class PipedriveApiClient : IDisposable
     /// </summary>
     public async Task<PipedriveResponse<Activity>?> MarkActivityDoneAsync(int id)
     {
-        var jsonData = JsonSerializer.Serialize(new { done = true }, ApiJsonContext.Default.Object);
+        var activity = new Activity { Done = true };
+        var jsonData = JsonSerializer.Serialize(activity, ApiJsonContext.Default.Activity);
         var jsonResponse = await PutAsync($"activities/{id}", jsonData);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseActivity);
+    }
+
+    #endregion
+
+    #region Notes Operations
+
+    /// <summary>
+    /// Retrieves all notes with pagination support
+    /// </summary>
+    public async Task<PipedriveResponse<List<Note>>?> GetNotesAsync(int? limit = null, int? start = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+
+        var jsonResponse = await GetAsync("notes", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListNote);
+    }
+
+    /// <summary>
+    /// Retrieves a specific note by ID
+    /// </summary>
+    public async Task<PipedriveResponse<Note>?> GetNoteByIdAsync(int id)
+    {
+        var jsonResponse = await GetAsync($"notes/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseNote);
+    }
+
+    /// <summary>
+    /// Creates a new note
+    /// </summary>
+    public async Task<PipedriveResponse<Note>?> CreateNoteAsync(Note note)
+    {
+        var jsonData = JsonSerializer.Serialize(note, ApiJsonContext.Default.Note);
+        var jsonResponse = await PostAsync("notes", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseNote);
+    }
+
+    /// <summary>
+    /// Updates an existing note
+    /// </summary>
+    public async Task<PipedriveResponse<Note>?> UpdateNoteAsync(int id, Note note)
+    {
+        var jsonData = JsonSerializer.Serialize(note, ApiJsonContext.Default.Note);
+        var jsonResponse = await PutAsync($"notes/{id}", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseNote);
+    }
+
+    /// <summary>
+    /// Deletes a note
+    /// </summary>
+    public async Task<bool> DeleteNoteAsync(int id)
+    {
+        return await DeleteAsync($"notes/{id}");
     }
 
     #endregion
@@ -382,6 +482,19 @@ public sealed class PipedriveApiClient : IDisposable
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListPerson);
     }
 
+    /// <summary>
+    /// Merges two persons
+    /// </summary>
+    /// <param name="id">ID of the person to be merged (will be deleted)</param>
+    /// <param name="mergeWithId">ID of the person to merge with (takes priority in conflicts)</param>
+    public async Task<PipedriveResponse<Person>?> MergePersonAsync(int id, int mergeWithId)
+    {
+        var mergeRequest = new MergeRequest { MergeWithId = mergeWithId };
+        var jsonData = JsonSerializer.Serialize(mergeRequest, ApiJsonContext.Default.MergeRequest);
+        var jsonResponse = await PutAsync($"persons/{id}/merge", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponsePerson);
+    }
+
     #endregion
 
     #region Organizations Operations
@@ -446,6 +559,19 @@ public sealed class PipedriveApiClient : IDisposable
 
         var jsonResponse = await GetAsync("organizations/search", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListOrganization);
+    }
+
+    /// <summary>
+    /// Merges two organizations
+    /// </summary>
+    /// <param name="id">ID of the organization to be merged (will be deleted)</param>
+    /// <param name="mergeWithId">ID of the organization to merge with (takes priority in conflicts)</param>
+    public async Task<PipedriveResponse<Organization>?> MergeOrganizationAsync(int id, int mergeWithId)
+    {
+        var mergeRequest = new MergeRequest { MergeWithId = mergeWithId };
+        var jsonData = JsonSerializer.Serialize(mergeRequest, ApiJsonContext.Default.MergeRequest);
+        var jsonResponse = await PutAsync($"organizations/{id}/merge", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseOrganization);
     }
 
     #endregion

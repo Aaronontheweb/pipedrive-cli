@@ -46,6 +46,9 @@ public static class Program
         // Add activities command
         rootCommand.AddCommand(ActivitiesCommands.CreateActivitiesCommand(apiClient));
 
+        // Add notes command
+        rootCommand.AddCommand(NotesCommands.CreateNotesCommand(apiClient));
+
         // Add persons command
         rootCommand.AddCommand(PersonsCommands.CreatePersonsCommand(apiClient));
 

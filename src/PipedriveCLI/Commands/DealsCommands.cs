@@ -23,6 +23,7 @@ public static class DealsCommands
         dealsCommand.AddCommand(CreateCreateCommand(apiClient));
         dealsCommand.AddCommand(CreateUpdateCommand(apiClient));
         dealsCommand.AddCommand(CreateDeleteCommand(apiClient));
+        dealsCommand.AddCommand(CreateMergeCommand(apiClient));
 
         return dealsCommand;
     }
@@ -422,5 +423,68 @@ public static class DealsCommands
         }, idArgument, forceOption);
 
         return deleteCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'deals merge' command
+    /// </summary>
+    private static Command CreateMergeCommand(PipedriveApiClient apiClient)
+    {
+        var mergeCommand = new Command("merge", "Merge two deals");
+
+        var idArgument = new Argument<int>("id", "ID of the deal to be merged (will be deleted)");
+        mergeCommand.AddArgument(idArgument);
+
+        var mergeWithIdArgument = new Argument<int>("merge-with-id", "ID of the deal to merge with (takes priority in conflicts)");
+        mergeCommand.AddArgument(mergeWithIdArgument);
+
+        var forceOption = new Option<bool>(
+            aliases: new[] { "--force", "-f" },
+            description: "Skip confirmation prompt");
+
+        mergeCommand.AddOption(forceOption);
+
+        mergeCommand.SetHandler(async (id, mergeWithId, force) =>
+        {
+            try
+            {
+                if (!force)
+                {
+                    var confirm = AnsiConsole.Confirm($"Are you sure you want to merge deal {id} into deal {mergeWithId}? Deal {id} will be deleted.");
+                    if (!confirm)
+                    {
+                        AnsiConsole.MarkupLine("[yellow]Cancelled[/]");
+                        return;
+                    }
+                }
+
+                await apiClient.InitializeAsync();
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Merging deal {id} into {mergeWithId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.MergeDealAsync(id, mergeWithId);
+                    });
+
+                if (response?.Success == true && response.Data != null)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Deals merged successfully");
+                    AnsiConsole.MarkupLine($"[dim]Merged deal ID:[/] {response.Data.Id}");
+                    AnsiConsole.MarkupLine($"[dim]Title:[/] {Markup.Escape(response.Data.Title ?? "")}");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to merge deals: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, idArgument, mergeWithIdArgument, forceOption);
+
+        return mergeCommand;
     }
 }
