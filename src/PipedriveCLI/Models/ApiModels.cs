@@ -313,6 +313,12 @@ public sealed class Deal
 
     [JsonPropertyName("expected_close_date")]
     public string? ExpectedCloseDate { get; set; }
+
+    /// <summary>
+    /// Custom fields - captured as extension data with hash keys
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? CustomFields { get; set; }
 }
 
 /// <summary>
@@ -350,6 +356,12 @@ public sealed class Person
 
     [JsonPropertyName("update_time")]
     public string? UpdateTime { get; set; }
+
+    /// <summary>
+    /// Custom fields - captured as extension data with hash keys
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? CustomFields { get; set; }
 }
 
 /// <summary>
@@ -425,6 +437,12 @@ public sealed class Organization
 
     [JsonPropertyName("update_time")]
     public string? UpdateTime { get; set; }
+
+    /// <summary>
+    /// Custom fields - captured as extension data with hash keys
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? CustomFields { get; set; }
 }
 
 /// <summary>
@@ -539,6 +557,66 @@ public sealed class Note
 }
 
 /// <summary>
+/// Field definition option for select/multi-select fields
+/// </summary>
+public sealed class FieldOption
+{
+    [JsonPropertyName("id")]
+    public int? Id { get; set; }
+
+    [JsonPropertyName("label")]
+    public string? Label { get; set; }
+}
+
+/// <summary>
+/// Base field definition model for custom fields
+/// </summary>
+public abstract class BaseField
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("key")]
+    public string? Key { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("field_type")]
+    public string? FieldType { get; set; }
+
+    [JsonPropertyName("edit_flag")]
+    public bool EditFlag { get; set; }
+
+    [JsonPropertyName("mandatory_flag")]
+    public bool MandatoryFlag { get; set; }
+
+    [JsonPropertyName("options")]
+    public List<FieldOption>? Options { get; set; }
+}
+
+/// <summary>
+/// Deal field definition
+/// </summary>
+public sealed class DealField : BaseField
+{
+}
+
+/// <summary>
+/// Person field definition
+/// </summary>
+public sealed class PersonField : BaseField
+{
+}
+
+/// <summary>
+/// Organization field definition
+/// </summary>
+public sealed class OrganizationField : BaseField
+{
+}
+
+/// <summary>
 /// JSON source generator context for API models (Native AOT compatibility)
 /// </summary>
 [JsonSourceGenerationOptions(
@@ -577,6 +655,15 @@ public sealed class Note
 [JsonSerializable(typeof(List<Activity>))]
 [JsonSerializable(typeof(List<Note>))]
 [JsonSerializable(typeof(Owner))]
+[JsonSerializable(typeof(DealField))]
+[JsonSerializable(typeof(PersonField))]
+[JsonSerializable(typeof(OrganizationField))]
+[JsonSerializable(typeof(List<DealField>))]
+[JsonSerializable(typeof(List<PersonField>))]
+[JsonSerializable(typeof(List<OrganizationField>))]
+[JsonSerializable(typeof(PipedriveResponse<List<DealField>>))]
+[JsonSerializable(typeof(PipedriveResponse<List<PersonField>>))]
+[JsonSerializable(typeof(PipedriveResponse<List<OrganizationField>>))]
 internal partial class ApiJsonContext : JsonSerializerContext
 {
 }

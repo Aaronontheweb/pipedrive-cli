@@ -1,6 +1,7 @@
 using System.CommandLine;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI.Commands;
@@ -143,6 +144,8 @@ public static class OrganizationsCommands
                         ? $"{org.OwnerId.Id} ({org.OwnerId.Name})"
                         : "N/A";
 
+                    var customFieldsDisplay = CustomFieldHelper.FormatCustomFields(org.CustomFields);
+
                     var panel = new Panel(new Markup(
                         $"[bold]Name:[/] {Markup.Escape(org.Name ?? "")}\n" +
                         $"[bold]ID:[/] {org.Id}\n" +
@@ -150,7 +153,8 @@ public static class OrganizationsCommands
                         $"[bold]Address:[/] {Markup.Escape(org.Address ?? "N/A")}\n" +
                         $"[bold]Owner:[/] {Markup.Escape(ownerInfo)}\n" +
                         $"[bold]Added:[/] {Markup.Escape(org.AddTime ?? "N/A")}\n" +
-                        $"[bold]Updated:[/] {Markup.Escape(org.UpdateTime ?? "N/A")}"))
+                        $"[bold]Updated:[/] {Markup.Escape(org.UpdateTime ?? "N/A")}" +
+                        customFieldsDisplay))
                     {
                         Header = new PanelHeader($"[green]Organization: {Markup.Escape(org.Name ?? "")}[/]"),
                         Border = BoxBorder.Rounded

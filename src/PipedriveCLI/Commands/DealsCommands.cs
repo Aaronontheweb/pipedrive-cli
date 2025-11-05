@@ -1,6 +1,7 @@
 using System.CommandLine;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI.Commands;
@@ -151,6 +152,7 @@ public static class DealsCommands
                 if (response?.Success == true && response.Data != null)
                 {
                     var deal = response.Data;
+                    var customFieldsDisplay = CustomFieldHelper.FormatCustomFields(deal.CustomFields);
 
                     var panel = new Panel(new Markup(
                         $"[bold]Title:[/] {Markup.Escape(deal.Title ?? "")}\n" +
@@ -163,7 +165,8 @@ public static class DealsCommands
                         $"[bold]Probability:[/] {(deal.Probability.HasValue ? $"{deal.Probability.Value}%" : "N/A")}\n" +
                         $"[bold]Expected Close Date:[/] {Markup.Escape(deal.ExpectedCloseDate ?? "N/A")}\n" +
                         $"[bold]Added:[/] {Markup.Escape(deal.AddTime ?? "N/A")}\n" +
-                        $"[bold]Updated:[/] {Markup.Escape(deal.UpdateTime ?? "N/A")}"))
+                        $"[bold]Updated:[/] {Markup.Escape(deal.UpdateTime ?? "N/A")}" +
+                        customFieldsDisplay))
                     {
                         Header = new PanelHeader($"[green]Deal: {Markup.Escape(deal.Title ?? "")}[/]"),
                         Border = BoxBorder.Rounded

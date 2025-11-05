@@ -576,6 +576,37 @@ public sealed class PipedriveApiClient : IDisposable
 
     #endregion
 
+    #region Custom Fields
+
+    /// <summary>
+    /// Gets all deal field definitions
+    /// </summary>
+    public async Task<PipedriveResponse<List<DealField>>?> GetDealFieldsAsync()
+    {
+        var jsonResponse = await GetAsync("dealFields");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListDealField);
+    }
+
+    /// <summary>
+    /// Gets all person field definitions
+    /// </summary>
+    public async Task<PipedriveResponse<List<PersonField>>?> GetPersonFieldsAsync()
+    {
+        var jsonResponse = await GetAsync("personFields");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListPersonField);
+    }
+
+    /// <summary>
+    /// Gets all organization field definitions
+    /// </summary>
+    public async Task<PipedriveResponse<List<OrganizationField>>?> GetOrganizationFieldsAsync()
+    {
+        var jsonResponse = await GetAsync("organizationFields");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListOrganizationField);
+    }
+
+    #endregion
+
     /// <summary>
     /// Tests the API connection by making a simple request
     /// </summary>
