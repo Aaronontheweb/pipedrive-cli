@@ -387,4 +387,91 @@ public class PersonsApiClientTests
         Assert.NotNull(response.Data);
         Assert.Empty(response.Data);
     }
+
+    /// <summary>
+    /// Test that Person deserialization handles reference fields as objects (from actual API GET responses)
+    /// The PipedriveReferenceConverter should extract the "value" property from nested objects
+    /// </summary>
+    [Fact]
+    public void Person_Deserialization_HandlesReferenceFieldsAsObjects()
+    {
+        // Arrange - API response with org_id as a complex object (actual API format)
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 777,
+                "name": "Michael Chen",
+                "first_name": "Michael",
+                "last_name": "Chen",
+                "email": [
+                    {
+                        "value": "michael@techcorp.com",
+                        "primary": true,
+                        "label": "work"
+                    },
+                    {
+                        "value": "michael.personal@email.com",
+                        "primary": false,
+                        "label": "home"
+                    }
+                ],
+                "phone": [
+                    {
+                        "value": "+1-555-8888",
+                        "primary": true,
+                        "label": "work"
+                    },
+                    {
+                        "value": "+1-555-9999",
+                        "primary": false,
+                        "label": "mobile"
+                    }
+                ],
+                "org_id": {
+                    "name": "TechCorp Industries",
+                    "people_count": 75,
+                    "owner_id": 23920819,
+                    "address": "789 Innovation Park, Boston, MA",
+                    "active_flag": true,
+                    "cc_email": "techcorp@pipedrive.com",
+                    "value": 33333
+                },
+                "owner_id": null,
+                "add_time": "2024-09-15T08:00:00Z",
+                "update_time": "2024-11-04T12:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponsePerson);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(777, response.Data.Id);
+        Assert.Equal("Michael Chen", response.Data.Name);
+        Assert.Equal("Michael", response.Data.FirstName);
+        Assert.Equal("Chen", response.Data.LastName);
+
+        // Verify that the PipedriveReferenceConverter correctly extracted the "value" property from org_id
+        Assert.Equal(33333, response.Data.OrgId);
+
+        // Verify email array was parsed correctly
+        Assert.NotNull(response.Data.Email);
+        Assert.Equal(2, response.Data.Email.Count);
+        Assert.Equal("michael@techcorp.com", response.Data.Email[0].Value);
+        Assert.True(response.Data.Email[0].Primary);
+
+        // Verify phone array was parsed correctly
+        Assert.NotNull(response.Data.Phone);
+        Assert.Equal(2, response.Data.Phone.Count);
+        Assert.Equal("+1-555-8888", response.Data.Phone[0].Value);
+        Assert.True(response.Data.Phone[0].Primary);
+
+        Assert.Equal("2024-09-15T08:00:00Z", response.Data.AddTime);
+        Assert.Equal("2024-11-04T12:00:00Z", response.Data.UpdateTime);
+    }
 }
