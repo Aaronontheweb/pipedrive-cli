@@ -40,10 +40,15 @@ public static class ConfigCommands
             aliases: new[] { "--domain", "-d" },
             description: "Pipedrive domain (e.g., company.pipedrive.com)");
 
+        var profileOption = new Option<string?>(
+            aliases: new[] { "--profile", "-p" },
+            description: "Profile name to configure (creates if it doesn't exist). If not specified, uses the active profile.");
+
         setCommand.AddOption(apiKeyOption);
         setCommand.AddOption(domainOption);
+        setCommand.AddOption(profileOption);
 
-        setCommand.SetHandler(async (apiKey, domain) =>
+        setCommand.SetHandler(async (apiKey, domain, profile) =>
         {
             try
             {
@@ -54,24 +59,25 @@ public static class ConfigCommands
                     return;
                 }
 
-                await configService.SetConfigAsync(apiKey, domain);
+                await configService.SetConfigAsync(apiKey, domain, profile);
 
-                AnsiConsole.MarkupLine("[green]✓[/] Configuration updated successfully");
+                var targetProfile = profile ?? await configService.GetActiveProfileNameAsync();
+                AnsiConsole.MarkupLine($"[green]✓[/] Configuration updated successfully for profile: [cyan]{targetProfile}[/]");
 
                 // Show what was set
-                var profile = await configService.GetActiveProfileAsync();
-                var profileName = await configService.GetActiveProfileNameAsync();
+                var config = await configService.LoadConfigAsync();
+                var profileConfig = config.Profiles[targetProfile];
 
                 var table = new Table();
                 table.Border(TableBorder.Rounded);
                 table.AddColumn("Setting");
                 table.AddColumn("Value");
 
-                table.AddRow("Profile", $"[cyan]{profileName}[/]");
+                table.AddRow("Profile", $"[cyan]{targetProfile}[/]");
                 if (!string.IsNullOrWhiteSpace(apiKey))
-                    table.AddRow("API Key", $"[dim]{MaskApiKey(profile.ApiKey)}[/]");
+                    table.AddRow("API Key", $"[dim]{MaskApiKey(profileConfig.ApiKey)}[/]");
                 if (!string.IsNullOrWhiteSpace(domain))
-                    table.AddRow("Domain", $"[cyan]{profile.Domain}[/]");
+                    table.AddRow("Domain", $"[cyan]{profileConfig.Domain}[/]");
 
                 AnsiConsole.Write(table);
             }
@@ -79,7 +85,7 @@ public static class ConfigCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {ex.Message}");
             }
-        }, apiKeyOption, domainOption);
+        }, apiKeyOption, domainOption, profileOption);
 
         return setCommand;
     }
