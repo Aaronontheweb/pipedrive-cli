@@ -1,3 +1,46 @@
+#### 0.2.1 November 4th 2025 ####
+
+This release adds a usability improvement to the configuration management system.
+
+**Improvements**
+
+- **Profile Flag for Config Set** ([#27](https://github.com/Aaronontheweb/pipedrive-cli/pull/27))
+  - Added `--profile` flag to `config set` command
+  - Allows creating and configuring profiles without switching to them first
+  - Maintains backward compatibility - config still applies to active profile when flag is omitted
+  - Usage: `pipedrive config set --profile staging --api-key YOUR_KEY --domain company.pipedrive.com`
+
+**Installation**
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.2.1).
+
+**Upgrade from 0.2.0**
+
+The CLI includes auto-update functionality. Simply run:
+
+```bash
+pipedrive update
+```
+
+**Documentation**
+
+- Full documentation: https://github.com/Aaronontheweb/pipedrive-cli/blob/dev/README.md
+- Pipedrive API: https://developers.pipedrive.com/docs/api/v1
+
+**Feedback**
+
+Please report any issues or feature requests at https://github.com/Aaronontheweb/pipedrive-cli/issues
+
+---
+
 #### 0.2.0 November 4th 2025 ####
 
 This release adds powerful new features for managing notes and merging duplicate entities, along with custom field support and important stability improvements.
