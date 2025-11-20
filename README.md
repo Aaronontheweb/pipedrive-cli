@@ -52,16 +52,16 @@ The easiest way to install Pipedrive CLI is using our installation scripts:
 
 ```bash
 # Using curl
-curl -sSL https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
 
 # Or using wget
-wget -qO- https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
 ```
 
 **Options:**
 ```bash
 # Download and run locally
-curl -sSL https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.sh -o install.sh
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh -o install.sh
 chmod +x install.sh
 
 # Dry run (download and verify without installing)
@@ -87,13 +87,13 @@ The installer will:
 
 ```powershell
 # Using PowerShell (Run as Administrator recommended)
-iwr -useb https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 | iex
 ```
 
 **Options:**
 ```powershell
 # Download and run locally
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.ps1 -OutFile install.ps1
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -OutFile install.ps1
 
 # Dry run (download and verify without installing)
 .\install.ps1 -DryRun
@@ -122,7 +122,7 @@ If you prefer to build from source or need a development environment:
 
 ```bash
 # Clone the repository
-git clone https://github.com/stannardlabs/pipedrive-cli.git
+git clone https://github.com/Aaronontheweb/pipedrive-cli.git
 cd pipedrive-cli
 
 # Build and publish Native AOT binary
@@ -516,7 +516,7 @@ The following features are planned for future releases:
 - **Data Quality Reports** - Identify incomplete or invalid data
 - **Advanced Reporting** - Generate custom reports and analytics
 
-For the full list of planned features and to suggest new ones, visit the [GitHub Issues](https://github.com/stannardlabs/pipedrive-cli/issues) page.
+For the full list of planned features and to suggest new ones, visit the [GitHub Issues](https://github.com/Aaronontheweb/pipedrive-cli/issues) page.
 
 ## Architecture
 
@@ -538,5 +538,5 @@ Copyright © 2025 Stannard Labs
 ## Support
 
 For issues and questions:
-- Create an issue on [GitHub](https://github.com/stannardlabs/pipedrive-cli/issues)
+- Create an issue on [GitHub](https://github.com/Aaronontheweb/pipedrive-cli/issues)
 - Check the [Pipedrive API Documentation](https://developers.pipedrive.com/docs/api/v1)
