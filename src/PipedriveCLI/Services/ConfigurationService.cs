@@ -137,7 +137,7 @@ public sealed class ConfigurationService
             config.Profiles[profileName] = new ProfileConfig();
         }
 
-        config.Profiles[profileName].Domain = domain;
+        config.Profiles[profileName].Domain = NormalizeDomain(domain);
         await SaveConfigAsync(config);
     }
 
@@ -160,7 +160,7 @@ public sealed class ConfigurationService
         var profile = config.Profiles[targetProfile];
 
         if (apiKey != null) profile.ApiKey = apiKey;
-        if (domain != null) profile.Domain = domain;
+        if (domain != null) profile.Domain = NormalizeDomain(domain);
 
         await SaveConfigAsync(config);
     }
@@ -219,6 +219,44 @@ public sealed class ConfigurationService
     {
         var envValue = Environment.GetEnvironmentVariable(envVarName);
         return !string.IsNullOrWhiteSpace(envValue) ? envValue : configValue;
+    }
+
+    /// <summary>
+    /// Normalizes a Pipedrive domain by automatically appending .pipedrive.com if needed
+    /// </summary>
+    /// <param name="domain">The domain to normalize</param>
+    /// <returns>Normalized domain in the format company.pipedrive.com</returns>
+    internal static string NormalizeDomain(string domain)
+    {
+        if (string.IsNullOrWhiteSpace(domain))
+        {
+            return domain;
+        }
+
+        // Trim whitespace
+        domain = domain.Trim();
+
+        // Remove protocol if present (http://, https://)
+        if (domain.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        {
+            domain = domain.Substring(7);
+        }
+        else if (domain.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            domain = domain.Substring(8);
+        }
+
+        // Remove trailing slashes
+        domain = domain.TrimEnd('/');
+
+        // If domain doesn't already end with .pipedrive.com, append it
+        if (!domain.EndsWith(".pipedrive.com", StringComparison.OrdinalIgnoreCase))
+        {
+            domain = $"{domain}.pipedrive.com";
+        }
+
+        // Convert to lowercase for consistency
+        return domain.ToLowerInvariant();
     }
 
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]

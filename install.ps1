@@ -277,7 +277,7 @@ function Main {
         Write-Host "Installation complete! 🎉" -ForegroundColor Green
         Write-Host ""
         Write-Host "Run 'pipedrive --help' to get started" -ForegroundColor Cyan
-        Write-Host "Run 'pipedrive config set-api-token <token>' to configure" -ForegroundColor Cyan
+        Write-Host "Run 'pipedrive config set --api-key YOUR_API_KEY --domain company.pipedrive.com' to configure" -ForegroundColor Cyan
 
         # Create desktop shortcut option
         $createShortcut = Read-Host "`nCreate desktop shortcut? [y/N]"

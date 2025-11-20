@@ -29,7 +29,7 @@ public sealed class PipedriveApiClient : IDisposable
         if (!profile.IsValid())
         {
             throw new InvalidOperationException(
-                "Pipedrive CLI is not configured. Run 'pipedrive config set --api-key <key> --domain <domain>' to configure.");
+                "Pipedrive CLI is not configured. Run 'pipedrive config set --api-key YOUR_API_KEY --domain company.pipedrive.com' to configure.");
         }
 
         // Set base address using the domain from config

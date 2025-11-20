@@ -348,7 +348,7 @@ main() {
         echo "Installation complete! 🎉"
         echo ""
         echo "Run '${BINARY_NAME} --help' to get started"
-        echo "Run '${BINARY_NAME} config set-api-token <token>' to configure"
+        echo "Run '${BINARY_NAME} config set --api-key YOUR_API_KEY --domain company.pipedrive.com' to configure"
     fi
 }
 
