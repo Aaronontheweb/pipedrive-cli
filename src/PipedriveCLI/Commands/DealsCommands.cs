@@ -46,7 +46,8 @@ public static class DealsCommands
 
         var statusOption = new Option<string?>(
             aliases: new[] { "--status" },
-            description: "Filter by status (open, won, lost, deleted, all_not_deleted)");
+            description: "Filter by status (open, won, lost, deleted, all_not_deleted)",
+            getDefaultValue: () => "open");
 
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
@@ -90,12 +91,12 @@ public static class DealsCommands
 
                                 table.AddRow(
                                     deal.Id.ToString(),
-                                    deal.Title ?? "-",
+                                    Markup.Escape(deal.Title ?? "-"),
                                     valueDisplay,
-                                    deal.Status ?? "-",
+                                    Markup.Escape(deal.Status ?? "-"),
                                     deal.StageId?.ToString() ?? "-",
                                     entityId,
-                                    deal.ExpectedCloseDate ?? "-"
+                                    Markup.Escape(deal.ExpectedCloseDate ?? "-")
                                 );
                             }
 
