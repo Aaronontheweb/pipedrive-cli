@@ -2,6 +2,34 @@
 
 A fast, lightweight command-line interface for managing your Pipedrive CRM. Built with .NET 8 and Native AOT compilation for lightning-fast startup times (~13ms).
 
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+  - [Quick Install (Recommended)](#quick-install-recommended)
+  - [Manual Installation](#manual-installation)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+  - [Configuration File](#configuration-file)
+  - [Environment Variables](#environment-variables)
+  - [Managing Profiles](#managing-profiles)
+- [Commands](#commands)
+  - [config - Configuration Management](#config---configuration-management)
+  - [leads - Leads Management](#leads---leads-management)
+  - [deals - Deals Management](#deals---deals-management)
+  - [persons - Persons (Contacts) Management](#persons---persons-contacts-management)
+  - [organizations - Organizations Management](#organizations---organizations-management)
+  - [activities - Activities Management](#activities---activities-management)
+  - [notes - Notes Management](#notes---notes-management)
+  - [update - Auto-Update](#update---auto-update)
+- [Getting Your API Key](#getting-your-api-key)
+- [Building from Source](#building-from-source)
+- [Roadmap](#roadmap)
+- [Architecture](#architecture)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
+
 ## Features
 
 - **⚡ Native AOT Compiled** - 13ms cold start with 12MB binary size
@@ -16,7 +44,81 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
 
 ## Installation
 
-### From Source
+### Quick Install (Recommended)
+
+The easiest way to install Pipedrive CLI is using our installation scripts:
+
+#### Linux & macOS
+
+```bash
+# Using curl
+curl -sSL https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.sh | bash
+
+# Or using wget
+wget -qO- https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.sh | bash
+```
+
+**Options:**
+```bash
+# Download and run locally
+curl -sSL https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.sh -o install.sh
+chmod +x install.sh
+
+# Dry run (download and verify without installing)
+./install.sh --dry-run
+
+# Install with beta/pre-release versions
+./install.sh --beta
+
+# Custom installation directory
+INSTALL_DIR=/custom/path ./install.sh
+
+# Uninstall
+./install.sh --uninstall
+```
+
+The installer will:
+- Automatically detect your OS and architecture
+- Download the latest release from GitHub
+- Install to `~/.local/bin` by default
+- Add the binary to your PATH if needed
+
+#### Windows
+
+```powershell
+# Using PowerShell (Run as Administrator recommended)
+iwr -useb https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.ps1 | iex
+```
+
+**Options:**
+```powershell
+# Download and run locally
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/stannardlabs/pipedrive-cli/dev/install.ps1 -OutFile install.ps1
+
+# Dry run (download and verify without installing)
+.\install.ps1 -DryRun
+
+# Install with beta/pre-release versions
+.\install.ps1 -Beta
+
+# Custom installation directory
+.\install.ps1 -InstallDir "C:\custom\path"
+
+# Skip confirmation prompts
+.\install.ps1 -Force
+```
+
+The installer will:
+- Automatically detect your system architecture
+- Download the latest release from GitHub
+- Install to `%LOCALAPPDATA%\Programs\pipedrive` by default
+- Add the binary to your PATH automatically
+
+### Manual Installation
+
+If you prefer to build from source or need a development environment:
+
+#### From Source
 
 ```bash
 # Clone the repository
@@ -30,7 +132,7 @@ dotnet publish src/PipedriveCLI/PipedriveCLI.csproj -c Release -r linux-x64 --no
 sudo cp src/PipedriveCLI/bin/Release/net8.0/linux-x64/publish/pipedrive /usr/local/bin/
 ```
 
-### Using .NET Runtime (Development)
+#### Using .NET Runtime (Development)
 
 ```bash
 dotnet run --project src/PipedriveCLI/PipedriveCLI.csproj -- [command] [options]
