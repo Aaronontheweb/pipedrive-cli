@@ -1,3 +1,58 @@
+#### 0.2.2 November 20 2025 ####
+
+This release fixes critical installation issues and improves the configuration setup experience.
+
+**Bug Fixes**
+
+- **Fixed Installation Script URLs** ([#34](https://github.com/Aaronontheweb/pipedrive-cli/pull/34))
+  - Resolved 404 errors when accessing install scripts
+  - Updated repository URLs from stannardlabs to Aaronontheweb
+  - Users can now successfully download and install the CLI
+
+- **Fixed Post-Install Instructions** ([#35](https://github.com/Aaronontheweb/pipedrive-cli/pull/35))
+  - Corrected invalid `config set-api-token` command in install scripts
+  - Updated to show correct `config set --api-key <key> --domain <domain>` syntax
+  - Error messages now display concrete examples instead of placeholders
+
+**Improvements**
+
+- **Automatic Domain Normalization** ([#35](https://github.com/Aaronontheweb/pipedrive-cli/pull/35))
+  - Users can now provide just their company name (e.g., `company`) instead of the full domain
+  - Automatically appends `.pipedrive.com` if not present
+  - Handles protocol removal (`https://`, `http://`), trailing slashes, and case normalization
+  - Users can copy their domain directly from Pipedrive settings without formatting
+
+**Installation**
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.2.2).
+
+**Upgrade from 0.2.1**
+
+The CLI includes auto-update functionality. Simply run:
+
+```bash
+pipedrive update
+```
+
+**Documentation**
+
+- Full documentation: https://github.com/Aaronontheweb/pipedrive-cli/blob/dev/README.md
+- Pipedrive API: https://developers.pipedrive.com/docs/api/v1
+
+**Feedback**
+
+Please report any issues or feature requests at https://github.com/Aaronontheweb/pipedrive-cli/issues
+
+---
+
 #### 0.2.1 November 4th 2025 ####
 
 This release adds a usability improvement to the configuration management system.
