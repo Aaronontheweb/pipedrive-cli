@@ -53,7 +53,9 @@ The easiest way to install Pipedrive CLI is using our installation scripts:
 ```bash
 # Using curl
 curl -sSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
+```
 
+```
 # Or using wget
 wget -qO- https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
 ```
