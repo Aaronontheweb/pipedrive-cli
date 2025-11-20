@@ -30,15 +30,15 @@ public static class ConfigCommands
     /// </summary>
     private static Command CreateSetCommand(ConfigurationService configService)
     {
-        var setCommand = new Command("set", "Set configuration values");
+        var setCommand = new Command("set", "Set configuration values (both API key and domain are required for a working configuration)");
 
         var apiKeyOption = new Option<string?>(
             aliases: new[] { "--api-key", "-k" },
-            description: "Pipedrive API key");
+            description: "Pipedrive API key (required for API access)");
 
         var domainOption = new Option<string?>(
             aliases: new[] { "--domain", "-d" },
-            description: "Pipedrive domain (e.g., company.pipedrive.com)");
+            description: "Pipedrive domain - your company name, will auto-append .pipedrive.com if not present (e.g., 'company' or 'company.pipedrive.com')");
 
         var profileOption = new Option<string?>(
             aliases: new[] { "--profile", "-p" },
@@ -55,7 +55,8 @@ public static class ConfigCommands
                 if (string.IsNullOrWhiteSpace(apiKey) && string.IsNullOrWhiteSpace(domain))
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one configuration value must be specified.");
-                    AnsiConsole.MarkupLine("Use [cyan]--api-key[/] or [cyan]--domain[/]");
+                    AnsiConsole.MarkupLine("Note: Both [cyan]--api-key[/] and [cyan]--domain[/] are required for a working configuration.");
+                    AnsiConsole.MarkupLine("Example: [dim]pipedrive config set --api-key YOUR_KEY --domain company[/]");
                     return;
                 }
 
