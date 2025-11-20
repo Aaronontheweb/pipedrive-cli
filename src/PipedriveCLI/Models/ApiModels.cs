@@ -500,6 +500,69 @@ public sealed class MergeRequest
 }
 
 /// <summary>
+/// Pipedrive Pipeline model
+/// </summary>
+public sealed class Pipeline
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("order_nr")]
+    public int OrderNr { get; set; }
+
+    [JsonPropertyName("active")]
+    public bool Active { get; set; }
+
+    [JsonPropertyName("deal_probability")]
+    public bool DealProbability { get; set; }
+
+    [JsonPropertyName("add_time")]
+    public string? AddTime { get; set; }
+
+    [JsonPropertyName("update_time")]
+    public string? UpdateTime { get; set; }
+}
+
+/// <summary>
+/// Pipedrive Stage model
+/// </summary>
+public sealed class Stage
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("pipeline_id")]
+    public int PipelineId { get; set; }
+
+    [JsonPropertyName("order_nr")]
+    public int OrderNr { get; set; }
+
+    [JsonPropertyName("active_flag")]
+    public bool ActiveFlag { get; set; }
+
+    [JsonPropertyName("deal_probability")]
+    public int? DealProbability { get; set; }
+
+    [JsonPropertyName("rotten_flag")]
+    public bool? RottenFlag { get; set; }
+
+    [JsonPropertyName("rotten_days")]
+    public int? RottenDays { get; set; }
+
+    [JsonPropertyName("add_time")]
+    public string? AddTime { get; set; }
+
+    [JsonPropertyName("update_time")]
+    public string? UpdateTime { get; set; }
+}
+
+/// <summary>
 /// Pipedrive Note model
 /// </summary>
 public sealed class Note
@@ -664,6 +727,14 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(PipedriveResponse<List<DealField>>))]
 [JsonSerializable(typeof(PipedriveResponse<List<PersonField>>))]
 [JsonSerializable(typeof(PipedriveResponse<List<OrganizationField>>))]
+[JsonSerializable(typeof(Pipeline))]
+[JsonSerializable(typeof(Stage))]
+[JsonSerializable(typeof(List<Pipeline>))]
+[JsonSerializable(typeof(List<Stage>))]
+[JsonSerializable(typeof(PipedriveResponse<Pipeline>))]
+[JsonSerializable(typeof(PipedriveResponse<Stage>))]
+[JsonSerializable(typeof(PipedriveResponse<List<Pipeline>>))]
+[JsonSerializable(typeof(PipedriveResponse<List<Stage>>))]
 internal partial class ApiJsonContext : JsonSerializerContext
 {
 }

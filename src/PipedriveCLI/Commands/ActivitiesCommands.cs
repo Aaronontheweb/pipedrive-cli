@@ -45,7 +45,8 @@ public static class ActivitiesCommands
 
         var doneOption = new Option<bool?>(
             aliases: new[] { "--done", "-d" },
-            description: "Filter by done status (true/false)");
+            description: "Filter by done status (true/false, default: false)",
+            getDefaultValue: () => false);
 
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);

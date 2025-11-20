@@ -55,6 +55,9 @@ public static class Program
         // Add organizations command
         rootCommand.AddCommand(OrganizationsCommands.CreateOrganizationsCommand(apiClient));
 
+        // Add pipelines command
+        rootCommand.AddCommand(PipelinesCommands.CreatePipelinesCommand(apiClient));
+
         // Add update command
         rootCommand.AddCommand(UpdateCommands.CreateUpdateCommand());
 

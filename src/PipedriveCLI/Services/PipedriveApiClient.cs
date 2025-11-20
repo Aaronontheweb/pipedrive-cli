@@ -607,6 +607,49 @@ public sealed class PipedriveApiClient : IDisposable
 
     #endregion
 
+    #region Pipelines Operations
+
+    /// <summary>
+    /// Gets all pipelines
+    /// </summary>
+    public async Task<PipedriveResponse<List<Pipeline>>?> GetPipelinesAsync()
+    {
+        var jsonResponse = await GetAsync("pipelines");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListPipeline);
+    }
+
+    /// <summary>
+    /// Gets a specific pipeline by ID
+    /// </summary>
+    public async Task<PipedriveResponse<Pipeline>?> GetPipelineByIdAsync(int id)
+    {
+        var jsonResponse = await GetAsync($"pipelines/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponsePipeline);
+    }
+
+    /// <summary>
+    /// Gets all stages for a specific pipeline
+    /// </summary>
+    public async Task<PipedriveResponse<List<Stage>>?> GetStagesAsync(int? pipelineId = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (pipelineId.HasValue) queryParams["pipeline_id"] = pipelineId.Value.ToString();
+
+        var jsonResponse = await GetAsync("stages", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListStage);
+    }
+
+    /// <summary>
+    /// Gets a specific stage by ID
+    /// </summary>
+    public async Task<PipedriveResponse<Stage>?> GetStageByIdAsync(int id)
+    {
+        var jsonResponse = await GetAsync($"stages/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseStage);
+    }
+
+    #endregion
+
     /// <summary>
     /// Tests the API connection by making a simple request
     /// </summary>
