@@ -21,6 +21,7 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
   - [organizations - Organizations Management](#organizations---organizations-management)
   - [activities - Activities Management](#activities---activities-management)
   - [notes - Notes Management](#notes---notes-management)
+  - [pipelines - Pipelines Management](#pipelines---pipelines-management)
   - [update - Auto-Update](#update---auto-update)
 - [Getting Your API Key](#getting-your-api-key)
 - [Building from Source](#building-from-source)
@@ -39,7 +40,9 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
 - **🔄 Multi-Profile Support** - Manage multiple Pipedrive environments (dev, staging, prod)
 - **📝 Full CRM Management** - Complete CRUD operations for leads, deals, persons, organizations, activities, and notes
 - **🔀 Entity Merging** - Merge duplicate persons, deals, and organizations with confirmation prompts
-- **🏷️ Custom Fields** - Automatic display of custom fields when viewing entities
+- **🏷️ Custom Fields** - View custom fields with friendly names and update them via CLI
+- **🔧 Pipeline Management** - View pipelines and stages to understand your sales process
+- **🤖 Scriptable** - JSON output mode for automation and scripting
 - **⬆️ Auto-Update** - Background update checking with self-update capability
 
 ## Installation
@@ -332,20 +335,32 @@ pipedrive leads search "search term" [--limit 100]
 
 ### `deals` - Deals Management
 
-Manage deals with status filtering and merge capabilities.
+Manage deals with status filtering, custom field support, and merge capabilities.
 
 ```bash
 # List all deals
 pipedrive deals list [--status open|won|lost] [--limit 100] [--start 0]
 
-# Get specific deal details (includes custom fields)
+# Get specific deal details (shows custom fields with friendly names)
 pipedrive deals get <id>
+
+# Get deal with raw custom field hash keys (for scripting)
+pipedrive deals get <id> --raw-keys
+
+# Get deal as JSON (for scripting/automation)
+pipedrive deals get <id> --json
 
 # Create a new deal
 pipedrive deals create --title "Q4 License" --value 25000 [--currency USD] [--person-id 123] [--org-id 456]
 
 # Update an existing deal
 pipedrive deals update <id> --title "Updated Deal" [--value 30000] [--status won]
+
+# Update deal with custom fields (use hash keys from --raw-keys)
+pipedrive deals update <id> --custom-fields "hash1=value1,hash2=value2"
+
+# Example: Update Phobos Expiration Date custom field
+pipedrive deals update 1597 --custom-fields "6d3594d15856d7b77a2ab10a6c2c9603f90a5543=2026-05-11"
 
 # Delete a deal
 pipedrive deals delete <id> [--force]
@@ -393,6 +408,9 @@ pipedrive organizations list [--limit 100] [--start 0]
 # Get specific organization details (includes custom fields)
 pipedrive organizations get <id>
 
+# Get organization as JSON (for scripting/automation)
+pipedrive organizations get <id> --json
+
 # Create a new organization
 pipedrive organizations create --name "Acme Corp" [--address "123 Main St, City, State"]
 
@@ -411,7 +429,7 @@ pipedrive organizations merge <source-id> <target-id> [--force]
 
 ### `activities` - Activities Management
 
-Manage tasks, calls, meetings, and other activities with due date tracking.
+Manage tasks, calls, meetings, and other activities with due date tracking and user assignment.
 
 ```bash
 # List all activities
@@ -421,7 +439,13 @@ pipedrive activities list [--done 0|1] [--limit 100] [--start 0]
 pipedrive activities get <id>
 
 # Create a new activity
-pipedrive activities create --subject "Follow-up call" --type call [--due-date "2025-12-31"] [--due-time "14:00"]
+pipedrive activities create --subject "Follow-up call" --type call [--due-date "2025-12-31"]
+
+# Create activity assigned to a specific user
+pipedrive activities create --subject "Follow-up call" --type call --user-id 10204689
+
+# Create activity for a deal or person
+pipedrive activities create --subject "Demo" --type meeting --deal-id 123 [--person-id 456]
 
 # Update an existing activity
 pipedrive activities update <id> --subject "Updated subject" [--due-date "2026-01-15"]
@@ -452,6 +476,43 @@ pipedrive notes update <id> --content "Updated notes"
 
 # Delete a note
 pipedrive notes delete <id> [--force]
+```
+
+### `pipelines` - Pipelines Management
+
+View pipelines and their stages to understand your sales process structure.
+
+```bash
+# List all pipelines
+pipedrive pipelines list
+
+# Get specific pipeline details
+pipedrive pipelines get <id>
+
+# List all stages in a pipeline
+pipedrive pipelines stages <id>
+```
+
+Example output for `pipelines list`:
+```
+╭──────┬─────────────────┬────────┬─────────╮
+│ ID   │ Name            │ Active │ Deals   │
+├──────┼─────────────────┼────────┼─────────┤
+│ 1    │ Sales Pipeline  │ ✓      │ 45      │
+│ 15   │ Phobos V2       │ ✓      │ 32      │
+╰──────┴─────────────────┴────────┴─────────╯
+```
+
+Example output for `pipelines stages 1`:
+```
+╭──────┬──────────────────┬───────────┬──────────────╮
+│ ID   │ Stage Name       │ Deals     │ Probability  │
+├──────┼──────────────────┼───────────┼──────────────┤
+│ 1    │ Lead In          │ 12        │ 10%          │
+│ 2    │ Contact Made     │ 8         │ 20%          │
+│ 3    │ Demo Scheduled   │ 15        │ 40%          │
+│ 4    │ Proposal Made    │ 10        │ 80%          │
+╰──────┴──────────────────┴───────────┴──────────────╯
 ```
 
 ### `update` - Auto-Update

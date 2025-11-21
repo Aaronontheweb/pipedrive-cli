@@ -15,13 +15,13 @@ public static class DealsCommands
     /// <summary>
     /// Creates the root 'deals' command with all subcommands
     /// </summary>
-    public static Command CreateDealsCommand(PipedriveApiClient apiClient)
+    public static Command CreateDealsCommand(PipedriveApiClient apiClient, CustomFieldCache? fieldCache = null)
     {
         var dealsCommand = new Command("deals", "Manage Pipedrive deals");
 
         // Add subcommands
         dealsCommand.AddCommand(CreateListCommand(apiClient));
-        dealsCommand.AddCommand(CreateGetCommand(apiClient));
+        dealsCommand.AddCommand(CreateGetCommand(apiClient, fieldCache));
         dealsCommand.AddCommand(CreateCreateCommand(apiClient));
         dealsCommand.AddCommand(CreateUpdateCommand(apiClient));
         dealsCommand.AddCommand(CreateDeleteCommand(apiClient));
@@ -130,7 +130,7 @@ public static class DealsCommands
     /// <summary>
     /// Creates the 'deals get' command
     /// </summary>
-    private static Command CreateGetCommand(PipedriveApiClient apiClient)
+    private static Command CreateGetCommand(PipedriveApiClient apiClient, CustomFieldCache? fieldCache = null)
     {
         var getCommand = new Command("get", "Get a specific deal by ID");
 
@@ -142,7 +142,12 @@ public static class DealsCommands
             description: "Output raw JSON instead of formatted display");
         getCommand.AddOption(jsonOption);
 
-        getCommand.SetHandler(async (id, json) =>
+        var rawKeysOption = new Option<bool>(
+            aliases: new[] { "--raw-keys" },
+            description: "Display custom field hash keys instead of friendly names");
+        getCommand.AddOption(rawKeysOption);
+
+        getCommand.SetHandler(async (id, json, rawKeys) =>
         {
             try
             {
@@ -168,7 +173,26 @@ public static class DealsCommands
                     {
                         // Output formatted display
                         var deal = response.Data;
-                        var customFieldsDisplay = CustomFieldHelper.FormatCustomFields(deal.CustomFields);
+
+                        // Get field names from cache if available and not using raw keys
+                        Dictionary<string, string>? fieldNames = null;
+                        if (fieldCache != null && !rawKeys)
+                        {
+                            try
+                            {
+                                fieldNames = await fieldCache.GetDealFieldNamesAsync();
+                            }
+                            catch
+                            {
+                                // If field cache fails, fall back to raw keys
+                                fieldNames = null;
+                            }
+                        }
+
+                        var customFieldsDisplay = CustomFieldHelper.FormatCustomFields(
+                            deal.CustomFields,
+                            fieldNames,
+                            rawKeys);
 
                         var panel = new Panel(new Markup(
                             $"[bold]Title:[/] {Markup.Escape(deal.Title ?? "")}\n" +
@@ -207,7 +231,7 @@ public static class DealsCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, idArgument, jsonOption);
+        }, idArgument, jsonOption, rawKeysOption);
 
         return getCommand;
     }
@@ -338,20 +362,26 @@ public static class DealsCommands
             aliases: new[] { "--expected-close-date", "-d" },
             description: "New expected close date (YYYY-MM-DD)");
 
+        var customFieldsOption = new Option<string?>(
+            aliases: new[] { "--custom-fields", "-cf" },
+            description: "Custom fields to update in format: hash1=value1,hash2=value2");
+
         updateCommand.AddOption(titleOption);
         updateCommand.AddOption(valueOption);
         updateCommand.AddOption(currencyOption);
         updateCommand.AddOption(stageIdOption);
         updateCommand.AddOption(statusOption);
         updateCommand.AddOption(expectedCloseDateOption);
+        updateCommand.AddOption(customFieldsOption);
 
-        updateCommand.SetHandler(async (id, title, value, currency, stageId, status, expectedCloseDate) =>
+        updateCommand.SetHandler(async (id, title, value, currency, stageId, status, expectedCloseDate, customFields) =>
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(title) && !value.HasValue &&
                     string.IsNullOrWhiteSpace(currency) && !stageId.HasValue &&
-                    string.IsNullOrWhiteSpace(status) && string.IsNullOrWhiteSpace(expectedCloseDate))
+                    string.IsNullOrWhiteSpace(status) && string.IsNullOrWhiteSpace(expectedCloseDate) &&
+                    string.IsNullOrWhiteSpace(customFields))
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one field must be specified to update");
                     return;
@@ -367,6 +397,12 @@ public static class DealsCommands
                 if (stageId.HasValue) deal.StageId = stageId;
                 if (!string.IsNullOrWhiteSpace(status)) deal.Status = status;
                 if (!string.IsNullOrWhiteSpace(expectedCloseDate)) deal.ExpectedCloseDate = expectedCloseDate;
+
+                // Parse and set custom fields
+                if (!string.IsNullOrWhiteSpace(customFields))
+                {
+                    deal.CustomFields = CustomFieldHelper.ParseCustomFields(customFields);
+                }
 
                 var response = await AnsiConsole.Status()
                     .StartAsync($"Updating deal {id}...", async ctx =>
@@ -389,7 +425,7 @@ public static class DealsCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, idArgument, titleOption, valueOption, currencyOption, stageIdOption, statusOption, expectedCloseDateOption);
+        }, idArgument, titleOption, valueOption, currencyOption, stageIdOption, statusOption, expectedCloseDateOption, customFieldsOption);
 
         return updateCommand;
     }

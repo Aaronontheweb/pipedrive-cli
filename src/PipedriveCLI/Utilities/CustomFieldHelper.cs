@@ -11,7 +11,13 @@ public static class CustomFieldHelper
     /// Formats custom fields into readable key-value pairs
     /// Returns formatted string for display, or empty string if no custom fields
     /// </summary>
-    public static string FormatCustomFields(Dictionary<string, JsonElement>? customFields)
+    /// <param name="customFields">The custom fields dictionary</param>
+    /// <param name="fieldNames">Optional mapping of hash keys to friendly names</param>
+    /// <param name="useRawKeys">If true, display hash keys instead of friendly names</param>
+    public static string FormatCustomFields(
+        Dictionary<string, JsonElement>? customFields,
+        Dictionary<string, string>? fieldNames = null,
+        bool useRawKeys = false)
     {
         if (customFields == null || customFields.Count == 0)
         {
@@ -26,7 +32,15 @@ public static class CustomFieldHelper
                 continue;
 
             var formattedValue = FormatJsonElement(value);
-            lines.Add($"  [dim]{key}:[/] {formattedValue}");
+
+            // Use friendly name if available and not using raw keys
+            var displayKey = key;
+            if (!useRawKeys && fieldNames != null && fieldNames.TryGetValue(key, out var friendlyName))
+            {
+                displayKey = friendlyName;
+            }
+
+            lines.Add($"  [dim]{displayKey}:[/] {formattedValue}");
         }
 
         return lines.Count > 0 ? "\n[bold]Custom Fields:[/]\n" + string.Join("\n", lines) : string.Empty;

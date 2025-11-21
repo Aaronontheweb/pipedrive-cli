@@ -640,7 +640,7 @@ public sealed class FieldOption
 public abstract class BaseField
 {
     [JsonPropertyName("id")]
-    public int Id { get; set; }
+    public int? Id { get; set; }
 
     [JsonPropertyName("key")]
     public string? Key { get; set; }
@@ -652,10 +652,10 @@ public abstract class BaseField
     public string? FieldType { get; set; }
 
     [JsonPropertyName("edit_flag")]
-    public bool EditFlag { get; set; }
+    public bool? EditFlag { get; set; }
 
     [JsonPropertyName("mandatory_flag")]
-    public bool MandatoryFlag { get; set; }
+    public bool? MandatoryFlag { get; set; }
 
     [JsonPropertyName("options")]
     public List<FieldOption>? Options { get; set; }
