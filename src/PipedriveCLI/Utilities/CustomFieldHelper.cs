@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Spectre.Console;
 
 namespace PipedriveCLI.Utilities;
 
@@ -40,7 +41,7 @@ public static class CustomFieldHelper
                 displayKey = friendlyName;
             }
 
-            lines.Add($"  [dim]{displayKey}:[/] {formattedValue}");
+            lines.Add($"  [dim]{Markup.Escape(displayKey)}:[/] {Markup.Escape(formattedValue)}");
         }
 
         return lines.Count > 0 ? "\n[bold]Custom Fields:[/]\n" + string.Join("\n", lines) : string.Empty;
