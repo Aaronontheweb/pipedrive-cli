@@ -30,6 +30,7 @@ public static class Program
         // Get required services
         var configService = serviceProvider.GetRequiredService<ConfigurationService>();
         var apiClient = serviceProvider.GetRequiredService<PipedriveApiClient>();
+        var fieldCache = serviceProvider.GetRequiredService<CustomFieldCache>();
 
         // Create root command
         var rootCommand = new RootCommand("Pipedrive CLI - Manage your Pipedrive CRM from the command line");
@@ -41,7 +42,7 @@ public static class Program
         rootCommand.AddCommand(LeadsCommands.CreateLeadsCommand(apiClient));
 
         // Add deals command
-        rootCommand.AddCommand(DealsCommands.CreateDealsCommand(apiClient));
+        rootCommand.AddCommand(DealsCommands.CreateDealsCommand(apiClient, fieldCache));
 
         // Add activities command
         rootCommand.AddCommand(ActivitiesCommands.CreateActivitiesCommand(apiClient));
@@ -89,6 +90,7 @@ public static class Program
         // Register services
         services.AddSingleton<ConfigurationService>();
         services.AddSingleton<PipedriveApiClient>();
+        services.AddSingleton<CustomFieldCache>();
     }
 
     /// <summary>
