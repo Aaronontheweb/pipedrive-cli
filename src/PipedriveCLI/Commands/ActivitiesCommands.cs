@@ -217,10 +217,6 @@ public static class ActivitiesCommands
             description: "Due date (YYYY-MM-DD) (required)")
         { IsRequired = true };
 
-        var dueTimeOption = new Option<string?>(
-            aliases: new[] { "--due-time" },
-            description: "Due time (HH:MM)");
-
         var dealIdOption = new Option<int?>(
             aliases: new[] { "--deal-id" },
             description: "Associated deal ID");
@@ -237,16 +233,20 @@ public static class ActivitiesCommands
             aliases: new[] { "--note", "-n" },
             description: "Activity note");
 
+        var userIdOption = new Option<int?>(
+            aliases: new[] { "--user-id", "-u" },
+            description: "Assigned user ID");
+
         createCommand.AddOption(subjectOption);
         createCommand.AddOption(typeOption);
         createCommand.AddOption(dueDateOption);
-        createCommand.AddOption(dueTimeOption);
         createCommand.AddOption(dealIdOption);
         createCommand.AddOption(personIdOption);
         createCommand.AddOption(orgIdOption);
         createCommand.AddOption(noteOption);
+        createCommand.AddOption(userIdOption);
 
-        createCommand.SetHandler(async (subject, type, dueDate, dueTime, dealId, personId, orgId, note) =>
+        createCommand.SetHandler(async (subject, type, dueDate, dealId, personId, orgId, note, userId) =>
         {
             try
             {
@@ -257,11 +257,11 @@ public static class ActivitiesCommands
                     Subject = subject,
                     Type = type,
                     DueDate = dueDate,
-                    DueTime = dueTime,
                     DealId = dealId,
                     PersonId = personId,
                     OrgId = orgId,
                     Note = note,
+                    UserId = userId,
                     Done = false
                 };
 
@@ -289,7 +289,7 @@ public static class ActivitiesCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, subjectOption, typeOption, dueDateOption, dueTimeOption, dealIdOption, personIdOption, orgIdOption, noteOption);
+        }, subjectOption, typeOption, dueDateOption, dealIdOption, personIdOption, orgIdOption, noteOption, userIdOption);
 
         return createCommand;
     }

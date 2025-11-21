@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Text.Json;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
 using PipedriveCLI.Utilities;
@@ -136,7 +137,12 @@ public static class DealsCommands
         var idArgument = new Argument<int>("id", "Deal ID");
         getCommand.AddArgument(idArgument);
 
-        getCommand.SetHandler(async (id) =>
+        var jsonOption = new Option<bool>(
+            aliases: new[] { "--json" },
+            description: "Output raw JSON instead of formatted display");
+        getCommand.AddOption(jsonOption);
+
+        getCommand.SetHandler(async (id, json) =>
         {
             try
             {
@@ -152,39 +158,56 @@ public static class DealsCommands
 
                 if (response?.Success == true && response.Data != null)
                 {
-                    var deal = response.Data;
-                    var customFieldsDisplay = CustomFieldHelper.FormatCustomFields(deal.CustomFields);
-
-                    var panel = new Panel(new Markup(
-                        $"[bold]Title:[/] {Markup.Escape(deal.Title ?? "")}\n" +
-                        $"[bold]ID:[/] {deal.Id}\n" +
-                        $"[bold]Value:[/] {Markup.Escape(deal.Currency ?? "")} {deal.Value:N2}\n" +
-                        $"[bold]Status:[/] {Markup.Escape(deal.Status ?? "N/A")}\n" +
-                        $"[bold]Stage ID:[/] {deal.StageId?.ToString() ?? "N/A"}\n" +
-                        $"[bold]Person ID:[/] {deal.PersonId?.ToString() ?? "N/A"}\n" +
-                        $"[bold]Organization ID:[/] {deal.OrgId?.ToString() ?? "N/A"}\n" +
-                        $"[bold]Probability:[/] {(deal.Probability.HasValue ? $"{deal.Probability.Value}%" : "N/A")}\n" +
-                        $"[bold]Expected Close Date:[/] {Markup.Escape(deal.ExpectedCloseDate ?? "N/A")}\n" +
-                        $"[bold]Added:[/] {Markup.Escape(deal.AddTime ?? "N/A")}\n" +
-                        $"[bold]Updated:[/] {Markup.Escape(deal.UpdateTime ?? "N/A")}" +
-                        customFieldsDisplay))
+                    if (json)
                     {
-                        Header = new PanelHeader($"[green]Deal: {Markup.Escape(deal.Title ?? "")}[/]"),
-                        Border = BoxBorder.Rounded
-                    };
+                        // Output raw JSON
+                        var jsonOutput = JsonSerializer.Serialize(response.Data, ApiJsonContext.Default.Deal);
+                        Console.WriteLine(jsonOutput);
+                    }
+                    else
+                    {
+                        // Output formatted display
+                        var deal = response.Data;
+                        var customFieldsDisplay = CustomFieldHelper.FormatCustomFields(deal.CustomFields);
 
-                    AnsiConsole.Write(panel);
+                        var panel = new Panel(new Markup(
+                            $"[bold]Title:[/] {Markup.Escape(deal.Title ?? "")}\n" +
+                            $"[bold]ID:[/] {deal.Id}\n" +
+                            $"[bold]Value:[/] {Markup.Escape(deal.Currency ?? "")} {deal.Value:N2}\n" +
+                            $"[bold]Status:[/] {Markup.Escape(deal.Status ?? "N/A")}\n" +
+                            $"[bold]Stage ID:[/] {deal.StageId?.ToString() ?? "N/A"}\n" +
+                            $"[bold]Person ID:[/] {deal.PersonId?.ToString() ?? "N/A"}\n" +
+                            $"[bold]Organization ID:[/] {deal.OrgId?.ToString() ?? "N/A"}\n" +
+                            $"[bold]Probability:[/] {(deal.Probability.HasValue ? $"{deal.Probability.Value}%" : "N/A")}\n" +
+                            $"[bold]Expected Close Date:[/] {Markup.Escape(deal.ExpectedCloseDate ?? "N/A")}\n" +
+                            $"[bold]Added:[/] {Markup.Escape(deal.AddTime ?? "N/A")}\n" +
+                            $"[bold]Updated:[/] {Markup.Escape(deal.UpdateTime ?? "N/A")}" +
+                            customFieldsDisplay))
+                        {
+                            Header = new PanelHeader($"[green]Deal: {Markup.Escape(deal.Title ?? "")}[/]"),
+                            Border = BoxBorder.Rounded
+                        };
+
+                        AnsiConsole.Write(panel);
+                    }
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deal: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                    if (json)
+                    {
+                        Console.WriteLine($"{{\"success\":false,\"error\":\"{response?.Error ?? "Unknown error"}\"}}");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deal: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                    }
                 }
             }
             catch (Exception ex)
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, idArgument);
+        }, idArgument, jsonOption);
 
         return getCommand;
     }
