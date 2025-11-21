@@ -1,3 +1,117 @@
+#### 0.3.0 November 21 2025 ####
+
+This release adds powerful custom field management, JSON output for automation, and pipeline management commands.
+
+**New Features**
+
+- **Custom Field Support for Deals** ([#43](https://github.com/Aaronontheweb/pipedrive-cli/pull/43))
+  - Update custom fields directly via CLI with `--custom-fields` flag on `deals update`
+  - Automatically displays custom fields with friendly names when viewing deals
+  - CustomFieldCache service resolves hash keys to user-friendly field names
+  - Add `--raw-keys` flag to show hash keys when needed for scripting
+  - Graceful fallback to hash keys if field cache fails
+  - Example: `pipedrive deals update 123 --custom-fields "Project Status=In Progress,Priority=High"`
+
+- **JSON Output for Automation** ([#42](https://github.com/Aaronontheweb/pipedrive-cli/pull/42))
+  - Added `--json` flag to `deals get` command for machine-readable output
+  - Added `--json` flag to `organizations get` command for machine-readable output
+  - Enables building robust automation scripts without direct API calls
+  - Uses AOT-safe JSON serialization with source generators
+  - Example: `pipedrive deals get 123 --json | jq '.value'`
+
+- **Pipelines Management** ([#37](https://github.com/Aaronontheweb/pipedrive-cli/pull/37))
+  - `pipedrive pipelines list` - Display all pipelines in tabular format
+  - `pipedrive pipelines get <id>` - Retrieve detailed pipeline information
+  - `pipedrive pipelines stages [--pipeline-id <id>]` - List stages with optional filtering
+  - Complete Pipeline and Stage models with deal probability and timestamps
+  - Helps users understand deal progression workflows
+
+- **User Assignment for Activities** ([#42](https://github.com/Aaronontheweb/pipedrive-cli/pull/42))
+  - Added `--user-id` option to `activities create` command
+  - Enables proper task assignment when creating activities via CLI
+  - Example: `pipedrive activities create --subject "Follow up" --user-id 456 --deal-id 123`
+
+**Bug Fixes**
+
+- **Fixed Custom Field Display Issue** (commit d5b9ec4)
+  - Resolved `Markup.Escape` bug that caused rendering errors with special characters in custom fields
+  - Custom field values now display correctly regardless of content
+
+- **Fixed Markup Escape in Deals List** ([#37](https://github.com/Aaronontheweb/pipedrive-cli/pull/37))
+  - Fixed rendering errors when deal titles contained special characters like `[`, `]`, or `{`
+  - Properly escapes special characters in deal titles, status, and dates
+  - Prevents Spectre.Console from misinterpreting markup characters
+
+**Improvements**
+
+- **Sensible Default Filters** ([#37](https://github.com/Aaronontheweb/pipedrive-cli/pull/37))
+  - `deals list` now defaults to showing open deals only (use `--status all` to see all)
+  - `activities list` now defaults to showing undone activities (use `--done true` to see completed)
+  - Reduces clutter in most common use cases while maintaining full flexibility
+
+- **API Model Improvements** ([#43](https://github.com/Aaronontheweb/pipedrive-cli/pull/43))
+  - Made BaseField properties nullable to handle inconsistent API responses
+  - Improved lenient JSON parsing for field definitions
+  - Enhanced error handling with graceful degradation
+
+**Dependencies**
+
+- Bump actions/download-artifact from 5 to 6 ([#21](https://github.com/Aaronontheweb/pipedrive-cli/pull/21))
+- Bump actions/checkout from 5.0.1 to 6.0.0 ([#38](https://github.com/Aaronontheweb/pipedrive-cli/pull/38))
+
+**Installation**
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.3.0).
+
+**Upgrade from 0.2.2**
+
+The CLI includes auto-update functionality. Simply run:
+
+```bash
+pipedrive update
+```
+
+**Example Usage**
+
+```bash
+# View a deal with custom fields displayed with friendly names
+pipedrive deals get 123
+
+# Update custom fields
+pipedrive deals update 123 --custom-fields "Project Status=Completed,Budget=$50000"
+
+# Get JSON output for scripting
+pipedrive deals get 123 --json | jq '.custom_fields'
+
+# List all pipelines
+pipedrive pipelines list
+
+# Create an activity assigned to a specific user
+pipedrive activities create --subject "Call prospect" --user-id 789 --deal-id 123
+
+# List only open deals (new default)
+pipedrive deals list
+```
+
+**Documentation**
+
+- Full documentation: https://github.com/Aaronontheweb/pipedrive-cli/blob/dev/README.md
+- Pipedrive API: https://developers.pipedrive.com/docs/api/v1
+
+**Feedback**
+
+Please report any issues or feature requests at https://github.com/Aaronontheweb/pipedrive-cli/issues
+
+---
+
 #### 0.2.2 November 20 2025 ####
 
 This release fixes critical installation issues and improves the configuration setup experience.
