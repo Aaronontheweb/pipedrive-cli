@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Text.Json;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
 using PipedriveCLI.Utilities;
@@ -123,7 +124,12 @@ public static class OrganizationsCommands
         var idArgument = new Argument<int>("id", "Organization ID");
         getCommand.AddArgument(idArgument);
 
-        getCommand.SetHandler(async (id) =>
+        var jsonOption = new Option<bool>(
+            aliases: new[] { "--json" },
+            description: "Output raw JSON instead of formatted display");
+        getCommand.AddOption(jsonOption);
+
+        getCommand.SetHandler(async (id, json) =>
         {
             try
             {
@@ -139,39 +145,56 @@ public static class OrganizationsCommands
 
                 if (response?.Success == true && response.Data != null)
                 {
-                    var org = response.Data;
-                    var ownerInfo = org.OwnerId != null
-                        ? $"{org.OwnerId.Id} ({org.OwnerId.Name})"
-                        : "N/A";
-
-                    var customFieldsDisplay = CustomFieldHelper.FormatCustomFields(org.CustomFields);
-
-                    var panel = new Panel(new Markup(
-                        $"[bold]Name:[/] {Markup.Escape(org.Name ?? "")}\n" +
-                        $"[bold]ID:[/] {org.Id}\n" +
-                        $"[bold]People Count:[/] {org.PeopleCount}\n" +
-                        $"[bold]Address:[/] {Markup.Escape(org.Address ?? "N/A")}\n" +
-                        $"[bold]Owner:[/] {Markup.Escape(ownerInfo)}\n" +
-                        $"[bold]Added:[/] {Markup.Escape(org.AddTime ?? "N/A")}\n" +
-                        $"[bold]Updated:[/] {Markup.Escape(org.UpdateTime ?? "N/A")}" +
-                        customFieldsDisplay))
+                    if (json)
                     {
-                        Header = new PanelHeader($"[green]Organization: {Markup.Escape(org.Name ?? "")}[/]"),
-                        Border = BoxBorder.Rounded
-                    };
+                        // Output raw JSON
+                        var jsonOutput = JsonSerializer.Serialize(response.Data, ApiJsonContext.Default.Organization);
+                        Console.WriteLine(jsonOutput);
+                    }
+                    else
+                    {
+                        // Output formatted display
+                        var org = response.Data;
+                        var ownerInfo = org.OwnerId != null
+                            ? $"{org.OwnerId.Id} ({org.OwnerId.Name})"
+                            : "N/A";
 
-                    AnsiConsole.Write(panel);
+                        var customFieldsDisplay = CustomFieldHelper.FormatCustomFields(org.CustomFields);
+
+                        var panel = new Panel(new Markup(
+                            $"[bold]Name:[/] {Markup.Escape(org.Name ?? "")}\n" +
+                            $"[bold]ID:[/] {org.Id}\n" +
+                            $"[bold]People Count:[/] {org.PeopleCount}\n" +
+                            $"[bold]Address:[/] {Markup.Escape(org.Address ?? "N/A")}\n" +
+                            $"[bold]Owner:[/] {Markup.Escape(ownerInfo)}\n" +
+                            $"[bold]Added:[/] {Markup.Escape(org.AddTime ?? "N/A")}\n" +
+                            $"[bold]Updated:[/] {Markup.Escape(org.UpdateTime ?? "N/A")}" +
+                            customFieldsDisplay))
+                        {
+                            Header = new PanelHeader($"[green]Organization: {Markup.Escape(org.Name ?? "")}[/]"),
+                            Border = BoxBorder.Rounded
+                        };
+
+                        AnsiConsole.Write(panel);
+                    }
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch organization: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                    if (json)
+                    {
+                        Console.WriteLine($"{{\"success\":false,\"error\":\"{response?.Error ?? "Unknown error"}\"}}");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch organization: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                    }
                 }
             }
             catch (Exception ex)
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, idArgument);
+        }, idArgument, jsonOption);
 
         return getCommand;
     }

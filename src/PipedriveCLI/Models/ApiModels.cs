@@ -483,6 +483,9 @@ public sealed class Activity
     [JsonPropertyName("note")]
     public string? Note { get; set; }
 
+    [JsonPropertyName("user_id")]
+    public int? UserId { get; set; }
+
     [JsonPropertyName("add_time")]
     public string? AddTime { get; set; }
 
