@@ -84,8 +84,8 @@ public static class LeadsCommands
                                     ?? "-";
 
                                 table.AddRow(
-                                    lead.Id ?? "-",
-                                    lead.Title ?? "-",
+                                    Markup.Escape(lead.Id ?? "-"),
+                                    Markup.Escape(lead.Title ?? "-"),
                                     valueDisplay,
                                     entityId,
                                     lead.OwnerId?.ToString() ?? "-",
@@ -483,8 +483,8 @@ public static class LeadsCommands
                             : "-";
 
                         table.AddRow(
-                            lead.Id ?? "-",
-                            lead.Title ?? "-",
+                            Markup.Escape(lead.Id ?? "-"),
+                            Markup.Escape(lead.Title ?? "-"),
                             valueDisplay,
                             lead.OwnerId?.ToString() ?? "-"
                         );
