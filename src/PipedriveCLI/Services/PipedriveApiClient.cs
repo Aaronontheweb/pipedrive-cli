@@ -654,6 +654,28 @@ public sealed class PipedriveApiClient : IDisposable
 
     #endregion
 
+    #region Email Templates Operations
+
+    /// <summary>
+    /// Gets all email templates
+    /// </summary>
+    public async Task<PipedriveResponse<List<EmailTemplate>>?> GetEmailTemplatesAsync()
+    {
+        var jsonResponse = await GetAsync("mailbox/mailTemplates");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListEmailTemplate);
+    }
+
+    /// <summary>
+    /// Gets a specific email template by ID
+    /// </summary>
+    public async Task<PipedriveResponse<EmailTemplate>?> GetEmailTemplateByIdAsync(int id)
+    {
+        var jsonResponse = await GetAsync($"mailbox/mailTemplates/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseEmailTemplate);
+    }
+
+    #endregion
+
     /// <summary>
     /// Tests the API connection by making a simple request
     /// </summary>
