@@ -1,3 +1,79 @@
+#### 0.4.0 November 21 2025 ####
+
+This release adds email template support, improves leads list filtering, and fixes a display bug.
+
+**New Features**
+
+- **Email Templates Support** ([#46](https://github.com/Aaronontheweb/pipedrive-cli/pull/46))
+  - `pipedrive templates list` - List all email templates in your Pipedrive account
+  - `pipedrive templates get <id>` - View a specific email template
+  - `--content` flag shows plain text preview of HTML template content
+  - Displays template name, owner, sharing settings, and timestamps
+  - Example: `pipedrive templates list`
+
+- **Leads Status Filter** ([#45](https://github.com/Aaronontheweb/pipedrive-cli/pull/45))
+  - Added `--status` option to `leads list` command
+  - Filter options: `active` (default), `archived`, `all`
+  - Active leads are now shown by default, reducing clutter
+  - Example: `pipedrive leads list --status archived`
+
+**Bug Fixes**
+
+- **Fixed Markup.Escape in Leads Display** ([#44](https://github.com/Aaronontheweb/pipedrive-cli/pull/44))
+  - Fixed rendering errors when lead titles contained special characters like `[`, `]`
+  - Previously, titles like `[Inquiry] Company Name` would cause "Could not find color or style 'Inquiry'" errors
+  - Properly escapes special characters in both `leads list` and `leads search` output
+
+**Installation**
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.4.0).
+
+**Upgrade from 0.3.0**
+
+The CLI includes auto-update functionality. Simply run:
+
+```bash
+pipedrive update
+```
+
+**Example Usage**
+
+```bash
+# List all email templates
+pipedrive templates list
+
+# View a specific template with content preview
+pipedrive templates get 123 --content
+
+# List only active leads (new default)
+pipedrive leads list
+
+# List archived leads
+pipedrive leads list --status archived
+
+# List all leads regardless of status
+pipedrive leads list --status all
+```
+
+**Documentation**
+
+- Full documentation: https://github.com/Aaronontheweb/pipedrive-cli/blob/dev/README.md
+- Pipedrive API: https://developers.pipedrive.com/docs/api/v1
+
+**Feedback**
+
+Please report any issues or feature requests at https://github.com/Aaronontheweb/pipedrive-cli/issues
+
+---
+
 #### 0.3.0 November 21 2025 ####
 
 This release adds powerful custom field management, JSON output for automation, and pipeline management commands.
