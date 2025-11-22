@@ -623,6 +623,48 @@ public sealed class Note
 }
 
 /// <summary>
+/// Pipedrive Email Template model
+/// </summary>
+public sealed class EmailTemplate
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("subject")]
+    public string? Subject { get; set; }
+
+    [JsonPropertyName("content")]
+    public string? Content { get; set; }
+
+    [JsonPropertyName("user_id")]
+    public int? UserId { get; set; }
+
+    [JsonPropertyName("add_time")]
+    public string? AddTime { get; set; }
+
+    [JsonPropertyName("update_time")]
+    public string? UpdateTime { get; set; }
+
+    [JsonPropertyName("shared_flag")]
+    public int? SharedFlag { get; set; }
+
+    [JsonPropertyName("deleted_flag")]
+    public int? DeletedFlag { get; set; }
+
+    [JsonPropertyName("visible_flag")]
+    public int? VisibleFlag { get; set; }
+
+    [JsonPropertyName("order_nr")]
+    public int? OrderNr { get; set; }
+
+    [JsonPropertyName("has_real_attachments_flag")]
+    public bool? HasRealAttachmentsFlag { get; set; }
+}
+
+/// <summary>
 /// Field definition option for select/multi-select fields
 /// </summary>
 public sealed class FieldOption
@@ -738,6 +780,10 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(PipedriveResponse<Stage>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Pipeline>>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Stage>>))]
+[JsonSerializable(typeof(EmailTemplate))]
+[JsonSerializable(typeof(List<EmailTemplate>))]
+[JsonSerializable(typeof(PipedriveResponse<EmailTemplate>))]
+[JsonSerializable(typeof(PipedriveResponse<List<EmailTemplate>>))]
 internal partial class ApiJsonContext : JsonSerializerContext
 {
 }
