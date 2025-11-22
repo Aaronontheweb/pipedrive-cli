@@ -43,22 +43,40 @@ public static class LeadsCommands
             aliases: new[] { "--start", "-s" },
             description: "Pagination start (default: 0)");
 
+        var statusOption = new Option<string>(
+            aliases: new[] { "--status" },
+            description: "Filter by status: active, archived, or all (default: active)",
+            getDefaultValue: () => "active")
+            .FromAmong("active", "archived", "all");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
+        listCommand.AddOption(statusOption);
 
-        listCommand.SetHandler(async (limit, start) =>
+        listCommand.SetHandler(async (limit, start, status) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
+                // Convert user-friendly status to API parameter
+                var archivedStatus = status switch
+                {
+                    "active" => "not_archived",
+                    "archived" => "archived",
+                    "all" => "all",
+                    _ => "not_archived"
+                };
+
+                var statusLabel = status == "active" ? "active " : (status == "archived" ? "archived " : "");
+
                 await AnsiConsole.Status()
-                    .StartAsync("Fetching leads...", async ctx =>
+                    .StartAsync($"Fetching {statusLabel}leads...", async ctx =>
                     {
                         ctx.Spinner(Spinner.Known.Dots);
                         ctx.SpinnerStyle(Style.Parse("green"));
 
-                        var response = await apiClient.GetLeadsAsync(limit, start);
+                        var response = await apiClient.GetLeadsAsync(limit, start, archivedStatus);
 
                         if (response?.Success == true && response.Data != null)
                         {
@@ -114,7 +132,7 @@ public static class LeadsCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, limitOption, startOption);
+        }, limitOption, startOption, statusOption);
 
         return listCommand;
     }

@@ -126,11 +126,15 @@ public sealed class PipedriveApiClient : IDisposable
     /// <summary>
     /// Gets all leads
     /// </summary>
-    public async Task<PipedriveResponse<List<Lead>>?> GetLeadsAsync(int? limit = null, int? start = null)
+    /// <param name="limit">Number of leads to return</param>
+    /// <param name="start">Pagination start</param>
+    /// <param name="archivedStatus">Filter by archived status: "not_archived" (active only), "archived", or "all"</param>
+    public async Task<PipedriveResponse<List<Lead>>?> GetLeadsAsync(int? limit = null, int? start = null, string? archivedStatus = null)
     {
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
         if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(archivedStatus)) queryParams["archived_status"] = archivedStatus;
 
         var jsonResponse = await GetAsync("leads", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListLead);
