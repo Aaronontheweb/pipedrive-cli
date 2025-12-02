@@ -50,11 +50,16 @@ public static class DealsCommands
             description: "Filter by status (open, won, lost, deleted, all_not_deleted)",
             getDefaultValue: () => "open");
 
+        var pipelineIdOption = new Option<int?>(
+            aliases: new[] { "--pipeline-id", "-p" },
+            description: "Filter by pipeline ID");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
         listCommand.AddOption(statusOption);
+        listCommand.AddOption(pipelineIdOption);
 
-        listCommand.SetHandler(async (limit, start, status) =>
+        listCommand.SetHandler(async (limit, start, status, pipelineId) =>
         {
             try
             {
@@ -66,7 +71,7 @@ public static class DealsCommands
                         ctx.Spinner(Spinner.Known.Dots);
                         ctx.SpinnerStyle(Style.Parse("green"));
 
-                        var response = await apiClient.GetDealsAsync(limit, start, status);
+                        var response = await apiClient.GetDealsAsync(limit, start, status, pipelineId);
 
                         if (response?.Success == true && response.Data != null)
                         {
@@ -122,7 +127,7 @@ public static class DealsCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, limitOption, startOption, statusOption);
+        }, limitOption, startOption, statusOption, pipelineIdOption);
 
         return listCommand;
     }

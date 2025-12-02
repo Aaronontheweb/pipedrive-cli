@@ -1,3 +1,18 @@
+#### 0.5.2 December 2 2025 ####
+
+This release adds the ability to filter deals by pipeline, making pipeline-specific auditing and cleanup workflows much more efficient.
+
+**New Features**
+
+- **Pipeline Filter for Deals List** ([#58](https://github.com/Aaronontheweb/pipedrive-cli/issues/58))
+  - Added `--pipeline-id` / `-p` option to `pipedrive deals list` command
+  - Filter deals to show only those in a specific pipeline
+  - Uses native Pipedrive API filtering for efficient server-side results
+  - Combines with existing `--status` filter for precise queries
+  - Example: `pipedrive deals list --pipeline-id 15 --status open`
+
+---
+
 #### 0.5.0 December 2 2025 ####
 
 This release adds comprehensive email management capabilities, Smart BCC field support, and fixes critical search API bugs.

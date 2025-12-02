@@ -239,12 +239,13 @@ public sealed class PipedriveApiClient : IDisposable
     /// <summary>
     /// Gets all deals
     /// </summary>
-    public async Task<PipedriveResponse<List<Deal>>?> GetDealsAsync(int? limit = null, int? start = null, string? status = null)
+    public async Task<PipedriveResponse<List<Deal>>?> GetDealsAsync(int? limit = null, int? start = null, string? status = null, int? pipelineId = null)
     {
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
         if (start.HasValue) queryParams["start"] = start.Value.ToString();
         if (!string.IsNullOrWhiteSpace(status)) queryParams["status"] = status;
+        if (pipelineId.HasValue) queryParams["pipeline_id"] = pipelineId.Value.ToString();
 
         var jsonResponse = await GetAsync("deals", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListDeal);
