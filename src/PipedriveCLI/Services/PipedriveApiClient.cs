@@ -483,7 +483,32 @@ public sealed class PipedriveApiClient : IDisposable
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
 
         var jsonResponse = await GetAsync("persons/search", queryParams);
-        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListPerson);
+
+        // Deserialize search response format (data.items containing result_score and item)
+        var searchResponse = JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponsePersonSearchData);
+
+        // Transform search response to standard list format
+        if (searchResponse?.Success == true && searchResponse.Data?.Items != null)
+        {
+            var persons = searchResponse.Data.Items
+                .Where(item => item.Item != null)
+                .Select(item => item.Item!.ToPerson())
+                .ToList();
+
+            return new PipedriveResponse<List<Person>>
+            {
+                Success = true,
+                Data = persons,
+                AdditionalData = searchResponse.AdditionalData
+            };
+        }
+
+        return new PipedriveResponse<List<Person>>
+        {
+            Success = searchResponse?.Success ?? false,
+            Error = searchResponse?.Error,
+            ErrorInfo = searchResponse?.ErrorInfo
+        };
     }
 
     /// <summary>
@@ -562,7 +587,32 @@ public sealed class PipedriveApiClient : IDisposable
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
 
         var jsonResponse = await GetAsync("organizations/search", queryParams);
-        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListOrganization);
+
+        // Deserialize search response format (data.items containing result_score and item)
+        var searchResponse = JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseOrganizationSearchData);
+
+        // Transform search response to standard list format
+        if (searchResponse?.Success == true && searchResponse.Data?.Items != null)
+        {
+            var organizations = searchResponse.Data.Items
+                .Where(item => item.Item != null)
+                .Select(item => item.Item!.ToOrganization())
+                .ToList();
+
+            return new PipedriveResponse<List<Organization>>
+            {
+                Success = true,
+                Data = organizations,
+                AdditionalData = searchResponse.AdditionalData
+            };
+        }
+
+        return new PipedriveResponse<List<Organization>>
+        {
+            Success = searchResponse?.Success ?? false,
+            Error = searchResponse?.Error,
+            ErrorInfo = searchResponse?.ErrorInfo
+        };
     }
 
     /// <summary>

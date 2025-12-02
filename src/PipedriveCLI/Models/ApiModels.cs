@@ -257,6 +257,167 @@ public sealed class LeadSearchData
 }
 
 /// <summary>
+/// Organization search result item (search endpoint)
+/// </summary>
+public sealed class OrganizationSearchItem
+{
+    [JsonPropertyName("result_score")]
+    public decimal ResultScore { get; set; }
+
+    [JsonPropertyName("item")]
+    public OrganizationSearchResultOrg? Item { get; set; }
+}
+
+/// <summary>
+/// Organization data from search results (may have different structure than standard Organization)
+/// </summary>
+public sealed class OrganizationSearchResultOrg
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+
+    [JsonPropertyName("visible_to")]
+    public int VisibleTo { get; set; }
+
+    [JsonPropertyName("owner")]
+    public SearchOwner? Owner { get; set; }
+
+    /// <summary>
+    /// Convert search result to standard Organization model
+    /// </summary>
+    public Organization ToOrganization()
+    {
+        return new Organization
+        {
+            Id = Id,
+            Name = Name,
+            Address = Address,
+            OwnerId = Owner != null ? new Owner { Id = Owner.Id } : null
+        };
+    }
+}
+
+/// <summary>
+/// Organization search data wrapper (search endpoint)
+/// </summary>
+public sealed class OrganizationSearchData
+{
+    [JsonPropertyName("items")]
+    public List<OrganizationSearchItem>? Items { get; set; }
+}
+
+/// <summary>
+/// Person search result item (search endpoint)
+/// </summary>
+public sealed class PersonSearchItem
+{
+    [JsonPropertyName("result_score")]
+    public decimal ResultScore { get; set; }
+
+    [JsonPropertyName("item")]
+    public PersonSearchResultPerson? Item { get; set; }
+}
+
+/// <summary>
+/// Person data from search results (may have different structure than standard Person)
+/// </summary>
+public sealed class PersonSearchResultPerson
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("emails")]
+    public List<string>? Emails { get; set; }
+
+    [JsonPropertyName("phones")]
+    public List<string>? Phones { get; set; }
+
+    [JsonPropertyName("visible_to")]
+    public int VisibleTo { get; set; }
+
+    [JsonPropertyName("owner")]
+    public SearchOwner? Owner { get; set; }
+
+    [JsonPropertyName("organization")]
+    public SearchOrganizationRef? Organization { get; set; }
+
+    /// <summary>
+    /// Convert search result to standard Person model
+    /// </summary>
+    public Person ToPerson()
+    {
+        var person = new Person
+        {
+            Id = Id,
+            Name = Name,
+            OwnerId = Owner != null ? new Owner { Id = Owner.Id } : null,
+            OrgId = Organization?.Id
+        };
+
+        // Convert simple email strings to Email objects
+        if (Emails != null && Emails.Count > 0)
+        {
+            person.Email = Emails.Select((e, i) => new Email
+            {
+                Value = e,
+                Primary = i == 0
+            }).ToList();
+        }
+
+        // Convert simple phone strings to Phone objects
+        if (Phones != null && Phones.Count > 0)
+        {
+            person.Phone = Phones.Select((p, i) => new Phone
+            {
+                Value = p,
+                Primary = i == 0
+            }).ToList();
+        }
+
+        return person;
+    }
+}
+
+/// <summary>
+/// Person search data wrapper (search endpoint)
+/// </summary>
+public sealed class PersonSearchData
+{
+    [JsonPropertyName("items")]
+    public List<PersonSearchItem>? Items { get; set; }
+}
+
+/// <summary>
+/// Owner reference in search results (simplified)
+/// </summary>
+public sealed class SearchOwner
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+}
+
+/// <summary>
+/// Organization reference in person search results
+/// </summary>
+public sealed class SearchOrganizationRef
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+}
+
+/// <summary>
 /// Lead value with amount and currency
 /// </summary>
 public sealed class LeadValue
@@ -1005,6 +1166,8 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(PipedriveResponse<Lead>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Lead>>))]
 [JsonSerializable(typeof(PipedriveResponse<LeadSearchData>))]
+[JsonSerializable(typeof(PipedriveResponse<OrganizationSearchData>))]
+[JsonSerializable(typeof(PipedriveResponse<PersonSearchData>))]
 [JsonSerializable(typeof(PipedriveResponse<Deal>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Deal>>))]
 [JsonSerializable(typeof(PipedriveResponse<Person>))]
@@ -1019,6 +1182,14 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(LeadSearchResultLead))]
 [JsonSerializable(typeof(LeadSearchItem))]
 [JsonSerializable(typeof(LeadSearchData))]
+[JsonSerializable(typeof(OrganizationSearchResultOrg))]
+[JsonSerializable(typeof(OrganizationSearchItem))]
+[JsonSerializable(typeof(OrganizationSearchData))]
+[JsonSerializable(typeof(PersonSearchResultPerson))]
+[JsonSerializable(typeof(PersonSearchItem))]
+[JsonSerializable(typeof(PersonSearchData))]
+[JsonSerializable(typeof(SearchOwner))]
+[JsonSerializable(typeof(SearchOrganizationRef))]
 [JsonSerializable(typeof(Deal))]
 [JsonSerializable(typeof(Person))]
 [JsonSerializable(typeof(Organization))]
@@ -1027,6 +1198,8 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(MergeRequest))]
 [JsonSerializable(typeof(List<Lead>))]
 [JsonSerializable(typeof(List<LeadSearchItem>))]
+[JsonSerializable(typeof(List<OrganizationSearchItem>))]
+[JsonSerializable(typeof(List<PersonSearchItem>))]
 [JsonSerializable(typeof(List<Deal>))]
 [JsonSerializable(typeof(List<Person>))]
 [JsonSerializable(typeof(List<Organization>))]
