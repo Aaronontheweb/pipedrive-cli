@@ -167,6 +167,7 @@ public static class OrganizationsCommands
                             $"[bold]People Count:[/] {org.PeopleCount}\n" +
                             $"[bold]Address:[/] {Markup.Escape(org.Address ?? "N/A")}\n" +
                             $"[bold]Owner:[/] {Markup.Escape(ownerInfo)}\n" +
+                            $"[bold]CC Email:[/] {Markup.Escape(org.CcEmail ?? "N/A")}\n" +
                             $"[bold]Added:[/] {Markup.Escape(org.AddTime ?? "N/A")}\n" +
                             $"[bold]Updated:[/] {Markup.Escape(org.UpdateTime ?? "N/A")}" +
                             customFieldsDisplay))

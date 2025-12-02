@@ -444,4 +444,112 @@ public class DealsApiClientTests
         Assert.Null(response.Data.PersonId);
         Assert.Null(response.Data.OrgId);
     }
+
+    /// <summary>
+    /// Test that Deal deserialization correctly handles the cc_email field (Smart BCC)
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_HandlesCcEmail()
+    {
+        // Arrange - Full API response with cc_email field
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 835,
+                "title": "Enterprise Deal with Email",
+                "value": 50000.00,
+                "currency": "USD",
+                "person_id": 456,
+                "org_id": 789,
+                "stage_id": 1,
+                "status": "open",
+                "probability": 75.5,
+                "expected_close_date": "2024-12-31",
+                "cc_email": "petabridgellc-baa75d+deal835@pipedrivemail.com",
+                "add_time": "2024-01-15T10:30:00Z",
+                "update_time": "2024-01-16T14:20:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(835, response.Data.Id);
+        Assert.Equal("Enterprise Deal with Email", response.Data.Title);
+        Assert.Equal("petabridgellc-baa75d+deal835@pipedrivemail.com", response.Data.CcEmail);
+    }
+
+    /// <summary>
+    /// Test that Deal deserialization handles null cc_email field
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_HandlesNullCcEmail()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 500,
+                "title": "Deal Without CC Email",
+                "value": 0,
+                "currency": "USD",
+                "person_id": null,
+                "org_id": null,
+                "stage_id": null,
+                "status": "open",
+                "cc_email": null,
+                "add_time": "2024-01-01T00:00:00Z",
+                "update_time": "2024-01-01T00:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Null(response.Data.CcEmail);
+    }
+
+    /// <summary>
+    /// Test that Deal deserialization handles missing cc_email field
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_HandlesMissingCcEmail()
+    {
+        // Arrange - API response without cc_email field at all
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 501,
+                "title": "Deal Without CC Email Field",
+                "value": 1000,
+                "currency": "USD",
+                "status": "open",
+                "add_time": "2024-01-01T00:00:00Z",
+                "update_time": "2024-01-01T00:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Null(response.Data.CcEmail);
+    }
 }

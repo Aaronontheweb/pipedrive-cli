@@ -174,6 +174,7 @@ public static class PersonsCommands
                         $"[bold]Phone(s):[/] {Markup.Escape(phones)}\n" +
                         $"[bold]Organization ID:[/] {person.OrgId?.ToString() ?? "N/A"}\n" +
                         $"[bold]Owner:[/] {Markup.Escape(ownerInfo)}\n" +
+                        $"[bold]CC Email:[/] {Markup.Escape(person.CcEmail ?? "N/A")}\n" +
                         $"[bold]Added:[/] {Markup.Escape(person.AddTime ?? "N/A")}\n" +
                         $"[bold]Updated:[/] {Markup.Escape(person.UpdateTime ?? "N/A")}" +
                         customFieldsDisplay))

@@ -173,6 +173,7 @@ public static class LeadsCommands
                         $"[bold]Owner ID:[/] {lead.OwnerId?.ToString() ?? "N/A"}\n" +
                         $"[bold]Value:[/] {(lead.Value != null ? $"{lead.Value.Currency} {lead.Value.Amount:N2}" : "N/A")}\n" +
                         $"[bold]Expected Close Date:[/] {lead.ExpectedCloseDate ?? "N/A"}\n" +
+                        $"[bold]CC Email:[/] {Markup.Escape(lead.CcEmail ?? "N/A")}\n" +
                         $"[bold]Was Seen:[/] {lead.WasSeen}\n" +
                         $"[bold]Added:[/] {lead.AddTime}\n" +
                         $"[bold]Updated:[/] {lead.UpdateTime}"))
