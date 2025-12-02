@@ -638,6 +638,261 @@ public sealed class Note
 }
 
 /// <summary>
+/// Email message party (sender/recipient) information
+/// </summary>
+public sealed class MailParty
+{
+    [JsonPropertyName("id")]
+    public int? Id { get; set; }
+
+    [JsonPropertyName("email_address")]
+    public string? EmailAddress { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("linked_person_id")]
+    public int? LinkedPersonId { get; set; }
+
+    [JsonPropertyName("linked_person_name")]
+    public string? LinkedPersonName { get; set; }
+
+    [JsonPropertyName("linked_organization_id")]
+    public int? LinkedOrganizationId { get; set; }
+
+    [JsonPropertyName("mail_message_party_id")]
+    public int? MailMessagePartyId { get; set; }
+
+    [JsonPropertyName("latest_sent")]
+    public bool? LatestSent { get; set; }
+
+    [JsonPropertyName("message_time")]
+    public object? MessageTime { get; set; }
+}
+
+/// <summary>
+/// Pipedrive Mail Message model for email conversations
+/// </summary>
+public sealed class MailMessage
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("from")]
+    public List<MailParty>? From { get; set; }
+
+    [JsonPropertyName("to")]
+    public List<MailParty>? To { get; set; }
+
+    [JsonPropertyName("cc")]
+    public List<MailParty>? Cc { get; set; }
+
+    [JsonPropertyName("bcc")]
+    public List<MailParty>? Bcc { get; set; }
+
+    [JsonPropertyName("subject")]
+    public string? Subject { get; set; }
+
+    [JsonPropertyName("snippet")]
+    public string? Snippet { get; set; }
+
+    [JsonPropertyName("body")]
+    public string? Body { get; set; }
+
+    [JsonPropertyName("body_url")]
+    public string? BodyUrl { get; set; }
+
+    [JsonPropertyName("account_id")]
+    public string? AccountId { get; set; }
+
+    [JsonPropertyName("user_id")]
+    public int? UserId { get; set; }
+
+    [JsonPropertyName("mail_thread_id")]
+    public int? MailThreadId { get; set; }
+
+    [JsonPropertyName("mail_tracking_status")]
+    public string? MailTrackingStatus { get; set; }
+
+    [JsonPropertyName("mail_link_tracking_enabled_flag")]
+    public int? MailLinkTrackingEnabledFlag { get; set; }
+
+    [JsonPropertyName("read_flag")]
+    public int? ReadFlag { get; set; }
+
+    [JsonPropertyName("draft_flag")]
+    public int? DraftFlag { get; set; }
+
+    [JsonPropertyName("synced_flag")]
+    public int? SyncedFlag { get; set; }
+
+    [JsonPropertyName("deleted_flag")]
+    public int? DeletedFlag { get; set; }
+
+    [JsonPropertyName("has_body_flag")]
+    public int? HasBodyFlag { get; set; }
+
+    [JsonPropertyName("sent_flag")]
+    public int? SentFlag { get; set; }
+
+    [JsonPropertyName("sent_from_pipedrive_flag")]
+    public int? SentFromPipedriveFlag { get; set; }
+
+    [JsonPropertyName("smart_bcc_flag")]
+    public int? SmartBccFlag { get; set; }
+
+    [JsonPropertyName("message_time")]
+    public string? MessageTime { get; set; }
+
+    [JsonPropertyName("add_time")]
+    public string? AddTime { get; set; }
+
+    [JsonPropertyName("update_time")]
+    public string? UpdateTime { get; set; }
+
+    [JsonPropertyName("has_attachments_flag")]
+    public int? HasAttachmentsFlag { get; set; }
+
+    [JsonPropertyName("has_inline_attachments_flag")]
+    public int? HasInlineAttachmentsFlag { get; set; }
+
+    [JsonPropertyName("has_real_attachments_flag")]
+    public int? HasRealAttachmentsFlag { get; set; }
+
+    [JsonPropertyName("deal_id")]
+    public int? DealId { get; set; }
+
+    [JsonPropertyName("lead_id")]
+    public string? LeadId { get; set; }
+}
+
+/// <summary>
+/// Parties information for a mail thread
+/// </summary>
+public sealed class MailThreadParties
+{
+    [JsonPropertyName("to")]
+    public List<MailParty>? To { get; set; }
+
+    [JsonPropertyName("from")]
+    public List<MailParty>? From { get; set; }
+}
+
+/// <summary>
+/// Pipedrive Mail Thread model for email thread management
+/// </summary>
+public sealed class MailThread
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("account_id")]
+    public string? AccountId { get; set; }
+
+    [JsonPropertyName("user_id")]
+    public int? UserId { get; set; }
+
+    [JsonPropertyName("subject")]
+    public string? Subject { get; set; }
+
+    [JsonPropertyName("snippet")]
+    public string? Snippet { get; set; }
+
+    [JsonPropertyName("snippet_draft")]
+    public string? SnippetDraft { get; set; }
+
+    [JsonPropertyName("snippet_sent")]
+    public string? SnippetSent { get; set; }
+
+    [JsonPropertyName("read_flag")]
+    public int? ReadFlag { get; set; }
+
+    [JsonPropertyName("mail_tracking_status")]
+    public string? MailTrackingStatus { get; set; }
+
+    [JsonPropertyName("has_attachments_flag")]
+    public int? HasAttachmentsFlag { get; set; }
+
+    [JsonPropertyName("has_inline_attachments_flag")]
+    public int? HasInlineAttachmentsFlag { get; set; }
+
+    [JsonPropertyName("has_real_attachments_flag")]
+    public int? HasRealAttachmentsFlag { get; set; }
+
+    [JsonPropertyName("deleted_flag")]
+    public int? DeletedFlag { get; set; }
+
+    [JsonPropertyName("synced_flag")]
+    public int? SyncedFlag { get; set; }
+
+    [JsonPropertyName("smart_bcc_flag")]
+    public int? SmartBccFlag { get; set; }
+
+    [JsonPropertyName("mail_link_tracking_enabled_flag")]
+    public int? MailLinkTrackingEnabledFlag { get; set; }
+
+    [JsonPropertyName("parties")]
+    public MailThreadParties? Parties { get; set; }
+
+    [JsonPropertyName("folders")]
+    public List<string>? Folders { get; set; }
+
+    [JsonPropertyName("version")]
+    public long? Version { get; set; }
+
+    [JsonPropertyName("message_count")]
+    public int? MessageCount { get; set; }
+
+    [JsonPropertyName("has_draft_flag")]
+    public int? HasDraftFlag { get; set; }
+
+    [JsonPropertyName("has_sent_flag")]
+    public int? HasSentFlag { get; set; }
+
+    [JsonPropertyName("archived_flag")]
+    public int? ArchivedFlag { get; set; }
+
+    [JsonPropertyName("shared_flag")]
+    public int? SharedFlag { get; set; }
+
+    [JsonPropertyName("external_deleted_flag")]
+    public int? ExternalDeletedFlag { get; set; }
+
+    [JsonPropertyName("first_message_to_me_flag")]
+    public int? FirstMessageToMeFlag { get; set; }
+
+    [JsonPropertyName("all_messages_sent_flag")]
+    public int? AllMessagesSentFlag { get; set; }
+
+    [JsonPropertyName("last_message_timestamp")]
+    public string? LastMessageTimestamp { get; set; }
+
+    [JsonPropertyName("first_message_timestamp")]
+    public string? FirstMessageTimestamp { get; set; }
+
+    [JsonPropertyName("last_message_sent_timestamp")]
+    public string? LastMessageSentTimestamp { get; set; }
+
+    [JsonPropertyName("last_message_received_timestamp")]
+    public string? LastMessageReceivedTimestamp { get; set; }
+
+    [JsonPropertyName("add_time")]
+    public string? AddTime { get; set; }
+
+    [JsonPropertyName("update_time")]
+    public string? UpdateTime { get; set; }
+
+    [JsonPropertyName("deal_id")]
+    public int? DealId { get; set; }
+
+    [JsonPropertyName("deal_status")]
+    public string? DealStatus { get; set; }
+
+    [JsonPropertyName("lead_id")]
+    public string? LeadId { get; set; }
+}
+
+/// <summary>
 /// Pipedrive Email Template model
 /// </summary>
 public sealed class EmailTemplate
@@ -799,6 +1054,17 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(List<EmailTemplate>))]
 [JsonSerializable(typeof(PipedriveResponse<EmailTemplate>))]
 [JsonSerializable(typeof(PipedriveResponse<List<EmailTemplate>>))]
+[JsonSerializable(typeof(MailParty))]
+[JsonSerializable(typeof(List<MailParty>))]
+[JsonSerializable(typeof(MailMessage))]
+[JsonSerializable(typeof(List<MailMessage>))]
+[JsonSerializable(typeof(PipedriveResponse<MailMessage>))]
+[JsonSerializable(typeof(PipedriveResponse<List<MailMessage>>))]
+[JsonSerializable(typeof(MailThreadParties))]
+[JsonSerializable(typeof(MailThread))]
+[JsonSerializable(typeof(List<MailThread>))]
+[JsonSerializable(typeof(PipedriveResponse<MailThread>))]
+[JsonSerializable(typeof(PipedriveResponse<List<MailThread>>))]
 internal partial class ApiJsonContext : JsonSerializerContext
 {
 }

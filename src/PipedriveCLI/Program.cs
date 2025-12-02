@@ -62,6 +62,9 @@ public static class Program
         // Add email templates command
         rootCommand.AddCommand(TemplatesCommands.CreateTemplatesCommand(apiClient));
 
+        // Add emails command (email history and conversations)
+        rootCommand.AddCommand(EmailsCommands.CreateEmailsCommand(apiClient));
+
         // Add update command
         rootCommand.AddCommand(UpdateCommands.CreateUpdateCommand());
 
