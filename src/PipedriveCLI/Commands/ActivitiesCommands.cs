@@ -172,6 +172,7 @@ public static class ActivitiesCommands
                         $"[bold]Person ID:[/] {activity.PersonId?.ToString() ?? "N/A"}\n" +
                         $"[bold]Organization ID:[/] {activity.OrgId?.ToString() ?? "N/A"}\n" +
                         $"[bold]Note:[/] {activity.Note ?? "N/A"}\n" +
+                        $"[bold]CC Email:[/] {Markup.Escape(activity.CcEmail ?? "N/A")}\n" +
                         $"[bold]Added:[/] {activity.AddTime}\n" +
                         $"[bold]Updated:[/] {activity.UpdateTime}"))
                     {

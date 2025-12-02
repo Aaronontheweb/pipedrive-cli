@@ -160,6 +160,9 @@ public sealed class Lead
 
     [JsonPropertyName("update_time")]
     public string? UpdateTime { get; set; }
+
+    [JsonPropertyName("cc_email")]
+    public string? CcEmail { get; set; }
 }
 
 /// <summary>
@@ -314,6 +317,9 @@ public sealed class Deal
     [JsonPropertyName("expected_close_date")]
     public string? ExpectedCloseDate { get; set; }
 
+    [JsonPropertyName("cc_email")]
+    public string? CcEmail { get; set; }
+
     /// <summary>
     /// Custom fields - captured as extension data with hash keys
     /// </summary>
@@ -356,6 +362,9 @@ public sealed class Person
 
     [JsonPropertyName("update_time")]
     public string? UpdateTime { get; set; }
+
+    [JsonPropertyName("cc_email")]
+    public string? CcEmail { get; set; }
 
     /// <summary>
     /// Custom fields - captured as extension data with hash keys
@@ -438,6 +447,9 @@ public sealed class Organization
     [JsonPropertyName("update_time")]
     public string? UpdateTime { get; set; }
 
+    [JsonPropertyName("cc_email")]
+    public string? CcEmail { get; set; }
+
     /// <summary>
     /// Custom fields - captured as extension data with hash keys
     /// </summary>
@@ -491,6 +503,9 @@ public sealed class Activity
 
     [JsonPropertyName("update_time")]
     public string? UpdateTime { get; set; }
+
+    [JsonPropertyName("cc_email")]
+    public string? CcEmail { get; set; }
 }
 
 /// <summary>

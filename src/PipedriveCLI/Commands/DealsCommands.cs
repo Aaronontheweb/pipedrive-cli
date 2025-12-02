@@ -204,6 +204,7 @@ public static class DealsCommands
                             $"[bold]Organization ID:[/] {deal.OrgId?.ToString() ?? "N/A"}\n" +
                             $"[bold]Probability:[/] {(deal.Probability.HasValue ? $"{deal.Probability.Value}%" : "N/A")}\n" +
                             $"[bold]Expected Close Date:[/] {Markup.Escape(deal.ExpectedCloseDate ?? "N/A")}\n" +
+                            $"[bold]CC Email:[/] {Markup.Escape(deal.CcEmail ?? "N/A")}\n" +
                             $"[bold]Added:[/] {Markup.Escape(deal.AddTime ?? "N/A")}\n" +
                             $"[bold]Updated:[/] {Markup.Escape(deal.UpdateTime ?? "N/A")}" +
                             customFieldsDisplay))
