@@ -729,29 +729,31 @@ public sealed class PipedriveApiClient : IDisposable
     #region Mail Messages Operations
 
     /// <summary>
-    /// Gets mail messages for a deal
+    /// Gets mail messages for a deal.
+    /// Note: The deals/{id}/mailMessages endpoint returns a nested structure with wrapper objects.
     /// </summary>
-    public async Task<PipedriveResponse<List<MailMessage>>?> GetMailMessagesForDealAsync(int dealId, int? limit = null, int? start = null)
+    public async Task<PipedriveResponse<List<MailMessageWrapper>>?> GetMailMessagesForDealAsync(int dealId, int? limit = null, int? start = null)
     {
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
         if (start.HasValue) queryParams["start"] = start.Value.ToString();
 
         var jsonResponse = await GetAsync($"deals/{dealId}/mailMessages", queryParams);
-        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListMailMessage);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListMailMessageWrapper);
     }
 
     /// <summary>
-    /// Gets mail messages for a person
+    /// Gets mail messages for a person.
+    /// Note: The persons/{id}/mailMessages endpoint returns a nested structure with wrapper objects.
     /// </summary>
-    public async Task<PipedriveResponse<List<MailMessage>>?> GetMailMessagesForPersonAsync(int personId, int? limit = null, int? start = null)
+    public async Task<PipedriveResponse<List<MailMessageWrapper>>?> GetMailMessagesForPersonAsync(int personId, int? limit = null, int? start = null)
     {
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
         if (start.HasValue) queryParams["start"] = start.Value.ToString();
 
         var jsonResponse = await GetAsync($"persons/{personId}/mailMessages", queryParams);
-        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListMailMessage);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListMailMessageWrapper);
     }
 
     /// <summary>

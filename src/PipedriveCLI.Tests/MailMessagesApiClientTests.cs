@@ -835,4 +835,212 @@ public class MailMessagesApiClientTests
     }
 
     #endregion
+
+    #region MailMessageWrapper Tests (Deal/Person Mail Messages)
+
+    /// <summary>
+    /// Test that MailMessageWrapper correctly deserializes the nested structure
+    /// returned by deals/{id}/mailMessages and persons/{id}/mailMessages endpoints
+    /// </summary>
+    [Fact]
+    public void MailMessageWrapper_Deserialization_DealMailMessages()
+    {
+        // Arrange - This is the actual structure returned by deals/{id}/mailMessages
+        var json = """
+        {
+            "success": true,
+            "data": [
+                {
+                    "object": "mailMessage",
+                    "timestamp": "2025-12-02 17:16:53",
+                    "data": {
+                        "id": 637668,
+                        "from": [
+                            {
+                                "id": 28420,
+                                "email_address": "gregorius@example.com",
+                                "name": "Gregorius Soedharmo",
+                                "linked_person_id": 1146,
+                                "linked_person_name": "Gregorius Soedharmo"
+                            }
+                        ],
+                        "to": [
+                            {
+                                "id": 8629,
+                                "email_address": "jay@example.com",
+                                "name": "Jay DeBoer",
+                                "linked_person_id": 110,
+                                "linked_person_name": "Jay DeBoer"
+                            }
+                        ],
+                        "cc": [],
+                        "bcc": [],
+                        "subject": "Discord discussion follow-up",
+                        "snippet": "Hi Jay, I'm Gregorius, part of the team...",
+                        "mail_thread_id": 119048,
+                        "read_flag": 1,
+                        "sent_flag": 0,
+                        "message_time": "2025-12-02T17:16:53.000Z",
+                        "has_attachments_flag": 0,
+                        "deal_id": 1604
+                    }
+                },
+                {
+                    "object": "mailMessage",
+                    "timestamp": "2025-09-22 11:19:00",
+                    "data": {
+                        "id": 633160,
+                        "from": [
+                            {
+                                "id": 5,
+                                "email_address": "aaron@example.com",
+                                "name": "Aaron Stannard"
+                            }
+                        ],
+                        "to": [
+                            {
+                                "id": 8629,
+                                "email_address": "nate@example.com",
+                                "name": "Nate Dahlin"
+                            }
+                        ],
+                        "subject": "Re: Can we help you with your project?",
+                        "snippet": "Hi Nate, Yeah this makes sense to me...",
+                        "mail_thread_id": 115000,
+                        "read_flag": 1,
+                        "sent_flag": 1,
+                        "message_time": "2025-09-22T11:19:00.000Z",
+                        "has_attachments_flag": 0,
+                        "deal_id": 1604
+                    }
+                }
+            ],
+            "additional_data": {
+                "pagination": {
+                    "start": 0,
+                    "limit": 2,
+                    "more_items_in_collection": true,
+                    "next_start": 2
+                }
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListMailMessageWrapper);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(2, response.Data.Count);
+
+        // First wrapper
+        var wrapper1 = response.Data[0];
+        Assert.Equal("mailMessage", wrapper1.ObjectType);
+        Assert.Equal("2025-12-02 17:16:53", wrapper1.Timestamp);
+        Assert.NotNull(wrapper1.Data);
+        Assert.Equal(637668, wrapper1.Data.Id);
+        Assert.Equal("Discord discussion follow-up", wrapper1.Data.Subject);
+        Assert.NotNull(wrapper1.Data.From);
+        Assert.Single(wrapper1.Data.From);
+        Assert.Equal("gregorius@example.com", wrapper1.Data.From[0].EmailAddress);
+        Assert.Equal("Gregorius Soedharmo", wrapper1.Data.From[0].Name);
+        Assert.Equal(1604, wrapper1.Data.DealId);
+
+        // Second wrapper
+        var wrapper2 = response.Data[1];
+        Assert.Equal("mailMessage", wrapper2.ObjectType);
+        Assert.NotNull(wrapper2.Data);
+        Assert.Equal(633160, wrapper2.Data.Id);
+        Assert.Equal("Re: Can we help you with your project?", wrapper2.Data.Subject);
+        Assert.Equal(1, wrapper2.Data.SentFlag);
+
+        // Pagination
+        Assert.NotNull(response.AdditionalData?.Pagination);
+        Assert.Equal(0, response.AdditionalData.Pagination.Start);
+        Assert.Equal(2, response.AdditionalData.Pagination.Limit);
+        Assert.True(response.AdditionalData.Pagination.MoreItemsInCollection);
+    }
+
+    /// <summary>
+    /// Test extracting MailMessage objects from wrapper list (simulates what EmailsCommands does)
+    /// </summary>
+    [Fact]
+    public void MailMessageWrapper_ExtractInnerMessages()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": [
+                {
+                    "object": "mailMessage",
+                    "timestamp": "2025-12-02 10:00:00",
+                    "data": {
+                        "id": 100,
+                        "subject": "First email",
+                        "snippet": "Content 1..."
+                    }
+                },
+                {
+                    "object": "mailMessage",
+                    "timestamp": "2025-12-02 11:00:00",
+                    "data": {
+                        "id": 101,
+                        "subject": "Second email",
+                        "snippet": "Content 2..."
+                    }
+                }
+            ]
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListMailMessageWrapper);
+        var messages = response!.Data!
+            .Where(w => w.Data != null)
+            .Select(w => w.Data!)
+            .ToList();
+
+        // Assert
+        Assert.Equal(2, messages.Count);
+        Assert.Equal(100, messages[0].Id);
+        Assert.Equal("First email", messages[0].Subject);
+        Assert.Equal(101, messages[1].Id);
+        Assert.Equal("Second email", messages[1].Subject);
+    }
+
+    /// <summary>
+    /// Test handling empty wrapper list
+    /// </summary>
+    [Fact]
+    public void MailMessageWrapper_Deserialization_EmptyList()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": [],
+            "additional_data": {
+                "pagination": {
+                    "start": 0,
+                    "limit": 50,
+                    "more_items_in_collection": false
+                }
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListMailMessageWrapper);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Empty(response.Data);
+    }
+
+    #endregion
 }
