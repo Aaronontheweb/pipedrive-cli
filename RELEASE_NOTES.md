@@ -1,3 +1,86 @@
+#### 0.5.0 December 2 2025 ####
+
+This release adds comprehensive email management capabilities, Smart BCC field support, and fixes critical search API bugs.
+
+**New Features**
+
+- **Email Management System** ([#53](https://github.com/Aaronontheweb/pipedrive-cli/pull/53))
+  - `pipedrive emails list-for-deal <deal-id>` - List all emails associated with a deal
+  - `pipedrive emails list-for-person <person-id>` - View email history for a person
+  - `pipedrive emails get <message-id> [--include-body]` - Retrieve specific email message details
+  - `pipedrive emails threads [--folder inbox|sent|drafts|archive]` - Browse mail threads by folder
+  - `pipedrive emails thread <thread-id>` - Get specific mail thread information
+  - `pipedrive emails thread-messages <thread-id> [--include-body]` - View all messages in a thread
+  - Complete API support for email viewing across deals, persons, and mail threads
+  - 17 new unit tests ensuring JSON serialization reliability
+  - Closes [#51](https://github.com/Aaronontheweb/pipedrive-cli/issues/51)
+
+- **Smart BCC (cc_email) Field Support** ([#52](https://github.com/Aaronontheweb/pipedrive-cli/pull/52))
+  - Display `cc_email` field in formatted output for all entity types
+  - Available for deals, leads, persons, organizations, and activities
+  - Enables easy access to Smart BCC addresses for automatic email sync
+  - Helps users and automation tools quickly identify the correct BCC address
+  - Closes [#50](https://github.com/Aaronontheweb/pipedrive-cli/issues/50)
+
+**Bug Fixes**
+
+- **Fixed Search API JSON Parsing** (commit e8a8ee4)
+  - Resolved JSON deserialization errors when using organization and person search commands
+  - Pipedrive search API returns different response structure than list API
+  - Added proper `SearchData` models for organizations and persons
+  - Search responses now correctly transform to standard list format
+  - Fixes [#49](https://github.com/Aaronontheweb/pipedrive-cli/issues/49)
+
+**Installation**
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.5.0).
+
+**Upgrade from 0.4.0**
+
+The CLI includes auto-update functionality. Simply run:
+
+```bash
+pipedrive update
+```
+
+**Example Usage**
+
+```bash
+# View all emails for a deal
+pipedrive emails list-for-deal 123
+
+# Get a specific email with body content
+pipedrive emails get 456 --include-body
+
+# Browse inbox mail threads
+pipedrive emails threads --folder inbox
+
+# View all messages in a thread
+pipedrive emails thread-messages 789 --include-body
+
+# Check Smart BCC address for a deal
+pipedrive deals get 123  # cc_email field now displayed
+```
+
+**Documentation**
+
+- Full documentation: https://github.com/Aaronontheweb/pipedrive-cli/blob/dev/README.md
+- Pipedrive API: https://developers.pipedrive.com/docs/api/v1
+
+**Feedback**
+
+Please report any issues or feature requests at https://github.com/Aaronontheweb/pipedrive-cli/issues
+
+---
+
 #### 0.4.0 November 21 2025 ####
 
 This release adds email template support, improves leads list filtering, and fixes a display bug.
