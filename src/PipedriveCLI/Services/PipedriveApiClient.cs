@@ -676,6 +676,89 @@ public sealed class PipedriveApiClient : IDisposable
 
     #endregion
 
+    #region Mail Messages Operations
+
+    /// <summary>
+    /// Gets mail messages for a deal
+    /// </summary>
+    public async Task<PipedriveResponse<List<MailMessage>>?> GetMailMessagesForDealAsync(int dealId, int? limit = null, int? start = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+
+        var jsonResponse = await GetAsync($"deals/{dealId}/mailMessages", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListMailMessage);
+    }
+
+    /// <summary>
+    /// Gets mail messages for a person
+    /// </summary>
+    public async Task<PipedriveResponse<List<MailMessage>>?> GetMailMessagesForPersonAsync(int personId, int? limit = null, int? start = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+
+        var jsonResponse = await GetAsync($"persons/{personId}/mailMessages", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListMailMessage);
+    }
+
+    /// <summary>
+    /// Gets a specific mail message by ID
+    /// </summary>
+    /// <param name="id">The mail message ID</param>
+    /// <param name="includeBody">Whether to include the full email body</param>
+    public async Task<PipedriveResponse<MailMessage>?> GetMailMessageByIdAsync(int id, bool includeBody = false)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (includeBody) queryParams["include_body"] = "1";
+
+        var jsonResponse = await GetAsync($"mailbox/mailMessages/{id}", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseMailMessage);
+    }
+
+    #endregion
+
+    #region Mail Threads Operations
+
+    /// <summary>
+    /// Gets mail threads with optional folder filter
+    /// </summary>
+    /// <param name="folder">Filter by folder: inbox, drafts, sent, archive</param>
+    /// <param name="limit">Number of threads to return</param>
+    /// <param name="start">Pagination start</param>
+    public async Task<PipedriveResponse<List<MailThread>>?> GetMailThreadsAsync(string? folder = null, int? limit = null, int? start = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (!string.IsNullOrWhiteSpace(folder)) queryParams["folder"] = folder;
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+
+        var jsonResponse = await GetAsync("mailbox/mailThreads", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListMailThread);
+    }
+
+    /// <summary>
+    /// Gets a specific mail thread by ID
+    /// </summary>
+    public async Task<PipedriveResponse<MailThread>?> GetMailThreadByIdAsync(int id)
+    {
+        var jsonResponse = await GetAsync($"mailbox/mailThreads/{id}");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseMailThread);
+    }
+
+    /// <summary>
+    /// Gets all mail messages in a thread
+    /// </summary>
+    public async Task<PipedriveResponse<List<MailMessage>>?> GetMailThreadMessagesAsync(int threadId)
+    {
+        var jsonResponse = await GetAsync($"mailbox/mailThreads/{threadId}/mailMessages");
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListMailMessage);
+    }
+
+    #endregion
+
     /// <summary>
     /// Tests the API connection by making a simple request
     /// </summary>

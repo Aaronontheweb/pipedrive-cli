@@ -22,6 +22,7 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
   - [activities - Activities Management](#activities---activities-management)
   - [notes - Notes Management](#notes---notes-management)
   - [pipelines - Pipelines Management](#pipelines---pipelines-management)
+  - [emails - Email History](#emails---email-history)
   - [update - Auto-Update](#update---auto-update)
 - [Getting Your API Key](#getting-your-api-key)
 - [Building from Source](#building-from-source)
@@ -39,6 +40,7 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
 - **🎨 Beautiful Console UI** - Rich formatting with Spectre.Console
 - **🔄 Multi-Profile Support** - Manage multiple Pipedrive environments (dev, staging, prod)
 - **📝 Full CRM Management** - Complete CRUD operations for leads, deals, persons, organizations, activities, and notes
+- **📧 Email History** - View email conversations and threads for deals and contacts
 - **🔀 Entity Merging** - Merge duplicate persons, deals, and organizations with confirmation prompts
 - **🏷️ Custom Fields** - View custom fields with friendly names and update them via CLI
 - **🔧 Pipeline Management** - View pipelines and stages to understand your sales process
@@ -513,6 +515,48 @@ Example output for `pipelines stages 1`:
 │ 3    │ Demo Scheduled   │ 15        │ 40%          │
 │ 4    │ Proposal Made    │ 10        │ 80%          │
 ╰──────┴──────────────────┴───────────┴──────────────╯
+```
+
+### `emails` - Email History
+
+View email conversations and threads associated with deals and contacts. Essential for LLM agents and humans to understand prior context before reaching out.
+
+```bash
+# List emails for a deal
+pipedrive emails list-for-deal <deal-id> [--limit 50] [--start 0]
+
+# List emails for a person
+pipedrive emails list-for-person <person-id> [--limit 50] [--start 0]
+
+# Get a specific email message
+pipedrive emails get <message-id>
+
+# Get email with full body content
+pipedrive emails get <message-id> --include-body
+
+# List mail threads by folder
+pipedrive emails threads [--folder inbox|sent|drafts|archive] [--limit 50] [--start 0]
+
+# Get a specific mail thread
+pipedrive emails thread <thread-id>
+
+# Get all messages in a thread
+pipedrive emails thread-messages <thread-id>
+
+# Get all messages in a thread with full body content
+pipedrive emails thread-messages <thread-id> --include-body
+```
+
+Example workflow for understanding deal history:
+```bash
+# 1. See that a deal has 9 emails
+pipedrive deals get 835
+
+# 2. List all emails for that deal
+pipedrive emails list-for-deal 835
+
+# 3. Read a specific email's full content
+pipedrive emails get 12345 --include-body
 ```
 
 ### `update` - Auto-Update
