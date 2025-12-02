@@ -928,6 +928,22 @@ public sealed class MailMessage
 }
 
 /// <summary>
+/// Wrapper object returned by deals/{id}/mailMessages and persons/{id}/mailMessages endpoints.
+/// These endpoints return mail messages in a nested structure with object type and timestamp.
+/// </summary>
+public sealed class MailMessageWrapper
+{
+    [JsonPropertyName("object")]
+    public string? ObjectType { get; set; }
+
+    [JsonPropertyName("timestamp")]
+    public string? Timestamp { get; set; }
+
+    [JsonPropertyName("data")]
+    public MailMessage? Data { get; set; }
+}
+
+/// <summary>
 /// Parties information for a mail thread
 /// </summary>
 public sealed class MailThreadParties
@@ -1233,6 +1249,9 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(List<MailMessage>))]
 [JsonSerializable(typeof(PipedriveResponse<MailMessage>))]
 [JsonSerializable(typeof(PipedriveResponse<List<MailMessage>>))]
+[JsonSerializable(typeof(MailMessageWrapper))]
+[JsonSerializable(typeof(List<MailMessageWrapper>))]
+[JsonSerializable(typeof(PipedriveResponse<List<MailMessageWrapper>>))]
 [JsonSerializable(typeof(MailThreadParties))]
 [JsonSerializable(typeof(MailThread))]
 [JsonSerializable(typeof(List<MailThread>))]

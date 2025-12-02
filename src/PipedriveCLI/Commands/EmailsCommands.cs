@@ -67,7 +67,12 @@ public static class EmailsCommands
                         if (response?.Success == true && response.Data != null)
                         {
                             ctx.Status("Formatting results...");
-                            DisplayMailMessageList(response.Data, response.AdditionalData?.Pagination);
+                            // Extract inner MailMessage objects from the wrapper structure
+                            var messages = response.Data
+                                .Where(w => w.Data != null)
+                                .Select(w => w.Data!)
+                                .ToList();
+                            DisplayMailMessageList(messages, response.AdditionalData?.Pagination);
                         }
                         else
                         {
@@ -122,7 +127,12 @@ public static class EmailsCommands
                         if (response?.Success == true && response.Data != null)
                         {
                             ctx.Status("Formatting results...");
-                            DisplayMailMessageList(response.Data, response.AdditionalData?.Pagination);
+                            // Extract inner MailMessage objects from the wrapper structure
+                            var messages = response.Data
+                                .Where(w => w.Data != null)
+                                .Select(w => w.Data!)
+                                .ToList();
+                            DisplayMailMessageList(messages, response.AdditionalData?.Pagination);
                         }
                         else
                         {
