@@ -539,7 +539,7 @@ public static class DealsCommands
         deleteCommand.AddArgument(idArgument);
 
         var forceOption = new Option<bool>(
-            aliases: new[] { "--force", "-f" },
+            aliases: new[] { "--force", "-f", "-y" },
             description: "Skip confirmation prompt");
 
         deleteCommand.AddOption(forceOption);
@@ -600,7 +600,7 @@ public static class DealsCommands
         mergeCommand.AddArgument(mergeWithIdArgument);
 
         var forceOption = new Option<bool>(
-            aliases: new[] { "--force", "-f" },
+            aliases: new[] { "--force", "-f", "-y" },
             description: "Skip confirmation prompt");
 
         mergeCommand.AddOption(forceOption);

@@ -163,7 +163,7 @@ public static class ActivitiesCommands
                             table.AddColumn("Type");
                             table.AddColumn("Due Date");
                             table.AddColumn("Done");
-                            table.AddColumn("Deal/Person/Org");
+                            table.AddColumn("Association");
                             table.AddColumn("Added");
 
                             foreach (var activity in response.Data)
@@ -172,10 +172,18 @@ public static class ActivitiesCommands
                                     ? $"{activity.DueDate} {activity.DueTime}"
                                     : activity.DueDate ?? "-";
 
-                                var entityInfo = activity.DealId?.ToString()
-                                    ?? activity.PersonId?.ToString()
-                                    ?? activity.OrgId?.ToString()
-                                    ?? "-";
+                                // Show association type with prefix for clarity
+                                string entityInfo;
+                                if (activity.DealId.HasValue)
+                                    entityInfo = $"Deal: {activity.DealId}";
+                                else if (!string.IsNullOrWhiteSpace(activity.LeadId))
+                                    entityInfo = $"Lead: {activity.LeadId}";
+                                else if (activity.PersonId.HasValue)
+                                    entityInfo = $"Person: {activity.PersonId}";
+                                else if (activity.OrgId.HasValue)
+                                    entityInfo = $"Org: {activity.OrgId}";
+                                else
+                                    entityInfo = "[dim](orphaned)[/]";
 
                                 var doneStatus = activity.Done ? "[green]✓[/]" : "[red]✗[/]";
 
@@ -542,7 +550,7 @@ public static class ActivitiesCommands
         deleteCommand.AddArgument(idArgument);
 
         var forceOption = new Option<bool>(
-            aliases: new[] { "--force", "-f" },
+            aliases: new[] { "--force", "-f", "-y" },
             description: "Skip confirmation prompt");
 
         deleteCommand.AddOption(forceOption);
