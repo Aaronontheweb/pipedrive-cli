@@ -252,6 +252,20 @@ public sealed class PipedriveApiClient : IDisposable
     }
 
     /// <summary>
+    /// Gets deals associated with a specific organization
+    /// </summary>
+    public async Task<PipedriveResponse<List<Deal>>?> GetOrganizationDealsAsync(int orgId, int? limit = null, int? start = null, string? status = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(status)) queryParams["status"] = status;
+
+        var jsonResponse = await GetAsync($"organizations/{orgId}/deals", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListDeal);
+    }
+
+    /// <summary>
     /// Gets a specific deal by ID
     /// </summary>
     public async Task<PipedriveResponse<Deal>?> GetDealByIdAsync(int id)
