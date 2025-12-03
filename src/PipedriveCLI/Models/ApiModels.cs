@@ -656,6 +656,18 @@ public sealed class Organization
 }
 
 /// <summary>
+/// Activity participant - represents a person associated with an activity
+/// </summary>
+public sealed class ActivityParticipant
+{
+    [JsonPropertyName("person_id")]
+    public int PersonId { get; set; }
+
+    [JsonPropertyName("primary_flag")]
+    public bool PrimaryFlag { get; set; }
+}
+
+/// <summary>
 /// Pipedrive Activity model
 /// </summary>
 public sealed class Activity
@@ -698,6 +710,9 @@ public sealed class Activity
 
     [JsonPropertyName("user_id")]
     public int? UserId { get; set; }
+
+    [JsonPropertyName("participants")]
+    public List<ActivityParticipant>? Participants { get; set; }
 
     [JsonPropertyName("add_time")]
     public string? AddTime { get; set; }
@@ -1255,6 +1270,8 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(Person))]
 [JsonSerializable(typeof(Organization))]
 [JsonSerializable(typeof(Activity))]
+[JsonSerializable(typeof(ActivityParticipant))]
+[JsonSerializable(typeof(List<ActivityParticipant>))]
 [JsonSerializable(typeof(Note))]
 [JsonSerializable(typeof(MergeRequest))]
 [JsonSerializable(typeof(List<Lead>))]
