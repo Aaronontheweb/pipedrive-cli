@@ -1,3 +1,75 @@
+#### 0.5.3 December 2 2025 ####
+
+This release adds deal participant management, historical close dates for deals, and lead association for activities.
+
+**New Features**
+
+- **Deal Participant Management** ([#67](https://github.com/Aaronontheweb/pipedrive-cli/issues/67))
+  - `pipedrive deals participants <deal-id>` - List all participants of a deal
+  - `pipedrive deals add-participant <deal-id> --person-id <id>` - Add a person as deal participant
+  - `pipedrive deals remove-participant <deal-id> --participant-id <id>` - Remove a participant
+  - Displays participant name, email, and when they were added
+  - Enables managing additional stakeholders on deals directly from CLI
+
+- **Historical Close Dates for Deals** ([#60](https://github.com/Aaronontheweb/pipedrive-cli/issues/60))
+  - Added `--won-time` option to `deals update` command
+  - Added `--lost-time` option to `deals update` command
+  - Accepts formats: `YYYY-MM-DD` or `YYYY-MM-DD HH:mm:ss`
+  - Prevents close time defaulting to current timestamp when cleaning up old deals
+  - Example: `pipedrive deals update 862 --status lost --lost-time "2024-06-30"`
+
+- **Lead Association for Activities** ([#65](https://github.com/Aaronontheweb/pipedrive-cli/issues/65))
+  - Added `--lead-id` / `-l` option to `activities create` command
+  - Activities can now be directly associated with leads (UUID format)
+  - Example: `pipedrive activities create --subject "Follow-up" --due-date "2025-12-09" --lead-id "e126ec80-cfff-11f0-8c59-fd43bfd483d9"`
+
+**Installation**
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
+
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
+```
+
+Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.5.3).
+
+**Upgrade from 0.5.2**
+
+The CLI includes auto-update functionality. Simply run:
+
+```bash
+pipedrive update
+```
+
+**Example Usage**
+
+```bash
+# Add a participant to a deal
+pipedrive deals add-participant 123 --person-id 456
+
+# List all participants on a deal
+pipedrive deals participants 123
+
+# Close a deal with historical date
+pipedrive deals update 789 --status won --won-time "2024-11-15"
+
+# Create an activity associated with a lead
+pipedrive activities create --subject "Initial call" --type call --due-date "2025-12-10" --lead-id "abc123-def456"
+```
+
+**Documentation**
+
+- Full documentation: https://github.com/Aaronontheweb/pipedrive-cli/blob/dev/README.md
+- Pipedrive API: https://developers.pipedrive.com/docs/api/v1
+
+**Feedback**
+
+Please report any issues or feature requests at https://github.com/Aaronontheweb/pipedrive-cli/issues
+
+---
+
 #### 0.5.2 December 2 2025 ####
 
 This release adds the ability to filter deals by pipeline, making pipeline-specific auditing and cleanup workflows much more efficient.
