@@ -11,6 +11,40 @@ namespace PipedriveCLI.Commands;
 public static class ActivitiesCommands
 {
     /// <summary>
+    /// Parses a participants string into a list of ActivityParticipant objects.
+    /// Format: "123,456,789" or "123:primary,456,789" where :primary marks the primary participant
+    /// </summary>
+    private static List<ActivityParticipant>? ParseParticipants(string? participantsInput)
+    {
+        if (string.IsNullOrWhiteSpace(participantsInput))
+            return null;
+
+        var participants = new List<ActivityParticipant>();
+        var parts = participantsInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (var part in parts)
+        {
+            var isPrimary = part.EndsWith(":primary", StringComparison.OrdinalIgnoreCase);
+            var personIdStr = isPrimary ? part[..^8] : part; // Remove ":primary" suffix if present
+
+            if (int.TryParse(personIdStr, out var personId))
+            {
+                participants.Add(new ActivityParticipant
+                {
+                    PersonId = personId,
+                    PrimaryFlag = isPrimary
+                });
+            }
+            else
+            {
+                throw new ArgumentException($"Invalid person ID: '{personIdStr}'. Expected an integer.");
+            }
+        }
+
+        return participants.Count > 0 ? participants : null;
+    }
+
+    /// <summary>
     /// Creates the root 'activities' command with all subcommands
     /// </summary>
     public static Command CreateActivitiesCommand(PipedriveApiClient apiClient)
@@ -294,6 +328,10 @@ public static class ActivitiesCommands
             aliases: new[] { "--user-id", "-u" },
             description: "Assigned user ID");
 
+        var participantsOption = new Option<string?>(
+            aliases: new[] { "--participants" },
+            description: "Activity participants as comma-separated person IDs (e.g., '123,456,789' or '123:primary,456,789')");
+
         createCommand.AddOption(subjectOption);
         createCommand.AddOption(typeOption);
         createCommand.AddOption(dueDateOption);
@@ -303,6 +341,7 @@ public static class ActivitiesCommands
         createCommand.AddOption(leadIdOption);
         createCommand.AddOption(noteOption);
         createCommand.AddOption(userIdOption);
+        createCommand.AddOption(participantsOption);
 
         createCommand.SetHandler(async context =>
         {
@@ -315,10 +354,22 @@ public static class ActivitiesCommands
             var leadId = context.ParseResult.GetValueForOption(leadIdOption);
             var note = context.ParseResult.GetValueForOption(noteOption);
             var userId = context.ParseResult.GetValueForOption(userIdOption);
+            var participantsInput = context.ParseResult.GetValueForOption(participantsOption);
 
             try
             {
                 await apiClient.InitializeAsync();
+
+                List<ActivityParticipant>? participants = null;
+                try
+                {
+                    participants = ParseParticipants(participantsInput);
+                }
+                catch (ArgumentException ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                    return;
+                }
 
                 var activity = new Activity
                 {
@@ -331,6 +382,7 @@ public static class ActivitiesCommands
                     LeadId = leadId,
                     Note = note,
                     UserId = userId,
+                    Participants = participants,
                     Done = false
                 };
 
@@ -393,19 +445,43 @@ public static class ActivitiesCommands
             aliases: new[] { "--note", "-n" },
             description: "New activity note");
 
+        var participantsOption = new Option<string?>(
+            aliases: new[] { "--participants" },
+            description: "Activity participants as comma-separated person IDs (e.g., '123,456,789' or '123:primary,456,789')");
+
         updateCommand.AddOption(subjectOption);
         updateCommand.AddOption(typeOption);
         updateCommand.AddOption(dueDateOption);
         updateCommand.AddOption(dueTimeOption);
         updateCommand.AddOption(noteOption);
+        updateCommand.AddOption(participantsOption);
 
-        updateCommand.SetHandler(async (id, subject, type, dueDate, dueTime, note) =>
+        updateCommand.SetHandler(async context =>
         {
+            var id = context.ParseResult.GetValueForArgument(idArgument);
+            var subject = context.ParseResult.GetValueForOption(subjectOption);
+            var type = context.ParseResult.GetValueForOption(typeOption);
+            var dueDate = context.ParseResult.GetValueForOption(dueDateOption);
+            var dueTime = context.ParseResult.GetValueForOption(dueTimeOption);
+            var note = context.ParseResult.GetValueForOption(noteOption);
+            var participantsInput = context.ParseResult.GetValueForOption(participantsOption);
+
             try
             {
+                List<ActivityParticipant>? participants = null;
+                try
+                {
+                    participants = ParseParticipants(participantsInput);
+                }
+                catch (ArgumentException ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                    return;
+                }
+
                 if (string.IsNullOrWhiteSpace(subject) && string.IsNullOrWhiteSpace(type) &&
                     string.IsNullOrWhiteSpace(dueDate) && string.IsNullOrWhiteSpace(dueTime) &&
-                    string.IsNullOrWhiteSpace(note))
+                    string.IsNullOrWhiteSpace(note) && participants == null)
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one field must be specified to update");
                     return;
@@ -420,6 +496,7 @@ public static class ActivitiesCommands
                 if (!string.IsNullOrWhiteSpace(dueDate)) activity.DueDate = dueDate;
                 if (!string.IsNullOrWhiteSpace(dueTime)) activity.DueTime = dueTime;
                 if (!string.IsNullOrWhiteSpace(note)) activity.Note = note;
+                if (participants != null) activity.Participants = participants;
 
                 var response = await AnsiConsole.Status()
                     .StartAsync($"Updating activity {id}...", async ctx =>
@@ -442,7 +519,7 @@ public static class ActivitiesCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, idArgument, subjectOption, typeOption, dueDateOption, dueTimeOption, noteOption);
+        });
 
         return updateCommand;
     }
