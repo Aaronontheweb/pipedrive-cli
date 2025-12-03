@@ -7,7 +7,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.5.0</VersionPrefix>
+    <VersionPrefix>0.5.3</VersionPrefix>
     <PackageReleaseNotes>This release adds comprehensive email management capabilities, Smart BCC field support, and fixes critical search API bugs.
 
 **New Features**
