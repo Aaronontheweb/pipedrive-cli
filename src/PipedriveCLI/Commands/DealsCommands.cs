@@ -57,13 +57,24 @@ public static class DealsCommands
             aliases: new[] { "--pipeline-id", "-p" },
             description: "Filter by pipeline ID");
 
+        var orgIdOption = new Option<int?>(
+            aliases: new[] { "--org-id", "-o" },
+            description: "Filter deals by organization ID");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
         listCommand.AddOption(statusOption);
         listCommand.AddOption(pipelineIdOption);
+        listCommand.AddOption(orgIdOption);
 
-        listCommand.SetHandler(async (limit, start, status, pipelineId) =>
+        listCommand.SetHandler(async (context) =>
         {
+            var limit = context.ParseResult.GetValueForOption(limitOption);
+            var start = context.ParseResult.GetValueForOption(startOption);
+            var status = context.ParseResult.GetValueForOption(statusOption);
+            var pipelineId = context.ParseResult.GetValueForOption(pipelineIdOption);
+            var orgId = context.ParseResult.GetValueForOption(orgIdOption);
+
             try
             {
                 await apiClient.InitializeAsync();
@@ -74,51 +85,70 @@ public static class DealsCommands
                         ctx.Spinner(Spinner.Known.Dots);
                         ctx.SpinnerStyle(Style.Parse("green"));
 
-                        var response = await apiClient.GetDealsAsync(limit, start, status, pipelineId);
+                        PipedriveResponse<List<Deal>>? response;
 
-                        if (response?.Success == true && response.Data != null)
+                        if (orgId.HasValue)
+                        {
+                            // Use organization-specific endpoint when filtering by org
+                            response = await apiClient.GetOrganizationDealsAsync(orgId.Value, limit, start, status);
+                        }
+                        else
+                        {
+                            response = await apiClient.GetDealsAsync(limit, start, status, pipelineId);
+                        }
+
+                        if (response?.Success == true)
                         {
                             ctx.Status("Formatting results...");
 
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn("ID");
-                            table.AddColumn("Title");
-                            table.AddColumn("Value");
-                            table.AddColumn("Status");
-                            table.AddColumn("Stage ID");
-                            table.AddColumn("Person/Org ID");
-                            table.AddColumn("Expected Close");
+                            var deals = response.Data ?? new List<Deal>();
 
-                            foreach (var deal in response.Data)
+                            if (deals.Count == 0)
                             {
-                                var valueDisplay = $"{deal.Currency} {deal.Value:N2}";
+                                AnsiConsole.MarkupLine("[yellow]No deals found[/]");
+                            }
+                            else
+                            {
+                                var table = new Table();
+                                table.Border(TableBorder.Rounded);
+                                table.AddColumn("ID");
+                                table.AddColumn("Title");
+                                table.AddColumn("Value");
+                                table.AddColumn("Status");
+                                table.AddColumn("Stage ID");
+                                table.AddColumn("Person/Org ID");
+                                table.AddColumn("Expected Close");
 
-                                var entityId = deal.PersonId?.ToString()
-                                    ?? deal.OrgId?.ToString()
-                                    ?? "-";
+                                foreach (var deal in deals)
+                                {
+                                    var valueDisplay = $"{deal.Currency} {deal.Value:N2}";
 
-                                table.AddRow(
-                                    deal.Id.ToString(),
-                                    Markup.Escape(deal.Title ?? "-"),
-                                    valueDisplay,
-                                    Markup.Escape(deal.Status ?? "-"),
-                                    deal.StageId?.ToString() ?? "-",
-                                    entityId,
-                                    Markup.Escape(deal.ExpectedCloseDate ?? "-")
-                                );
+                                    var entityId = deal.PersonId?.ToString()
+                                        ?? deal.OrgId?.ToString()
+                                        ?? "-";
+
+                                    table.AddRow(
+                                        deal.Id.ToString(),
+                                        Markup.Escape(deal.Title ?? "-"),
+                                        valueDisplay,
+                                        Markup.Escape(deal.Status ?? "-"),
+                                        deal.StageId?.ToString() ?? "-",
+                                        entityId,
+                                        Markup.Escape(deal.ExpectedCloseDate ?? "-")
+                                    );
+                                }
+
+                                AnsiConsole.Write(table);
+
+                                if (response.AdditionalData?.Pagination != null)
+                                {
+                                    var pagination = response.AdditionalData.Pagination;
+                                    AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + deals.Count} " +
+                                        $"| More available: {pagination.MoreItemsInCollection}[/]");
+                                }
                             }
 
-                            AnsiConsole.Write(table);
-
-                            if (response.AdditionalData?.Pagination != null)
-                            {
-                                var pagination = response.AdditionalData.Pagination;
-                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} " +
-                                    $"| More available: {pagination.MoreItemsInCollection}[/]");
-                            }
-
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} deal(s)");
+                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {deals.Count} deal(s)");
                         }
                         else
                         {
@@ -130,7 +160,7 @@ public static class DealsCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, limitOption, startOption, statusOption, pipelineIdOption);
+        });
 
         return listCommand;
     }
