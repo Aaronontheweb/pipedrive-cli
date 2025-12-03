@@ -662,7 +662,7 @@ public static class DealsCommands
                         var email = participant.Person?.Email?.FirstOrDefault()?.Value ?? "";
                         table.AddRow(
                             participant.Id.ToString(),
-                            participant.PersonId.ToString(),
+                            participant.PersonId?.ToString() ?? "",
                             Markup.Escape(participant.Person?.Name ?? ""),
                             Markup.Escape(email),
                             Markup.Escape(participant.AddTime ?? ""));

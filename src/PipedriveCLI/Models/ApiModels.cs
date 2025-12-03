@@ -497,7 +497,8 @@ public sealed class DealParticipant
     public int Id { get; set; }
 
     [JsonPropertyName("person_id")]
-    public int PersonId { get; set; }
+    [JsonConverter(typeof(PipedriveReferenceConverter))]
+    public int? PersonId { get; set; }
 
     [JsonPropertyName("deal_id")]
     public int DealId { get; set; }
