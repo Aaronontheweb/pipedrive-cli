@@ -230,6 +230,10 @@ public static class ActivitiesCommands
             aliases: new[] { "--org-id", "-o" },
             description: "Associated organization ID");
 
+        var leadIdOption = new Option<string?>(
+            aliases: new[] { "--lead-id", "-l" },
+            description: "Associated lead ID (UUID format)");
+
         var noteOption = new Option<string?>(
             aliases: new[] { "--note", "-n" },
             description: "Activity note");
@@ -244,11 +248,22 @@ public static class ActivitiesCommands
         createCommand.AddOption(dealIdOption);
         createCommand.AddOption(personIdOption);
         createCommand.AddOption(orgIdOption);
+        createCommand.AddOption(leadIdOption);
         createCommand.AddOption(noteOption);
         createCommand.AddOption(userIdOption);
 
-        createCommand.SetHandler(async (subject, type, dueDate, dealId, personId, orgId, note, userId) =>
+        createCommand.SetHandler(async context =>
         {
+            var subject = context.ParseResult.GetValueForOption(subjectOption)!;
+            var type = context.ParseResult.GetValueForOption(typeOption)!;
+            var dueDate = context.ParseResult.GetValueForOption(dueDateOption)!;
+            var dealId = context.ParseResult.GetValueForOption(dealIdOption);
+            var personId = context.ParseResult.GetValueForOption(personIdOption);
+            var orgId = context.ParseResult.GetValueForOption(orgIdOption);
+            var leadId = context.ParseResult.GetValueForOption(leadIdOption);
+            var note = context.ParseResult.GetValueForOption(noteOption);
+            var userId = context.ParseResult.GetValueForOption(userIdOption);
+
             try
             {
                 await apiClient.InitializeAsync();
@@ -261,6 +276,7 @@ public static class ActivitiesCommands
                     DealId = dealId,
                     PersonId = personId,
                     OrgId = orgId,
+                    LeadId = leadId,
                     Note = note,
                     UserId = userId,
                     Done = false
@@ -290,7 +306,7 @@ public static class ActivitiesCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, subjectOption, typeOption, dueDateOption, dealIdOption, personIdOption, orgIdOption, noteOption, userIdOption);
+        });
 
         return createCommand;
     }

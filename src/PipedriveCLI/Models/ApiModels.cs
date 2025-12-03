@@ -653,6 +653,9 @@ public sealed class Activity
     [JsonConverter(typeof(PipedriveReferenceConverter))]
     public int? OrgId { get; set; }
 
+    [JsonPropertyName("lead_id")]
+    public string? LeadId { get; set; }
+
     [JsonPropertyName("note")]
     public string? Note { get; set; }
 
