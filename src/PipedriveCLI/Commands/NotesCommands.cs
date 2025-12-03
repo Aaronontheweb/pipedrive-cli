@@ -42,11 +42,32 @@ public static class NotesCommands
             aliases: new[] { "--start", "-s" },
             description: "Pagination start (default: 0)");
 
+        var dealIdOption = new Option<int?>(
+            aliases: new[] { "--deal-id", "-d" },
+            description: "Filter notes by deal ID");
+
+        var personIdOption = new Option<int?>(
+            aliases: new[] { "--person-id", "-p" },
+            description: "Filter notes by person ID");
+
+        var orgIdOption = new Option<int?>(
+            aliases: new[] { "--org-id", "-o" },
+            description: "Filter notes by organization ID");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
+        listCommand.AddOption(dealIdOption);
+        listCommand.AddOption(personIdOption);
+        listCommand.AddOption(orgIdOption);
 
-        listCommand.SetHandler(async (limit, start) =>
+        listCommand.SetHandler(async (context) =>
         {
+            var limit = context.ParseResult.GetValueForOption(limitOption);
+            var start = context.ParseResult.GetValueForOption(startOption);
+            var dealId = context.ParseResult.GetValueForOption(dealIdOption);
+            var personId = context.ParseResult.GetValueForOption(personIdOption);
+            var orgId = context.ParseResult.GetValueForOption(orgIdOption);
+
             try
             {
                 await apiClient.InitializeAsync();
@@ -57,56 +78,65 @@ public static class NotesCommands
                         ctx.Spinner(Spinner.Known.Dots);
                         ctx.SpinnerStyle(Style.Parse("green"));
 
-                        var response = await apiClient.GetNotesAsync(limit, start);
+                        var response = await apiClient.GetNotesAsync(limit, start, dealId, personId, orgId);
 
-                        if (response?.Success == true && response.Data != null)
+                        if (response?.Success == true)
                         {
                             ctx.Status("Formatting results...");
 
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn("ID");
-                            table.AddColumn("Content Preview");
-                            table.AddColumn("Deal/Person/Org/Lead");
-                            table.AddColumn("User ID");
-                            table.AddColumn("Added");
+                            var notes = response.Data ?? new List<Note>();
 
-                            foreach (var note in response.Data)
+                            if (notes.Count == 0)
                             {
-                                // Truncate and sanitize content for display
-                                var contentPreview = note.Content ?? "-";
-                                if (contentPreview.Length > 50)
+                                AnsiConsole.MarkupLine("[yellow]No notes found[/]");
+                            }
+                            else
+                            {
+                                var table = new Table();
+                                table.Border(TableBorder.Rounded);
+                                table.AddColumn("ID");
+                                table.AddColumn("Content Preview");
+                                table.AddColumn("Deal/Person/Org/Lead");
+                                table.AddColumn("User ID");
+                                table.AddColumn("Added");
+
+                                foreach (var note in notes)
                                 {
-                                    contentPreview = contentPreview.Substring(0, 50) + "...";
+                                    // Truncate and sanitize content for display
+                                    var contentPreview = note.Content ?? "-";
+                                    if (contentPreview.Length > 50)
+                                    {
+                                        contentPreview = contentPreview.Substring(0, 50) + "...";
+                                    }
+                                    contentPreview = Markup.Escape(contentPreview.Replace("\n", " ").Replace("\r", ""));
+
+                                    var entityInfo = note.DealId?.ToString()
+                                        ?? note.PersonId?.ToString()
+                                        ?? note.OrgId?.ToString()
+                                        ?? note.LeadId
+                                        ?? note.ProjectId?.ToString()
+                                        ?? "-";
+
+                                    table.AddRow(
+                                        note.Id.ToString(),
+                                        contentPreview,
+                                        entityInfo,
+                                        note.UserId?.ToString() ?? "-",
+                                        note.AddTime ?? "-"
+                                    );
                                 }
-                                contentPreview = Markup.Escape(contentPreview.Replace("\n", " ").Replace("\r", ""));
 
-                                var entityInfo = note.DealId?.ToString()
-                                    ?? note.PersonId?.ToString()
-                                    ?? note.OrgId?.ToString()
-                                    ?? note.LeadId
-                                    ?? note.ProjectId?.ToString()
-                                    ?? "-";
+                                AnsiConsole.Write(table);
 
-                                table.AddRow(
-                                    note.Id.ToString(),
-                                    contentPreview,
-                                    entityInfo,
-                                    note.UserId?.ToString() ?? "-",
-                                    note.AddTime ?? "-"
-                                );
+                                if (response.AdditionalData?.Pagination != null)
+                                {
+                                    var pagination = response.AdditionalData.Pagination;
+                                    AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + notes.Count} " +
+                                        $"| More available: {pagination.MoreItemsInCollection}[/]");
+                                }
                             }
 
-                            AnsiConsole.Write(table);
-
-                            if (response.AdditionalData?.Pagination != null)
-                            {
-                                var pagination = response.AdditionalData.Pagination;
-                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} " +
-                                    $"| More available: {pagination.MoreItemsInCollection}[/]");
-                            }
-
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} note(s)");
+                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {notes.Count} note(s)");
                         }
                         else
                         {
@@ -118,7 +148,7 @@ public static class NotesCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, limitOption, startOption);
+        });
 
         return listCommand;
     }
