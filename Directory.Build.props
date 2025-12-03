@@ -7,85 +7,34 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.5.3</VersionPrefix>
-    <PackageReleaseNotes>This release adds comprehensive email management capabilities, Smart BCC field support, and fixes critical search API bugs.
+    <VersionPrefix>0.6.0</VersionPrefix>
+    <PackageReleaseNotes>This release adds extensive filtering capabilities across activities, notes, and deals, plus new commands for discovering custom fields and managing lead lifecycle.
 
 **New Features**
 
-- **Email Management System** ([#53](https://github.com/Aaronontheweb/pipedrive-cli/pull/53))
-  - `pipedrive emails list-for-deal &lt;deal-id&gt;` - List all emails associated with a deal
-  - `pipedrive emails list-for-person &lt;person-id&gt;` - View email history for a person
-  - `pipedrive emails get &lt;message-id&gt; [--include-body]` - Retrieve specific email message details
-  - `pipedrive emails threads [--folder inbox|sent|drafts|archive]` - Browse mail threads by folder
-  - `pipedrive emails thread &lt;thread-id&gt;` - Get specific mail thread information
-  - `pipedrive emails thread-messages &lt;thread-id&gt; [--include-body]` - View all messages in a thread
-  - Complete API support for email viewing across deals, persons, and mail threads
-  - 17 new unit tests ensuring JSON serialization reliability
-  - Closes [#51](https://github.com/Aaronontheweb/pipedrive-cli/issues/51)
+- **Deal Fields Discovery** ([#89](https://github.com/Aaronontheweb/pipedrive-cli/issues/89))
+  - `pipedrive dealFields list` - Discover all deal field keys including custom fields
+  - Essential for identifying hash keys needed when using `--custom-fields` on deals update
 
-- **Smart BCC (cc_email) Field Support** ([#52](https://github.com/Aaronontheweb/pipedrive-cli/pull/52))
-  - Display `cc_email` field in formatted output for all entity types
-  - Available for deals, leads, persons, organizations, and activities
-  - Enables easy access to Smart BCC addresses for automatic email sync
-  - Helps users and automation tools quickly identify the correct BCC address
-  - Closes [#50](https://github.com/Aaronontheweb/pipedrive-cli/issues/50)
+- **Lead Archive Management** ([#91](https://github.com/Aaronontheweb/pipedrive-cli/issues/91))
+  - `pipedrive leads archive &lt;id&gt;` - Archive a lead
+  - `pipedrive leads unarchive &lt;id&gt;` - Restore an archived lead
+
+**Command Enhancements**
+
+- **Activities Filtering** ([#74](https://github.com/Aaronontheweb/pipedrive-cli/issues/74)) - Added `--deal-id`, `--person-id`, `--org-id` filters to `activities list`
+- **Activities Participants** ([#75](https://github.com/Aaronontheweb/pipedrive-cli/issues/75)) - Added `--participants` option to `activities create` and `activities update`
+- **Activities Done Flag** ([#92](https://github.com/Aaronontheweb/pipedrive-cli/issues/92)) - Added `--done` option to `activities update` command
+- **Activities Association Display** ([#95](https://github.com/Aaronontheweb/pipedrive-cli/issues/95)) - Shows association type prefix (Deal:, Lead:, Person:, Org:) in activities list
+- **Persons Update Org** ([#80](https://github.com/Aaronontheweb/pipedrive-cli/issues/80)) - Added `--org-id` option to `persons update` command
+- **Notes Filtering** ([#82](https://github.com/Aaronontheweb/pipedrive-cli/issues/82)) - Added `--deal-id`, `--person-id`, `--org-id` filters to `notes list`
+- **Deals Filtering by Org** ([#83](https://github.com/Aaronontheweb/pipedrive-cli/issues/83)) - Added `--org-id` filter to `deals list` command
+- **Deals Update Fields** ([#90](https://github.com/Aaronontheweb/pipedrive-cli/issues/90)) - Added `--person-id`, `--org-id`, `--probability` options to `deals update`
+- **Force Flag Alias** ([#93](https://github.com/Aaronontheweb/pipedrive-cli/issues/93)) - Added `-y` as alias for `--force`/`-f` on all delete and merge commands
 
 **Bug Fixes**
 
-- **Fixed Search API JSON Parsing** (commit e8a8ee4)
-  - Resolved JSON deserialization errors when using organization and person search commands
-  - Pipedrive search API returns different response structure than list API
-  - Added proper `SearchData` models for organizations and persons
-  - Search responses now correctly transform to standard list format
-  - Fixes [#49](https://github.com/Aaronontheweb/pipedrive-cli/issues/49)
-
-**Installation**
-
-```bash
-# Linux/macOS
-curl -fsSL https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.sh | bash
-
-# Windows PowerShell
-iwr https://raw.githubusercontent.com/Aaronontheweb/pipedrive-cli/dev/install.ps1 -useb | iex
-```
-
-Or download binaries directly from the [releases page](https://github.com/Aaronontheweb/pipedrive-cli/releases/tag/0.5.0).
-
-**Upgrade from 0.4.0**
-
-The CLI includes auto-update functionality. Simply run:
-
-```bash
-pipedrive update
-```
-
-**Example Usage**
-
-```bash
-# View all emails for a deal
-pipedrive emails list-for-deal 123
-
-# Get a specific email with body content
-pipedrive emails get 456 --include-body
-
-# Browse inbox mail threads
-pipedrive emails threads --folder inbox
-
-# View all messages in a thread
-pipedrive emails thread-messages 789 --include-body
-
-# Check Smart BCC address for a deal
-pipedrive deals get 123  # cc_email field now displayed
-```
-
-**Documentation**
-
-- Full documentation: https://github.com/Aaronontheweb/pipedrive-cli/blob/dev/README.md
-- Pipedrive API: https://developers.pipedrive.com/docs/api/v1
-
-**Feedback**
-
-Please report any issues or feature requests at https://github.com/Aaronontheweb/pipedrive-cli/issues
+- **DealParticipant Deserialization** ([#73](https://github.com/Aaronontheweb/pipedrive-cli/issues/73)) - Fixed JSON deserialization for `person_id` field in deal participants
 
 ---</PackageReleaseNotes>
   </PropertyGroup>
