@@ -448,11 +448,14 @@ public sealed class PipedriveApiClient : IDisposable
     /// <summary>
     /// Retrieves all notes with pagination support
     /// </summary>
-    public async Task<PipedriveResponse<List<Note>>?> GetNotesAsync(int? limit = null, int? start = null)
+    public async Task<PipedriveResponse<List<Note>>?> GetNotesAsync(int? limit = null, int? start = null, int? dealId = null, int? personId = null, int? orgId = null)
     {
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
         if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        if (dealId.HasValue) queryParams["deal_id"] = dealId.Value.ToString();
+        if (personId.HasValue) queryParams["person_id"] = personId.Value.ToString();
+        if (orgId.HasValue) queryParams["org_id"] = orgId.Value.ToString();
 
         var jsonResponse = await GetAsync("notes", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListNote);
