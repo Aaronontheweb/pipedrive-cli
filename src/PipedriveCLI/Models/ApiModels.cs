@@ -163,6 +163,9 @@ public sealed class Lead
 
     [JsonPropertyName("cc_email")]
     public string? CcEmail { get; set; }
+
+    [JsonPropertyName("is_archived")]
+    public bool? IsArchived { get; set; }
 }
 
 /// <summary>
