@@ -489,6 +489,42 @@ public sealed class Deal
 }
 
 /// <summary>
+/// Pipedrive Deal Participant model - represents a person associated with a deal
+/// </summary>
+public sealed class DealParticipant
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("person_id")]
+    public int PersonId { get; set; }
+
+    [JsonPropertyName("deal_id")]
+    public int DealId { get; set; }
+
+    [JsonPropertyName("add_time")]
+    public string? AddTime { get; set; }
+
+    [JsonPropertyName("active_flag")]
+    public bool ActiveFlag { get; set; }
+
+    /// <summary>
+    /// The related person object with full details
+    /// </summary>
+    [JsonPropertyName("person")]
+    public Person? Person { get; set; }
+}
+
+/// <summary>
+/// Request model for adding a participant to a deal
+/// </summary>
+public sealed class AddDealParticipantRequest
+{
+    [JsonPropertyName("person_id")]
+    public int PersonId { get; set; }
+}
+
+/// <summary>
 /// Pipedrive Person (contact) model
 /// </summary>
 public sealed class Person
@@ -1189,6 +1225,8 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(PipedriveResponse<PersonSearchData>))]
 [JsonSerializable(typeof(PipedriveResponse<Deal>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Deal>>))]
+[JsonSerializable(typeof(PipedriveResponse<DealParticipant>))]
+[JsonSerializable(typeof(PipedriveResponse<List<DealParticipant>>))]
 [JsonSerializable(typeof(PipedriveResponse<Person>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Person>>))]
 [JsonSerializable(typeof(PipedriveResponse<Organization>))]
@@ -1210,6 +1248,9 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(SearchOwner))]
 [JsonSerializable(typeof(SearchOrganizationRef))]
 [JsonSerializable(typeof(Deal))]
+[JsonSerializable(typeof(DealParticipant))]
+[JsonSerializable(typeof(AddDealParticipantRequest))]
+[JsonSerializable(typeof(List<DealParticipant>))]
 [JsonSerializable(typeof(Person))]
 [JsonSerializable(typeof(Organization))]
 [JsonSerializable(typeof(Activity))]

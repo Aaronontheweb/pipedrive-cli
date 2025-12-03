@@ -301,6 +301,38 @@ public sealed class PipedriveApiClient : IDisposable
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseDeal);
     }
 
+    /// <summary>
+    /// Gets all participants of a deal
+    /// </summary>
+    public async Task<PipedriveResponse<List<DealParticipant>>?> GetDealParticipantsAsync(int dealId, int? limit = null, int? start = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+
+        var jsonResponse = await GetAsync($"deals/{dealId}/participants", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListDealParticipant);
+    }
+
+    /// <summary>
+    /// Adds a participant to a deal
+    /// </summary>
+    public async Task<PipedriveResponse<DealParticipant>?> AddDealParticipantAsync(int dealId, int personId)
+    {
+        var request = new AddDealParticipantRequest { PersonId = personId };
+        var jsonData = JsonSerializer.Serialize(request, ApiJsonContext.Default.AddDealParticipantRequest);
+        var jsonResponse = await PostAsync($"deals/{dealId}/participants", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseDealParticipant);
+    }
+
+    /// <summary>
+    /// Removes a participant from a deal
+    /// </summary>
+    public async Task<bool> RemoveDealParticipantAsync(int dealId, int participantId)
+    {
+        return await DeleteAsync($"deals/{dealId}/participants/{participantId}");
+    }
+
     #endregion
 
     #region Activities Operations

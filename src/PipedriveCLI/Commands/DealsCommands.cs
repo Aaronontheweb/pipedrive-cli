@@ -26,6 +26,9 @@ public static class DealsCommands
         dealsCommand.AddCommand(CreateUpdateCommand(apiClient));
         dealsCommand.AddCommand(CreateDeleteCommand(apiClient));
         dealsCommand.AddCommand(CreateMergeCommand(apiClient));
+        dealsCommand.AddCommand(CreateParticipantsCommand(apiClient));
+        dealsCommand.AddCommand(CreateAddParticipantCommand(apiClient));
+        dealsCommand.AddCommand(CreateRemoveParticipantCommand(apiClient));
 
         return dealsCommand;
     }
@@ -607,5 +610,181 @@ public static class DealsCommands
             return $"{input} 12:00:00";
         }
         return input;
+    }
+
+    /// <summary>
+    /// Creates the 'deals participants' command to list deal participants
+    /// </summary>
+    private static Command CreateParticipantsCommand(PipedriveApiClient apiClient)
+    {
+        var participantsCommand = new Command("participants", "List participants of a deal");
+
+        var dealIdArgument = new Argument<int>("deal-id", "Deal ID");
+        participantsCommand.AddArgument(dealIdArgument);
+
+        var limitOption = new Option<int?>(
+            aliases: new[] { "--limit", "-l" },
+            description: "Number of participants to return (default: 100)");
+
+        participantsCommand.AddOption(limitOption);
+
+        participantsCommand.SetHandler(async (dealId, limit) =>
+        {
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Fetching participants for deal {dealId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.GetDealParticipantsAsync(dealId, limit);
+                    });
+
+                if (response?.Success == true && response.Data != null)
+                {
+                    if (response.Data.Count == 0)
+                    {
+                        AnsiConsole.MarkupLine("[yellow]No participants found for this deal[/]");
+                        return;
+                    }
+
+                    var table = new Table();
+                    table.AddColumn("ID");
+                    table.AddColumn("Person ID");
+                    table.AddColumn("Name");
+                    table.AddColumn("Email");
+                    table.AddColumn("Added");
+
+                    foreach (var participant in response.Data)
+                    {
+                        var email = participant.Person?.Email?.FirstOrDefault()?.Value ?? "";
+                        table.AddRow(
+                            participant.Id.ToString(),
+                            participant.PersonId.ToString(),
+                            Markup.Escape(participant.Person?.Name ?? ""),
+                            Markup.Escape(email),
+                            Markup.Escape(participant.AddTime ?? ""));
+                    }
+
+                    AnsiConsole.Write(table);
+                    AnsiConsole.MarkupLine($"[dim]Total: {response.Data.Count} participant(s)[/]");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to get participants: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, dealIdArgument, limitOption);
+
+        return participantsCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'deals add-participant' command
+    /// </summary>
+    private static Command CreateAddParticipantCommand(PipedriveApiClient apiClient)
+    {
+        var addParticipantCommand = new Command("add-participant", "Add a participant to a deal");
+
+        var dealIdArgument = new Argument<int>("deal-id", "Deal ID");
+        addParticipantCommand.AddArgument(dealIdArgument);
+
+        var personIdOption = new Option<int>(
+            aliases: new[] { "--person-id", "-p" },
+            description: "Person ID to add as participant")
+        { IsRequired = true };
+
+        addParticipantCommand.AddOption(personIdOption);
+
+        addParticipantCommand.SetHandler(async (dealId, personId) =>
+        {
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Adding person {personId} to deal {dealId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.AddDealParticipantAsync(dealId, personId);
+                    });
+
+                if (response?.Success == true && response.Data != null)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Participant added successfully");
+                    AnsiConsole.MarkupLine($"[dim]Participant ID:[/] {response.Data.Id}");
+                    if (response.Data.Person != null)
+                    {
+                        AnsiConsole.MarkupLine($"[dim]Person:[/] {Markup.Escape(response.Data.Person.Name ?? "")}");
+                    }
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to add participant: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, dealIdArgument, personIdOption);
+
+        return addParticipantCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'deals remove-participant' command
+    /// </summary>
+    private static Command CreateRemoveParticipantCommand(PipedriveApiClient apiClient)
+    {
+        var removeParticipantCommand = new Command("remove-participant", "Remove a participant from a deal");
+
+        var dealIdArgument = new Argument<int>("deal-id", "Deal ID");
+        removeParticipantCommand.AddArgument(dealIdArgument);
+
+        var participantIdOption = new Option<int>(
+            aliases: new[] { "--participant-id", "-p" },
+            description: "Participant ID to remove (use 'deals participants' to find IDs)")
+        { IsRequired = true };
+
+        removeParticipantCommand.AddOption(participantIdOption);
+
+        removeParticipantCommand.SetHandler(async (dealId, participantId) =>
+        {
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                var success = await AnsiConsole.Status()
+                    .StartAsync($"Removing participant {participantId} from deal {dealId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.RemoveDealParticipantAsync(dealId, participantId);
+                    });
+
+                if (success)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Participant removed successfully");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to remove participant");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, dealIdArgument, participantIdOption);
+
+        return removeParticipantCommand;
     }
 }
