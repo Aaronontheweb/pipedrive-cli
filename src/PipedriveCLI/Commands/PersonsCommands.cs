@@ -308,15 +308,27 @@ public static class PersonsCommands
             aliases: new[] { "--phone", "-p" },
             description: "New primary phone number");
 
+        var orgIdOption = new Option<int?>(
+            aliases: new[] { "--org-id", "-o" },
+            description: "Organization ID to associate the person with");
+
         updateCommand.AddOption(nameOption);
         updateCommand.AddOption(emailOption);
         updateCommand.AddOption(phoneOption);
+        updateCommand.AddOption(orgIdOption);
 
-        updateCommand.SetHandler(async (id, name, email, phone) =>
+        updateCommand.SetHandler(async context =>
         {
+            var id = context.ParseResult.GetValueForArgument(idArgument);
+            var name = context.ParseResult.GetValueForOption(nameOption);
+            var email = context.ParseResult.GetValueForOption(emailOption);
+            var phone = context.ParseResult.GetValueForOption(phoneOption);
+            var orgId = context.ParseResult.GetValueForOption(orgIdOption);
+
             try
             {
-                if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(phone))
+                if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(email) &&
+                    string.IsNullOrWhiteSpace(phone) && !orgId.HasValue)
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one field must be specified to update");
                     return;
@@ -344,6 +356,11 @@ public static class PersonsCommands
                     };
                 }
 
+                if (orgId.HasValue)
+                {
+                    person.OrgId = orgId.Value;
+                }
+
                 var response = await AnsiConsole.Status()
                     .StartAsync($"Updating person {id}...", async ctx =>
                     {
@@ -365,7 +382,7 @@ public static class PersonsCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, idArgument, nameOption, emailOption, phoneOption);
+        });
 
         return updateCommand;
     }
