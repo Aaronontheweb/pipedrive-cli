@@ -449,12 +449,17 @@ public static class ActivitiesCommands
             aliases: new[] { "--participants" },
             description: "Activity participants as comma-separated person IDs (e.g., '123,456,789' or '123:primary,456,789')");
 
+        var doneOption = new Option<bool?>(
+            aliases: new[] { "--done" },
+            description: "Mark activity as done (true) or not done (false)");
+
         updateCommand.AddOption(subjectOption);
         updateCommand.AddOption(typeOption);
         updateCommand.AddOption(dueDateOption);
         updateCommand.AddOption(dueTimeOption);
         updateCommand.AddOption(noteOption);
         updateCommand.AddOption(participantsOption);
+        updateCommand.AddOption(doneOption);
 
         updateCommand.SetHandler(async context =>
         {
@@ -465,6 +470,7 @@ public static class ActivitiesCommands
             var dueTime = context.ParseResult.GetValueForOption(dueTimeOption);
             var note = context.ParseResult.GetValueForOption(noteOption);
             var participantsInput = context.ParseResult.GetValueForOption(participantsOption);
+            var done = context.ParseResult.GetValueForOption(doneOption);
 
             try
             {
@@ -481,7 +487,7 @@ public static class ActivitiesCommands
 
                 if (string.IsNullOrWhiteSpace(subject) && string.IsNullOrWhiteSpace(type) &&
                     string.IsNullOrWhiteSpace(dueDate) && string.IsNullOrWhiteSpace(dueTime) &&
-                    string.IsNullOrWhiteSpace(note) && participants == null)
+                    string.IsNullOrWhiteSpace(note) && participants == null && !done.HasValue)
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one field must be specified to update");
                     return;
@@ -497,6 +503,7 @@ public static class ActivitiesCommands
                 if (!string.IsNullOrWhiteSpace(dueTime)) activity.DueTime = dueTime;
                 if (!string.IsNullOrWhiteSpace(note)) activity.Note = note;
                 if (participants != null) activity.Participants = participants;
+                if (done.HasValue) activity.Done = done.Value;
 
                 var response = await AnsiConsole.Status()
                     .StartAsync($"Updating activity {id}...", async ctx =>

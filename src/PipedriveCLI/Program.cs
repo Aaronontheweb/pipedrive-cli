@@ -59,6 +59,9 @@ public static class Program
         // Add pipelines command
         rootCommand.AddCommand(PipelinesCommands.CreatePipelinesCommand(apiClient));
 
+        // Add deal fields command
+        rootCommand.AddCommand(DealFieldsCommands.CreateDealFieldsCommand(apiClient));
+
         // Add email templates command
         rootCommand.AddCommand(TemplatesCommands.CreateTemplatesCommand(apiClient));
 
