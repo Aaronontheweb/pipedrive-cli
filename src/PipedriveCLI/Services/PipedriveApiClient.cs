@@ -399,6 +399,48 @@ public sealed class PipedriveApiClient : IDisposable
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseActivity);
     }
 
+    /// <summary>
+    /// Gets activities associated with a specific deal
+    /// </summary>
+    public async Task<PipedriveResponse<List<Activity>>?> GetDealActivitiesAsync(int dealId, int? limit = null, int? start = null, bool? done = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        if (done.HasValue) queryParams["done"] = done.Value ? "1" : "0";
+
+        var jsonResponse = await GetAsync($"deals/{dealId}/activities", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
+    }
+
+    /// <summary>
+    /// Gets activities associated with a specific person
+    /// </summary>
+    public async Task<PipedriveResponse<List<Activity>>?> GetPersonActivitiesAsync(int personId, int? limit = null, int? start = null, bool? done = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        if (done.HasValue) queryParams["done"] = done.Value ? "1" : "0";
+
+        var jsonResponse = await GetAsync($"persons/{personId}/activities", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
+    }
+
+    /// <summary>
+    /// Gets activities associated with a specific organization
+    /// </summary>
+    public async Task<PipedriveResponse<List<Activity>>?> GetOrganizationActivitiesAsync(int orgId, int? limit = null, int? start = null, bool? done = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        if (done.HasValue) queryParams["done"] = done.Value ? "1" : "0";
+
+        var jsonResponse = await GetAsync($"organizations/{orgId}/activities", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
+    }
+
     #endregion
 
     #region Notes Operations

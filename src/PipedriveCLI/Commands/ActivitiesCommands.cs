@@ -48,23 +48,75 @@ public static class ActivitiesCommands
             description: "Filter by done status (true/false, default: false)",
             getDefaultValue: () => false);
 
+        var dealIdOption = new Option<int?>(
+            aliases: new[] { "--deal-id" },
+            description: "Filter activities by deal ID");
+
+        var personIdOption = new Option<int?>(
+            aliases: new[] { "--person-id", "-p" },
+            description: "Filter activities by person ID");
+
+        var orgIdOption = new Option<int?>(
+            aliases: new[] { "--org-id", "-o" },
+            description: "Filter activities by organization ID");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
         listCommand.AddOption(doneOption);
+        listCommand.AddOption(dealIdOption);
+        listCommand.AddOption(personIdOption);
+        listCommand.AddOption(orgIdOption);
 
-        listCommand.SetHandler(async (limit, start, done) =>
+        listCommand.SetHandler(async context =>
         {
+            var limit = context.ParseResult.GetValueForOption(limitOption);
+            var start = context.ParseResult.GetValueForOption(startOption);
+            var done = context.ParseResult.GetValueForOption(doneOption);
+            var dealId = context.ParseResult.GetValueForOption(dealIdOption);
+            var personId = context.ParseResult.GetValueForOption(personIdOption);
+            var orgId = context.ParseResult.GetValueForOption(orgIdOption);
+
+            // Validate that only one entity filter is used at a time
+            var filterCount = (dealId.HasValue ? 1 : 0) + (personId.HasValue ? 1 : 0) + (orgId.HasValue ? 1 : 0);
+            if (filterCount > 1)
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] Only one of --deal-id, --person-id, or --org-id can be specified at a time");
+                return;
+            }
+
             try
             {
                 await apiClient.InitializeAsync();
 
+                var statusMessage = dealId.HasValue ? $"Fetching activities for deal {dealId}..."
+                    : personId.HasValue ? $"Fetching activities for person {personId}..."
+                    : orgId.HasValue ? $"Fetching activities for organization {orgId}..."
+                    : "Fetching activities...";
+
                 await AnsiConsole.Status()
-                    .StartAsync("Fetching activities...", async ctx =>
+                    .StartAsync(statusMessage, async ctx =>
                     {
                         ctx.Spinner(Spinner.Known.Dots);
                         ctx.SpinnerStyle(Style.Parse("green"));
 
-                        var response = await apiClient.GetActivitiesAsync(limit, start, done);
+                        PipedriveResponse<List<Activity>>? response;
+
+                        if (dealId.HasValue)
+                        {
+                            response = await apiClient.GetDealActivitiesAsync(dealId.Value, limit, start, done);
+                        }
+                        else if (personId.HasValue)
+                        {
+                            response = await apiClient.GetPersonActivitiesAsync(personId.Value, limit, start, done);
+                        }
+                        else if (orgId.HasValue)
+                        {
+                            response = await apiClient.GetOrganizationActivitiesAsync(orgId.Value, limit, start, done);
+                        }
+                        else
+                        {
+                            response = await apiClient.GetActivitiesAsync(limit, start, done);
+                        }
 
                         if (response?.Success == true && response.Data != null)
                         {
@@ -125,7 +177,7 @@ public static class ActivitiesCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, limitOption, startOption, doneOption);
+        });
 
         return listCommand;
     }
