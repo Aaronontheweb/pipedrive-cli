@@ -1,3 +1,35 @@
+#### 0.6.0 December 3 2025 ####
+
+This release adds extensive filtering capabilities across activities, notes, and deals, plus new commands for discovering custom fields and managing lead lifecycle.
+
+**New Features**
+
+- **Deal Fields Discovery** ([#89](https://github.com/Aaronontheweb/pipedrive-cli/issues/89))
+  - `pipedrive dealFields list` - Discover all deal field keys including custom fields
+  - Essential for identifying hash keys needed when using `--custom-fields` on deals update
+
+- **Lead Archive Management** ([#91](https://github.com/Aaronontheweb/pipedrive-cli/issues/91))
+  - `pipedrive leads archive <id>` - Archive a lead
+  - `pipedrive leads unarchive <id>` - Restore an archived lead
+
+**Command Enhancements**
+
+- **Activities Filtering** ([#74](https://github.com/Aaronontheweb/pipedrive-cli/issues/74)) - Added `--deal-id`, `--person-id`, `--org-id` filters to `activities list`
+- **Activities Participants** ([#75](https://github.com/Aaronontheweb/pipedrive-cli/issues/75)) - Added `--participants` option to `activities create` and `activities update`
+- **Activities Done Flag** ([#92](https://github.com/Aaronontheweb/pipedrive-cli/issues/92)) - Added `--done` option to `activities update` command
+- **Activities Association Display** ([#95](https://github.com/Aaronontheweb/pipedrive-cli/issues/95)) - Shows association type prefix (Deal:, Lead:, Person:, Org:) in activities list
+- **Persons Update Org** ([#80](https://github.com/Aaronontheweb/pipedrive-cli/issues/80)) - Added `--org-id` option to `persons update` command
+- **Notes Filtering** ([#82](https://github.com/Aaronontheweb/pipedrive-cli/issues/82)) - Added `--deal-id`, `--person-id`, `--org-id` filters to `notes list`
+- **Deals Filtering by Org** ([#83](https://github.com/Aaronontheweb/pipedrive-cli/issues/83)) - Added `--org-id` filter to `deals list` command
+- **Deals Update Fields** ([#90](https://github.com/Aaronontheweb/pipedrive-cli/issues/90)) - Added `--person-id`, `--org-id`, `--probability` options to `deals update`
+- **Force Flag Alias** ([#93](https://github.com/Aaronontheweb/pipedrive-cli/issues/93)) - Added `-y` as alias for `--force`/`-f` on all delete and merge commands
+
+**Bug Fixes**
+
+- **DealParticipant Deserialization** ([#73](https://github.com/Aaronontheweb/pipedrive-cli/issues/73)) - Fixed JSON deserialization for `person_id` field in deal participants
+
+---
+
 #### 0.5.3 December 2 2025 ####
 
 This release adds deal participant management, historical close dates for deals, and lead association for activities.
