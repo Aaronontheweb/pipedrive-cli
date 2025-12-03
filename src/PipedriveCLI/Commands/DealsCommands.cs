@@ -372,6 +372,14 @@ public static class DealsCommands
             aliases: new[] { "--custom-fields", "-cf" },
             description: "Custom fields to update in format: hash1=value1,hash2=value2");
 
+        var wonTimeOption = new Option<string?>(
+            aliases: new[] { "--won-time" },
+            description: "Date/time when the deal was won (YYYY-MM-DD or YYYY-MM-DD HH:mm:ss). Use with --status won or on already won deals.");
+
+        var lostTimeOption = new Option<string?>(
+            aliases: new[] { "--lost-time" },
+            description: "Date/time when the deal was lost (YYYY-MM-DD or YYYY-MM-DD HH:mm:ss). Use with --status lost or on already lost deals.");
+
         updateCommand.AddOption(titleOption);
         updateCommand.AddOption(valueOption);
         updateCommand.AddOption(currencyOption);
@@ -379,17 +387,44 @@ public static class DealsCommands
         updateCommand.AddOption(statusOption);
         updateCommand.AddOption(expectedCloseDateOption);
         updateCommand.AddOption(customFieldsOption);
+        updateCommand.AddOption(wonTimeOption);
+        updateCommand.AddOption(lostTimeOption);
 
-        updateCommand.SetHandler(async (id, title, value, currency, stageId, status, expectedCloseDate, customFields) =>
+        updateCommand.SetHandler(async context =>
         {
+            var id = context.ParseResult.GetValueForArgument(idArgument);
+            var title = context.ParseResult.GetValueForOption(titleOption);
+            var value = context.ParseResult.GetValueForOption(valueOption);
+            var currency = context.ParseResult.GetValueForOption(currencyOption);
+            var stageId = context.ParseResult.GetValueForOption(stageIdOption);
+            var status = context.ParseResult.GetValueForOption(statusOption);
+            var expectedCloseDate = context.ParseResult.GetValueForOption(expectedCloseDateOption);
+            var customFields = context.ParseResult.GetValueForOption(customFieldsOption);
+            var wonTime = context.ParseResult.GetValueForOption(wonTimeOption);
+            var lostTime = context.ParseResult.GetValueForOption(lostTimeOption);
+
             try
             {
                 if (string.IsNullOrWhiteSpace(title) && !value.HasValue &&
                     string.IsNullOrWhiteSpace(currency) && !stageId.HasValue &&
                     string.IsNullOrWhiteSpace(status) && string.IsNullOrWhiteSpace(expectedCloseDate) &&
-                    string.IsNullOrWhiteSpace(customFields))
+                    string.IsNullOrWhiteSpace(customFields) && string.IsNullOrWhiteSpace(wonTime) &&
+                    string.IsNullOrWhiteSpace(lostTime))
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one field must be specified to update");
+                    return;
+                }
+
+                // Validate won-time and lost-time usage
+                if (!string.IsNullOrWhiteSpace(wonTime) && status == "lost")
+                {
+                    AnsiConsole.MarkupLine("[red]Error:[/] Cannot use --won-time with --status lost");
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(lostTime) && status == "won")
+                {
+                    AnsiConsole.MarkupLine("[red]Error:[/] Cannot use --lost-time with --status won");
                     return;
                 }
 
@@ -403,6 +438,8 @@ public static class DealsCommands
                 if (stageId.HasValue) deal.StageId = stageId;
                 if (!string.IsNullOrWhiteSpace(status)) deal.Status = status;
                 if (!string.IsNullOrWhiteSpace(expectedCloseDate)) deal.ExpectedCloseDate = expectedCloseDate;
+                if (!string.IsNullOrWhiteSpace(wonTime)) deal.WonTime = NormalizeDateTimeFormat(wonTime);
+                if (!string.IsNullOrWhiteSpace(lostTime)) deal.LostTime = NormalizeDateTimeFormat(lostTime);
 
                 // Parse and set custom fields
                 if (!string.IsNullOrWhiteSpace(customFields))
@@ -431,7 +468,7 @@ public static class DealsCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, idArgument, titleOption, valueOption, currencyOption, stageIdOption, statusOption, expectedCloseDateOption, customFieldsOption);
+        });
 
         return updateCommand;
     }
@@ -555,5 +592,20 @@ public static class DealsCommands
         }, idArgument, mergeWithIdArgument, forceOption);
 
         return mergeCommand;
+    }
+
+    /// <summary>
+    /// Normalizes date/time input to the format expected by Pipedrive API.
+    /// Accepts YYYY-MM-DD or YYYY-MM-DD HH:mm:ss formats.
+    /// If only date is provided, appends 12:00:00 as the time.
+    /// </summary>
+    private static string NormalizeDateTimeFormat(string input)
+    {
+        // If it's just a date (YYYY-MM-DD), append a default time
+        if (input.Length == 10 && !input.Contains(' '))
+        {
+            return $"{input} 12:00:00";
+        }
+        return input;
     }
 }
