@@ -398,7 +398,7 @@ public static class PersonsCommands
         deleteCommand.AddArgument(idArgument);
 
         var forceOption = new Option<bool>(
-            aliases: new[] { "--force", "-f" },
+            aliases: new[] { "--force", "-f", "-y" },
             description: "Skip confirmation prompt");
 
         deleteCommand.AddOption(forceOption);
@@ -541,7 +541,7 @@ public static class PersonsCommands
         mergeCommand.AddArgument(mergeWithIdArgument);
 
         var forceOption = new Option<bool>(
-            aliases: new[] { "--force", "-f" },
+            aliases: new[] { "--force", "-f", "-y" },
             description: "Skip confirmation prompt");
 
         mergeCommand.AddOption(forceOption);

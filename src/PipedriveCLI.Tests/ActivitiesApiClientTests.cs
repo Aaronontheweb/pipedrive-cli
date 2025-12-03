@@ -453,4 +453,116 @@ public class ActivitiesApiClientTests
         Assert.Equal("2024-11-01T10:00:00Z", response.Data.AddTime);
         Assert.Equal("2024-11-01T10:00:00Z", response.Data.UpdateTime);
     }
+
+    /// <summary>
+    /// Test that Activity deserialization handles lead_id field
+    /// </summary>
+    [Fact]
+    public void Activity_Deserialization_HandlesLeadId()
+    {
+        // Arrange - Activity with lead_id (leads use UUID strings, not integers)
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 800,
+                "subject": "Lead Follow-up",
+                "type": "call",
+                "due_date": "2024-12-15",
+                "due_time": "11:00",
+                "done": false,
+                "deal_id": null,
+                "person_id": null,
+                "org_id": null,
+                "lead_id": "adf21080-0e10-11eb-879b-05d71fb426ec",
+                "note": "Follow up on new lead",
+                "add_time": "2024-12-01T00:00:00Z",
+                "update_time": "2024-12-01T00:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseActivity);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(800, response.Data.Id);
+        Assert.Equal("Lead Follow-up", response.Data.Subject);
+        Assert.Equal("adf21080-0e10-11eb-879b-05d71fb426ec", response.Data.LeadId);
+        Assert.Null(response.Data.DealId);
+        Assert.Null(response.Data.PersonId);
+        Assert.Null(response.Data.OrgId);
+    }
+
+    /// <summary>
+    /// Test activity serialization includes lead_id
+    /// </summary>
+    [Fact]
+    public void Activity_Serialization_IncludesLeadId()
+    {
+        // Arrange
+        var activity = new Activity
+        {
+            Subject = "Lead Call",
+            Type = "call",
+            DueDate = "2024-12-20",
+            LeadId = "test-lead-uuid-1234"
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(activity, ApiJsonContext.Default.Activity);
+        var deserialized = JsonSerializer.Deserialize(json, ApiJsonContext.Default.Activity);
+
+        // Assert
+        Assert.NotNull(deserialized);
+        Assert.Equal("Lead Call", deserialized.Subject);
+        Assert.Equal("test-lead-uuid-1234", deserialized.LeadId);
+        Assert.Contains("lead_id", json);
+    }
+
+    /// <summary>
+    /// Test that activities with all null associations are handled (orphaned activities)
+    /// </summary>
+    [Fact]
+    public void Activity_Deserialization_HandlesOrphanedActivity()
+    {
+        // Arrange - Activity with no associations (orphaned)
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 900,
+                "subject": "Orphaned Activity",
+                "type": "task",
+                "due_date": "2024-12-20",
+                "due_time": null,
+                "done": false,
+                "deal_id": null,
+                "person_id": null,
+                "org_id": null,
+                "lead_id": null,
+                "note": "This activity has no associations",
+                "add_time": "2024-12-01T00:00:00Z",
+                "update_time": "2024-12-01T00:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseActivity);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(900, response.Data.Id);
+        Assert.Equal("Orphaned Activity", response.Data.Subject);
+        Assert.Null(response.Data.DealId);
+        Assert.Null(response.Data.PersonId);
+        Assert.Null(response.Data.OrgId);
+        Assert.Null(response.Data.LeadId);
+    }
 }
