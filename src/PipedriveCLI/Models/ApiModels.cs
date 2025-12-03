@@ -1172,10 +1172,38 @@ public sealed class EmailTemplate
 public sealed class FieldOption
 {
     [JsonPropertyName("id")]
-    public int? Id { get; set; }
+    [JsonConverter(typeof(StringOrIntIdConverter))]
+    public string? Id { get; set; }
 
     [JsonPropertyName("label")]
     public string? Label { get; set; }
+}
+
+/// <summary>
+/// Converter that handles JSON values that can be either a string, integer, or boolean and returns them as string
+/// </summary>
+public sealed class StringOrIntIdConverter : JsonConverter<string?>
+{
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return reader.TokenType switch
+        {
+            JsonTokenType.String => reader.GetString(),
+            JsonTokenType.Number => reader.GetInt64().ToString(),
+            JsonTokenType.True => "true",
+            JsonTokenType.False => "false",
+            JsonTokenType.Null => null,
+            _ => throw new JsonException($"Unexpected token type: {reader.TokenType}")
+        };
+    }
+
+    public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+    {
+        if (value != null)
+            writer.WriteStringValue(value);
+        else
+            writer.WriteNullValue();
+    }
 }
 
 /// <summary>
@@ -1199,10 +1227,44 @@ public abstract class BaseField
     public bool? EditFlag { get; set; }
 
     [JsonPropertyName("mandatory_flag")]
+    [JsonConverter(typeof(BoolOrObjectConverter))]
     public bool? MandatoryFlag { get; set; }
 
     [JsonPropertyName("options")]
     public List<FieldOption>? Options { get; set; }
+}
+
+/// <summary>
+/// Converter that handles JSON values that can be either a boolean or an object (treats objects as true)
+/// </summary>
+public sealed class BoolOrObjectConverter : JsonConverter<bool?>
+{
+    public override bool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.True:
+                return true;
+            case JsonTokenType.False:
+                return false;
+            case JsonTokenType.Null:
+                return null;
+            case JsonTokenType.StartObject:
+                // When mandatory_flag is an object (conditional requirement), treat it as true
+                reader.Skip();
+                return true;
+            default:
+                throw new JsonException($"Unexpected token type: {reader.TokenType}");
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, bool? value, JsonSerializerOptions options)
+    {
+        if (value.HasValue)
+            writer.WriteBooleanValue(value.Value);
+        else
+            writer.WriteNullValue();
+    }
 }
 
 /// <summary>
