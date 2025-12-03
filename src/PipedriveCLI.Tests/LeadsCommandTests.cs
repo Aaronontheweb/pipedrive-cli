@@ -301,6 +301,95 @@ public class LeadsApiClientTests
     }
 
     /// <summary>
+    /// Test lead with is_archived field (for archive/unarchive functionality)
+    /// </summary>
+    [Fact]
+    public void Lead_Deserialization_HandlesIsArchivedField()
+    {
+        // Arrange - Lead with is_archived field
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": "archived-lead",
+                "title": "Archived Lead",
+                "owner_id": null,
+                "person_id": 123,
+                "organization_id": null,
+                "is_archived": true,
+                "was_seen": true,
+                "add_time": "2024-01-01T00:00:00Z",
+                "update_time": "2024-01-01T00:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseLead);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal("archived-lead", response.Data.Id);
+        Assert.True(response.Data.IsArchived);
+    }
+
+    /// <summary>
+    /// Test lead serialization includes is_archived for update operations
+    /// </summary>
+    [Fact]
+    public void Lead_Serialization_IncludesIsArchived()
+    {
+        // Arrange
+        var lead = new Lead
+        {
+            IsArchived = true
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(lead, ApiJsonContext.Default.Lead);
+
+        // Assert - Check for the key and value (allowing for whitespace in pretty-printed JSON)
+        Assert.Contains("is_archived", json);
+        Assert.Contains("true", json);
+    }
+
+    /// <summary>
+    /// Test lead with is_archived = false
+    /// </summary>
+    [Fact]
+    public void Lead_Deserialization_HandlesIsArchivedFalse()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": "active-lead",
+                "title": "Active Lead",
+                "owner_id": null,
+                "person_id": 456,
+                "organization_id": null,
+                "is_archived": false,
+                "was_seen": false,
+                "add_time": "2024-01-01T00:00:00Z",
+                "update_time": "2024-01-01T00:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseLead);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.False(response.Data.IsArchived);
+    }
+
+    /// <summary>
     /// Test that empty list response deserializes correctly
     /// </summary>
     [Fact]

@@ -24,6 +24,8 @@ public static class LeadsCommands
         leadsCommand.AddCommand(CreateUpdateCommand(apiClient));
         leadsCommand.AddCommand(CreateDeleteCommand(apiClient));
         leadsCommand.AddCommand(CreateSearchCommand(apiClient));
+        leadsCommand.AddCommand(CreateArchiveCommand(apiClient));
+        leadsCommand.AddCommand(CreateUnarchiveCommand(apiClient));
 
         return leadsCommand;
     }
@@ -524,5 +526,93 @@ public static class LeadsCommands
         }, termArgument, limitOption);
 
         return searchCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'leads archive' command
+    /// </summary>
+    private static Command CreateArchiveCommand(PipedriveApiClient apiClient)
+    {
+        var archiveCommand = new Command("archive", "Archive a lead");
+
+        var idArgument = new Argument<string>("id", "Lead ID");
+        archiveCommand.AddArgument(idArgument);
+
+        archiveCommand.SetHandler(async (id) =>
+        {
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                var lead = new Lead { IsArchived = true };
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Archiving lead {id}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.UpdateLeadAsync(id, lead);
+                    });
+
+                if (response?.Success == true)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Lead {id} archived successfully");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to archive lead: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, idArgument);
+
+        return archiveCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'leads unarchive' command
+    /// </summary>
+    private static Command CreateUnarchiveCommand(PipedriveApiClient apiClient)
+    {
+        var unarchiveCommand = new Command("unarchive", "Unarchive a lead");
+
+        var idArgument = new Argument<string>("id", "Lead ID");
+        unarchiveCommand.AddArgument(idArgument);
+
+        unarchiveCommand.SetHandler(async (id) =>
+        {
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                var lead = new Lead { IsArchived = false };
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Unarchiving lead {id}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.UpdateLeadAsync(id, lead);
+                    });
+
+                if (response?.Success == true)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Lead {id} unarchived successfully");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to unarchive lead: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, idArgument);
+
+        return unarchiveCommand;
     }
 }
