@@ -1,13 +1,6 @@
-#### 0.7.1 December 4 2025 ####
+#### 0.7.2 December 5 2025 ####
 
-Added `--yes`/`-y` flag for non-interactive update command.
-
-**New Features**
-
-- **Non-Interactive Update Flag** ([#107](https://github.com/Aaronontheweb/pipedrive-cli/issues/107))
-  - Added `--yes`/`-y` aliases to `pipedrive update` command
-  - Enables updates in non-interactive environments (scripts, CI/CD, LLM agents)
-  - Example: `pipedrive update --yes` or `pipedrive update -y`
+Reverted redundant `--yes`/`-y` aliases from update command - the existing `--force`/`-f` flag already provides this functionality.
 
 ---
 

@@ -17,7 +17,7 @@ public static class UpdateCommands
         );
 
         var forceOption = new Option<bool>(
-            new[] { "--force", "-f", "--yes", "-y" },
+            new[] { "--force", "-f" },
             "Skip confirmation prompt"
         );
 
