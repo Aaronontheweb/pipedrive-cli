@@ -51,7 +51,7 @@ public static class PipelinesCommands
 
                             var table = new Table();
                             table.Border(TableBorder.Rounded);
-                            table.AddColumn("ID");
+                            table.AddColumn(new TableColumn("ID").NoWrap());
                             table.AddColumn("Name");
                             table.AddColumn("Active");
                             table.AddColumn("Order");
@@ -174,7 +174,7 @@ public static class PipelinesCommands
 
                             var table = new Table();
                             table.Border(TableBorder.Rounded);
-                            table.AddColumn("ID");
+                            table.AddColumn(new TableColumn("ID").NoWrap());
                             table.AddColumn("Name");
                             table.AddColumn("Pipeline ID");
                             table.AddColumn("Active");

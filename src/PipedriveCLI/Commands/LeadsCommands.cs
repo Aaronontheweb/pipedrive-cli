@@ -86,7 +86,7 @@ public static class LeadsCommands
 
                             var table = new Table();
                             table.Border(TableBorder.Rounded);
-                            table.AddColumn("ID");
+                            table.AddColumn(new TableColumn("ID").NoWrap());
                             table.AddColumn("Title");
                             table.AddColumn("Value");
                             table.AddColumn("Person/Org ID");
@@ -492,7 +492,7 @@ public static class LeadsCommands
 
                     var table = new Table();
                     table.Border(TableBorder.Rounded);
-                    table.AddColumn("ID");
+                    table.AddColumn(new TableColumn("ID").NoWrap());
                     table.AddColumn("Title");
                     table.AddColumn("Value");
                     table.AddColumn("Owner ID");

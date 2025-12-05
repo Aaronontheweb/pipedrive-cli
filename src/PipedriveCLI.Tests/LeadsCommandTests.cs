@@ -444,4 +444,139 @@ public class LeadsApiClientTests
         Assert.Contains("\"title\":", json);
         Assert.Contains("\"person_id\":", json);
     }
+
+    /// <summary>
+    /// Test that Lead IDs with full UUID format are properly preserved through serialization.
+    /// This documents the expected format and ensures UUIDs are not truncated or corrupted.
+    /// Related to GitHub issue where table rendering could corrupt displayed UUIDs.
+    /// </summary>
+    [Theory]
+    [InlineData("0b9fad60-bae0-11f0-945c-134e56493ed5")]
+    [InlineData("d3ce8ea0-ba68-11f0-9055-d7d6d543086d")]
+    [InlineData("79e8daf0-ba57-11f0-9055-d7d6d543086d")]
+    [InlineData("bda0a9a0-bb31-11f0-bc3b-c55cf8762758")]
+    public void Lead_Deserialization_PreservesFullUuidFormat(string expectedUuid)
+    {
+        // Arrange - Lead with full 36-character UUID
+        var json = $$"""
+        {
+            "success": true,
+            "data": {
+                "id": "{{expectedUuid}}",
+                "title": "Test Lead",
+                "owner_id": null,
+                "person_id": 12345,
+                "organization_id": null,
+                "was_seen": false,
+                "add_time": "2024-01-01T00:00:00Z",
+                "update_time": "2024-01-01T00:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseLead);
+
+        // Assert - UUID must be preserved exactly as received from API
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        var leadId = response.Data.Id;
+        Assert.NotNull(leadId);
+        Assert.Equal(expectedUuid, leadId);
+        Assert.Equal(36, leadId.Length); // UUIDs are always 36 chars (32 hex + 4 dashes)
+        Assert.True(Guid.TryParse(leadId, out _), $"Lead ID should be valid UUID format: {leadId}");
+    }
+
+    /// <summary>
+    /// Test that a list of leads preserves all UUIDs correctly.
+    /// This helps catch any issues with UUID handling in list responses.
+    /// </summary>
+    [Fact]
+    public void LeadsList_Deserialization_PreservesAllUuids()
+    {
+        // Arrange - Multiple leads with full UUIDs (from real production data patterns)
+        var json = """
+        {
+            "success": true,
+            "data": [
+                {
+                    "id": "0b9fad60-bae0-11f0-945c-134e56493ed5",
+                    "title": "Lead 1",
+                    "owner_id": null,
+                    "person_id": 12869,
+                    "organization_id": null,
+                    "was_seen": false,
+                    "add_time": "2024-01-01T00:00:00Z",
+                    "update_time": "2024-01-01T00:00:00Z"
+                },
+                {
+                    "id": "d3ce8ea0-ba68-11f0-9055-d7d6d543086d",
+                    "title": "Lead 2",
+                    "owner_id": null,
+                    "person_id": 12860,
+                    "organization_id": null,
+                    "was_seen": false,
+                    "add_time": "2024-01-01T00:00:00Z",
+                    "update_time": "2024-01-01T00:00:00Z"
+                },
+                {
+                    "id": "79e8daf0-ba57-11f0-9055-d7d6d543086d",
+                    "title": "Lead 3",
+                    "owner_id": null,
+                    "person_id": 12843,
+                    "organization_id": null,
+                    "was_seen": false,
+                    "add_time": "2024-01-01T00:00:00Z",
+                    "update_time": "2024-01-01T00:00:00Z"
+                },
+                {
+                    "id": "bda0a9a0-bb31-11f0-bc3b-c55cf8762758",
+                    "title": "Lead 4",
+                    "owner_id": null,
+                    "person_id": 12872,
+                    "organization_id": null,
+                    "was_seen": false,
+                    "add_time": "2024-01-01T00:00:00Z",
+                    "update_time": "2024-01-01T00:00:00Z"
+                }
+            ],
+            "additional_data": {
+                "pagination": {
+                    "start": 0,
+                    "limit": 100,
+                    "more_items_in_collection": false
+                }
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListLead);
+
+        // Assert - All UUIDs must be preserved exactly
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(4, response.Data.Count);
+
+        // Verify each UUID is valid and preserved
+        var expectedUuids = new[]
+        {
+            "0b9fad60-bae0-11f0-945c-134e56493ed5",
+            "d3ce8ea0-ba68-11f0-9055-d7d6d543086d",
+            "79e8daf0-ba57-11f0-9055-d7d6d543086d",
+            "bda0a9a0-bb31-11f0-bc3b-c55cf8762758"
+        };
+
+        for (int i = 0; i < response.Data.Count; i++)
+        {
+            var lead = response.Data[i];
+            var leadId = lead.Id;
+            Assert.NotNull(leadId);
+            Assert.Equal(expectedUuids[i], leadId);
+            Assert.Equal(36, leadId.Length);
+            Assert.True(Guid.TryParse(leadId, out _), $"Lead {i + 1} ID should be valid UUID: {leadId}");
+        }
+    }
 }

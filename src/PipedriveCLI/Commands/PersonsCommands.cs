@@ -68,7 +68,7 @@ public static class PersonsCommands
 
                             var table = new Table();
                             table.Border(TableBorder.Rounded);
-                            table.AddColumn("ID");
+                            table.AddColumn(new TableColumn("ID").NoWrap());
                             table.AddColumn("Name");
                             table.AddColumn("Email");
                             table.AddColumn("Phone");
@@ -485,7 +485,7 @@ public static class PersonsCommands
 
                     var table = new Table();
                     table.Border(TableBorder.Rounded);
-                    table.AddColumn("ID");
+                    table.AddColumn(new TableColumn("ID").NoWrap());
                     table.AddColumn("Name");
                     table.AddColumn("Email");
                     table.AddColumn("Phone");

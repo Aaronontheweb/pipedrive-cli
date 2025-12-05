@@ -83,7 +83,7 @@ public static class DealFieldsCommands
                             {
                                 var table = new Table();
                                 table.Border(TableBorder.Rounded);
-                                table.AddColumn("ID");
+                                table.AddColumn(new TableColumn("ID").NoWrap());
                                 table.AddColumn("Key");
                                 table.AddColumn("Name");
                                 table.AddColumn("Type");

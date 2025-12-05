@@ -370,7 +370,7 @@ public static class EmailsCommands
     {
         var table = new Table();
         table.Border(TableBorder.Rounded);
-        table.AddColumn("ID");
+        table.AddColumn(new TableColumn("ID").NoWrap());
         table.AddColumn("From");
         table.AddColumn("To");
         table.AddColumn("Subject");
@@ -478,7 +478,7 @@ public static class EmailsCommands
     {
         var table = new Table();
         table.Border(TableBorder.Rounded);
-        table.AddColumn("ID");
+        table.AddColumn(new TableColumn("ID").NoWrap());
         table.AddColumn("From");
         table.AddColumn("To");
         table.AddColumn("Subject");

@@ -51,7 +51,7 @@ public static class TemplatesCommands
 
                             var table = new Table();
                             table.Border(TableBorder.Rounded);
-                            table.AddColumn("ID");
+                            table.AddColumn(new TableColumn("ID").NoWrap());
                             table.AddColumn("Name");
                             table.AddColumn("Shared");
                             table.AddColumn("Updated");
