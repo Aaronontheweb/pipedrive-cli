@@ -26,6 +26,21 @@ public sealed class PipedriveResponse<T>
 }
 
 /// <summary>
+/// Pipedrive API error response (non-generic for parsing errors without knowing the data type)
+/// </summary>
+public sealed class PipedriveErrorResponse
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
+
+    [JsonPropertyName("error_info")]
+    public string? ErrorInfo { get; set; }
+}
+
+/// <summary>
 /// Additional metadata in API responses (pagination, etc.)
 /// </summary>
 public sealed class AdditionalData
@@ -1384,6 +1399,7 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(List<MailThread>))]
 [JsonSerializable(typeof(PipedriveResponse<MailThread>))]
 [JsonSerializable(typeof(PipedriveResponse<List<MailThread>>))]
+[JsonSerializable(typeof(PipedriveErrorResponse))]
 internal partial class ApiJsonContext : JsonSerializerContext
 {
 }

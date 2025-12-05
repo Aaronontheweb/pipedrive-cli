@@ -1,8 +1,38 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using PipedriveCLI.Models;
 
 namespace PipedriveCLI.Services;
+
+/// <summary>
+/// Exception thrown when the Pipedrive API returns an error response
+/// </summary>
+public class PipedriveApiException : Exception
+{
+    public HttpStatusCode StatusCode { get; }
+    public string? ApiError { get; }
+    public string? ApiErrorInfo { get; }
+
+    public PipedriveApiException(HttpStatusCode statusCode, string? apiError, string? apiErrorInfo)
+        : base(FormatMessage(statusCode, apiError, apiErrorInfo))
+    {
+        StatusCode = statusCode;
+        ApiError = apiError;
+        ApiErrorInfo = apiErrorInfo;
+    }
+
+    private static string FormatMessage(HttpStatusCode statusCode, string? apiError, string? apiErrorInfo)
+    {
+        if (!string.IsNullOrWhiteSpace(apiError))
+        {
+            return !string.IsNullOrWhiteSpace(apiErrorInfo)
+                ? $"{apiError} - {apiErrorInfo}"
+                : apiError;
+        }
+        return $"HTTP {(int)statusCode} ({statusCode})";
+    }
+}
 
 /// <summary>
 /// HTTP client for interacting with the Pipedrive API
@@ -42,6 +72,40 @@ public sealed class PipedriveApiClient : IDisposable
     }
 
     /// <summary>
+    /// Ensures the response is successful, or throws a PipedriveApiException with the actual error message
+    /// </summary>
+    private static async Task EnsureSuccessOrThrowApiErrorAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        // Try to read the response body to get the actual error message
+        string? apiError = null;
+        string? apiErrorInfo = null;
+
+        try
+        {
+            var responseBody = await response.Content.ReadAsStringAsync();
+            if (!string.IsNullOrWhiteSpace(responseBody))
+            {
+                // Try to parse as a Pipedrive error response
+                var errorResponse = JsonSerializer.Deserialize(responseBody, ApiJsonContext.Default.PipedriveErrorResponse);
+                if (errorResponse != null)
+                {
+                    apiError = errorResponse.Error;
+                    apiErrorInfo = errorResponse.ErrorInfo;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore JSON parsing errors - we'll fall back to generic message
+        }
+
+        throw new PipedriveApiException(response.StatusCode, apiError, apiErrorInfo);
+    }
+
+    /// <summary>
     /// Makes a GET request to the Pipedrive API and returns raw JSON string
     /// </summary>
     public async Task<string> GetAsync(string endpoint, Dictionary<string, string>? queryParams = null)
@@ -51,7 +115,7 @@ public sealed class PipedriveApiClient : IDisposable
         var url = await BuildUrlWithApiKeyAsync(endpoint, queryParams);
         var response = await _httpClient.GetAsync(url);
 
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowApiErrorAsync(response);
 
         return await response.Content.ReadAsStringAsync();
     }
@@ -67,7 +131,7 @@ public sealed class PipedriveApiClient : IDisposable
         var content = new StringContent(jsonData, System.Text.Encoding.UTF8, "application/json");
         var response = await _httpClient.PostAsync(url, content);
 
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowApiErrorAsync(response);
 
         return await response.Content.ReadAsStringAsync();
     }
@@ -83,7 +147,7 @@ public sealed class PipedriveApiClient : IDisposable
         var content = new StringContent(jsonData, System.Text.Encoding.UTF8, "application/json");
         var response = await _httpClient.PutAsync(url, content);
 
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowApiErrorAsync(response);
 
         return await response.Content.ReadAsStringAsync();
     }
@@ -103,7 +167,7 @@ public sealed class PipedriveApiClient : IDisposable
         };
         var response = await _httpClient.SendAsync(request);
 
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowApiErrorAsync(response);
 
         return await response.Content.ReadAsStringAsync();
     }
@@ -201,7 +265,7 @@ public sealed class PipedriveApiClient : IDisposable
 
         // Use absolute URI to avoid modifying BaseAddress
         var response = await _httpClient.GetAsync(new Uri(absoluteUrl, UriKind.Absolute));
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowApiErrorAsync(response);
 
         var jsonResponse = await response.Content.ReadAsStringAsync();
 
