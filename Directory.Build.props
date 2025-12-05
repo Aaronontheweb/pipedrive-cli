@@ -7,34 +7,32 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.6.0</VersionPrefix>
-    <PackageReleaseNotes>This release adds extensive filtering capabilities across activities, notes, and deals, plus new commands for discovering custom fields and managing lead lifecycle.
-
-**New Features**
-
-- **Deal Fields Discovery** ([#89](https://github.com/Aaronontheweb/pipedrive-cli/issues/89))
-  - `pipedrive dealFields list` - Discover all deal field keys including custom fields
-  - Essential for identifying hash keys needed when using `--custom-fields` on deals update
-
-- **Lead Archive Management** ([#91](https://github.com/Aaronontheweb/pipedrive-cli/issues/91))
-  - `pipedrive leads archive &lt;id&gt;` - Archive a lead
-  - `pipedrive leads unarchive &lt;id&gt;` - Restore an archived lead
-
-**Command Enhancements**
-
-- **Activities Filtering** ([#74](https://github.com/Aaronontheweb/pipedrive-cli/issues/74)) - Added `--deal-id`, `--person-id`, `--org-id` filters to `activities list`
-- **Activities Participants** ([#75](https://github.com/Aaronontheweb/pipedrive-cli/issues/75)) - Added `--participants` option to `activities create` and `activities update`
-- **Activities Done Flag** ([#92](https://github.com/Aaronontheweb/pipedrive-cli/issues/92)) - Added `--done` option to `activities update` command
-- **Activities Association Display** ([#95](https://github.com/Aaronontheweb/pipedrive-cli/issues/95)) - Shows association type prefix (Deal:, Lead:, Person:, Org:) in activities list
-- **Persons Update Org** ([#80](https://github.com/Aaronontheweb/pipedrive-cli/issues/80)) - Added `--org-id` option to `persons update` command
-- **Notes Filtering** ([#82](https://github.com/Aaronontheweb/pipedrive-cli/issues/82)) - Added `--deal-id`, `--person-id`, `--org-id` filters to `notes list`
-- **Deals Filtering by Org** ([#83](https://github.com/Aaronontheweb/pipedrive-cli/issues/83)) - Added `--org-id` filter to `deals list` command
-- **Deals Update Fields** ([#90](https://github.com/Aaronontheweb/pipedrive-cli/issues/90)) - Added `--person-id`, `--org-id`, `--probability` options to `deals update`
-- **Force Flag Alias** ([#93](https://github.com/Aaronontheweb/pipedrive-cli/issues/93)) - Added `-y` as alias for `--force`/`-f` on all delete and merge commands
+    <VersionPrefix>0.7.0</VersionPrefix>
+    <PackageReleaseNotes>This release focuses on stability improvements, fixing critical display issues and improving error handling across the CLI.
 
 **Bug Fixes**
 
-- **DealParticipant Deserialization** ([#73](https://github.com/Aaronontheweb/pipedrive-cli/issues/73)) - Fixed JSON deserialization for `person_id` field in deal participants
+- **Fixed ID Corruption in Table Rendering** ([#102](https://github.com/Aaronontheweb/pipedrive-cli/issues/102), [#103](https://github.com/Aaronontheweb/pipedrive-cli/issues/103))
+  - Added NoWrap() to ID columns across all list commands
+  - Prevents IDs from wrapping across multiple lines in narrow terminal windows
+  - Ensures copy-paste reliability for automation and scripting
+
+- **Improved API Error Handling** ([#101](https://github.com/Aaronontheweb/pipedrive-cli/issues/101), [#104](https://github.com/Aaronontheweb/pipedrive-cli/issues/104))
+  - Now displays actual Pipedrive API error messages instead of generic HTTP errors
+  - Helps users understand and resolve API issues faster
+  - Better troubleshooting for validation errors and permission issues
+
+- **Silenced Update Check Failures** ([#99](https://github.com/Aaronontheweb/pipedrive-cli/issues/99), [#104](https://github.com/Aaronontheweb/pipedrive-cli/issues/104))
+  - Update availability checks no longer interrupt user workflow with error messages
+  - Graceful degradation when GitHub API is unreachable
+  - Maintains responsive CLI experience even when offline
+
+**New Features**
+
+- **Lead ID Filter for Notes** ([#98](https://github.com/Aaronontheweb/pipedrive-cli/issues/98), [#105](https://github.com/Aaronontheweb/pipedrive-cli/issues/105))
+  - Added `--lead-id` option to `notes list` command
+  - Filter notes by associated lead UUID
+  - Example: `pipedrive notes list --lead-id "e126ec80-cfff-11f0-8c59-fd43bfd483d9"`
 
 ---</PackageReleaseNotes>
   </PropertyGroup>
