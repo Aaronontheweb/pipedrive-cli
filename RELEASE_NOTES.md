@@ -1,3 +1,33 @@
+#### 0.7.0 December 4 2025 ####
+
+This release focuses on stability improvements, fixing critical display issues and improving error handling across the CLI.
+
+**Bug Fixes**
+
+- **Fixed ID Corruption in Table Rendering** ([#102](https://github.com/Aaronontheweb/pipedrive-cli/issues/102), [#103](https://github.com/Aaronontheweb/pipedrive-cli/issues/103))
+  - Added NoWrap() to ID columns across all list commands
+  - Prevents IDs from wrapping across multiple lines in narrow terminal windows
+  - Ensures copy-paste reliability for automation and scripting
+
+- **Improved API Error Handling** ([#101](https://github.com/Aaronontheweb/pipedrive-cli/issues/101), [#104](https://github.com/Aaronontheweb/pipedrive-cli/issues/104))
+  - Now displays actual Pipedrive API error messages instead of generic HTTP errors
+  - Helps users understand and resolve API issues faster
+  - Better troubleshooting for validation errors and permission issues
+
+- **Silenced Update Check Failures** ([#99](https://github.com/Aaronontheweb/pipedrive-cli/issues/99), [#104](https://github.com/Aaronontheweb/pipedrive-cli/issues/104))
+  - Update availability checks no longer interrupt user workflow with error messages
+  - Graceful degradation when GitHub API is unreachable
+  - Maintains responsive CLI experience even when offline
+
+**New Features**
+
+- **Lead ID Filter for Notes** ([#98](https://github.com/Aaronontheweb/pipedrive-cli/issues/98), [#105](https://github.com/Aaronontheweb/pipedrive-cli/issues/105))
+  - Added `--lead-id` option to `notes list` command
+  - Filter notes by associated lead UUID
+  - Example: `pipedrive notes list --lead-id "e126ec80-cfff-11f0-8c59-fd43bfd483d9"`
+
+---
+
 #### 0.6.0 December 3 2025 ####
 
 This release adds extensive filtering capabilities across activities, notes, and deals, plus new commands for discovering custom fields and managing lead lifecycle.
