@@ -81,10 +81,9 @@ public sealed class UpdateService : IUpdateService
                 }
             }
         }
-        catch (Exception ex)
+        catch
         {
-            // Log but don't fail
-            Console.Error.WriteLine($"Update check failed: {ex.Message}");
+            // Silently ignore update check failures - don't interrupt user workflow
         }
 
         return null;
