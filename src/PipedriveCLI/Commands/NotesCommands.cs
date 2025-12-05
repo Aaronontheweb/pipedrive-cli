@@ -54,11 +54,16 @@ public static class NotesCommands
             aliases: new[] { "--org-id", "-o" },
             description: "Filter notes by organization ID");
 
+        var leadIdOption = new Option<string?>(
+            aliases: new[] { "--lead-id" },
+            description: "Filter notes by lead ID (UUID)");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
         listCommand.AddOption(dealIdOption);
         listCommand.AddOption(personIdOption);
         listCommand.AddOption(orgIdOption);
+        listCommand.AddOption(leadIdOption);
 
         listCommand.SetHandler(async (context) =>
         {
@@ -67,6 +72,7 @@ public static class NotesCommands
             var dealId = context.ParseResult.GetValueForOption(dealIdOption);
             var personId = context.ParseResult.GetValueForOption(personIdOption);
             var orgId = context.ParseResult.GetValueForOption(orgIdOption);
+            var leadId = context.ParseResult.GetValueForOption(leadIdOption);
 
             try
             {
@@ -78,7 +84,7 @@ public static class NotesCommands
                         ctx.Spinner(Spinner.Known.Dots);
                         ctx.SpinnerStyle(Style.Parse("green"));
 
-                        var response = await apiClient.GetNotesAsync(limit, start, dealId, personId, orgId);
+                        var response = await apiClient.GetNotesAsync(limit, start, dealId, personId, orgId, leadId);
 
                         if (response?.Success == true)
                         {
