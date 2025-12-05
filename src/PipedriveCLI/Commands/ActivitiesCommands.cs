@@ -158,12 +158,12 @@ public static class ActivitiesCommands
 
                             var table = new Table();
                             table.Border(TableBorder.Rounded);
-                            table.AddColumn("ID");
+                            table.AddColumn(new TableColumn("ID").NoWrap());
                             table.AddColumn("Subject");
                             table.AddColumn("Type");
                             table.AddColumn("Due Date");
                             table.AddColumn("Done");
-                            table.AddColumn("Association");
+                            table.AddColumn(new TableColumn("Association").NoWrap());
                             table.AddColumn("Added");
 
                             foreach (var activity in response.Data)

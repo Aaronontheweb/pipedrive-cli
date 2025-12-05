@@ -111,7 +111,7 @@ public static class DealsCommands
                             {
                                 var table = new Table();
                                 table.Border(TableBorder.Rounded);
-                                table.AddColumn("ID");
+                                table.AddColumn(new TableColumn("ID").NoWrap());
                                 table.AddColumn("Title");
                                 table.AddColumn("Value");
                                 table.AddColumn("Status");
@@ -703,7 +703,7 @@ public static class DealsCommands
                     }
 
                     var table = new Table();
-                    table.AddColumn("ID");
+                    table.AddColumn(new TableColumn("ID").NoWrap());
                     table.AddColumn("Person ID");
                     table.AddColumn("Name");
                     table.AddColumn("Email");

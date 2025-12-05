@@ -69,7 +69,7 @@ public static class OrganizationsCommands
 
                             var table = new Table();
                             table.Border(TableBorder.Rounded);
-                            table.AddColumn("ID");
+                            table.AddColumn(new TableColumn("ID").NoWrap());
                             table.AddColumn("Name");
                             table.AddColumn("People Count");
                             table.AddColumn("Address");
@@ -421,7 +421,7 @@ public static class OrganizationsCommands
 
                     var table = new Table();
                     table.Border(TableBorder.Rounded);
-                    table.AddColumn("ID");
+                    table.AddColumn(new TableColumn("ID").NoWrap());
                     table.AddColumn("Name");
                     table.AddColumn("People Count");
                     table.AddColumn("Address");

@@ -94,9 +94,9 @@ public static class NotesCommands
                             {
                                 var table = new Table();
                                 table.Border(TableBorder.Rounded);
-                                table.AddColumn("ID");
+                                table.AddColumn(new TableColumn("ID").NoWrap());
                                 table.AddColumn("Content Preview");
-                                table.AddColumn("Deal/Person/Org/Lead");
+                                table.AddColumn(new TableColumn("Deal/Person/Org/Lead").NoWrap());
                                 table.AddColumn("User ID");
                                 table.AddColumn("Added");
 
