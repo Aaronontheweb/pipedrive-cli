@@ -7,9 +7,32 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.7.2</VersionPrefix>
-    <PackageReleaseNotes>Reverted redundant --yes/-y aliases from update command (--force/-f already existed).
-</PackageReleaseNotes>
+    <VersionPrefix>0.7.3</VersionPrefix>
+    <PackageReleaseNotes>This release adds powerful filtering capabilities to activities, persons, and emails commands, making it easier to manage CRM data and review communication history.
+
+**New Features**
+
+- **Date Filtering for Activities** ([#114](https://github.com/Aaronontheweb/pipedrive-cli/issues/114), [#115](https://github.com/Aaronontheweb/pipedrive-cli/pull/115))
+  - Added `--overdue` option to quickly filter activities with due dates before today
+  - Added `--due-before &lt;date&gt;` option to filter activities due before a specific date (YYYY-MM-DD format)
+  - Added `--due-after &lt;date&gt;` option to filter activities due after a specific date (YYYY-MM-DD format)
+  - Filters can be combined to create date ranges (e.g., `--due-after 2025-01-01 --due-before 2025-02-01`)
+  - Example: `pipedrive activities list --overdue`
+
+- **Address and Custom Field Support for Persons** ([#111](https://github.com/Aaronontheweb/pipedrive-cli/issues/111), [#116](https://github.com/Aaronontheweb/pipedrive-cli/pull/116))
+  - Added `--address` / `-a` option to update the postal address field
+  - Added `--custom-field` / `-c` option to update custom fields using `key=value` format (can be specified multiple times)
+  - Uses AOT-compatible JSON serialization for native compilation support
+  - Example: `pipedrive persons update 123 --address "123 Main St, Test City" --custom-field "custom_key=value"`
+
+- **Person and Deal Filters for Email Threads** ([#110](https://github.com/Aaronontheweb/pipedrive-cli/issues/110), [#117](https://github.com/Aaronontheweb/pipedrive-cli/pull/117))
+  - Added `--person-id` / `-p` option to filter email threads involving a specific person
+  - Added `--deal-id` / `-d` option to filter email threads linked to a specific deal
+  - Filters can be combined with existing folder and pagination options
+  - Helps review communication history before customer outreach
+  - Example: `pipedrive emails threads --person-id 12702 --folder sent`
+
+---</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup>
     <!-- Visual Studio C# settings -->
