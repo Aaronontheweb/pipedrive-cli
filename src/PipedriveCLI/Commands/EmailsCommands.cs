@@ -216,19 +216,41 @@ public static class EmailsCommands
             aliases: ["--start", "-s"],
             description: "Pagination start (default: 0)");
 
+        var personIdOption = new Option<int?>(
+            aliases: ["--person-id", "-p"],
+            description: "Filter threads involving a specific person");
+
+        var dealIdOption = new Option<int?>(
+            aliases: ["--deal-id", "-d"],
+            description: "Filter threads linked to a specific deal");
+
         threadsCommand.AddOption(folderOption);
         threadsCommand.AddOption(limitOption);
         threadsCommand.AddOption(startOption);
+        threadsCommand.AddOption(personIdOption);
+        threadsCommand.AddOption(dealIdOption);
 
-        threadsCommand.SetHandler(async (folder, limit, start) =>
+        threadsCommand.SetHandler(async context =>
         {
+            var folder = context.ParseResult.GetValueForOption(folderOption);
+            var limit = context.ParseResult.GetValueForOption(limitOption);
+            var start = context.ParseResult.GetValueForOption(startOption);
+            var personId = context.ParseResult.GetValueForOption(personIdOption);
+            var dealId = context.ParseResult.GetValueForOption(dealIdOption);
+
             try
             {
                 await apiClient.InitializeAsync();
 
-                var statusText = string.IsNullOrWhiteSpace(folder)
-                    ? "Fetching mail threads..."
-                    : $"Fetching {folder} mail threads...";
+                // Build status text based on filters
+                var statusParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(folder)) statusParts.Add(folder);
+                if (personId.HasValue) statusParts.Add($"person {personId}");
+                if (dealId.HasValue) statusParts.Add($"deal {dealId}");
+
+                var statusText = statusParts.Count > 0
+                    ? $"Fetching mail threads for {string.Join(", ", statusParts)}..."
+                    : "Fetching mail threads...";
 
                 await AnsiConsole.Status()
                     .StartAsync(statusText, async ctx =>
@@ -236,7 +258,7 @@ public static class EmailsCommands
                         ctx.Spinner(Spinner.Known.Dots);
                         ctx.SpinnerStyle(Style.Parse("green"));
 
-                        var response = await apiClient.GetMailThreadsAsync(folder, limit ?? 50, start);
+                        var response = await apiClient.GetMailThreadsAsync(folder, limit ?? 50, start, personId, dealId);
 
                         if (response?.Success == true && response.Data != null)
                         {
@@ -253,7 +275,7 @@ public static class EmailsCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, folderOption, limitOption, startOption);
+        });
 
         return threadsCommand;
     }
