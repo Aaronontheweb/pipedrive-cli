@@ -94,12 +94,27 @@ public static class ActivitiesCommands
             aliases: new[] { "--org-id", "-o" },
             description: "Filter activities by organization ID");
 
+        var overdueOption = new Option<bool>(
+            aliases: new[] { "--overdue" },
+            description: "Filter activities that are overdue (due date before today)");
+
+        var dueBeforeOption = new Option<string?>(
+            aliases: new[] { "--due-before" },
+            description: "Filter activities due before the specified date (YYYY-MM-DD)");
+
+        var dueAfterOption = new Option<string?>(
+            aliases: new[] { "--due-after" },
+            description: "Filter activities due after the specified date (YYYY-MM-DD)");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
         listCommand.AddOption(doneOption);
         listCommand.AddOption(dealIdOption);
         listCommand.AddOption(personIdOption);
         listCommand.AddOption(orgIdOption);
+        listCommand.AddOption(overdueOption);
+        listCommand.AddOption(dueBeforeOption);
+        listCommand.AddOption(dueAfterOption);
 
         listCommand.SetHandler(async context =>
         {
@@ -109,6 +124,9 @@ public static class ActivitiesCommands
             var dealId = context.ParseResult.GetValueForOption(dealIdOption);
             var personId = context.ParseResult.GetValueForOption(personIdOption);
             var orgId = context.ParseResult.GetValueForOption(orgIdOption);
+            var overdue = context.ParseResult.GetValueForOption(overdueOption);
+            var dueBefore = context.ParseResult.GetValueForOption(dueBeforeOption);
+            var dueAfter = context.ParseResult.GetValueForOption(dueAfterOption);
 
             // Validate that only one entity filter is used at a time
             var filterCount = (dealId.HasValue ? 1 : 0) + (personId.HasValue ? 1 : 0) + (orgId.HasValue ? 1 : 0);
@@ -116,6 +134,35 @@ public static class ActivitiesCommands
             {
                 AnsiConsole.MarkupLine("[red]Error:[/] Only one of --deal-id, --person-id, or --org-id can be specified at a time");
                 return;
+            }
+
+            // Parse and validate date filters
+            DateOnly? dueBeforeDate = null;
+            DateOnly? dueAfterDate = null;
+
+            if (overdue)
+            {
+                dueBeforeDate = DateOnly.FromDateTime(DateTime.Today);
+            }
+
+            if (!string.IsNullOrWhiteSpace(dueBefore))
+            {
+                if (!DateOnly.TryParseExact(dueBefore, "yyyy-MM-dd", out var parsedDate))
+                {
+                    AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --due-before. Expected YYYY-MM-DD");
+                    return;
+                }
+                dueBeforeDate = parsedDate;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dueAfter))
+            {
+                if (!DateOnly.TryParseExact(dueAfter, "yyyy-MM-dd", out var parsedDate))
+                {
+                    AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --due-after. Expected YYYY-MM-DD");
+                    return;
+                }
+                dueAfterDate = parsedDate;
             }
 
             try
@@ -156,6 +203,28 @@ public static class ActivitiesCommands
                         {
                             ctx.Status("Formatting results...");
 
+                            // Apply client-side date filtering
+                            var activities = response.Data;
+                            if (dueBeforeDate.HasValue || dueAfterDate.HasValue)
+                            {
+                                activities = activities.Where(activity =>
+                                {
+                                    if (string.IsNullOrWhiteSpace(activity.DueDate))
+                                        return false; // Exclude activities without a due date
+
+                                    if (!DateOnly.TryParseExact(activity.DueDate, "yyyy-MM-dd", out var activityDueDate))
+                                        return false; // Exclude activities with invalid date format
+
+                                    if (dueBeforeDate.HasValue && activityDueDate >= dueBeforeDate.Value)
+                                        return false;
+
+                                    if (dueAfterDate.HasValue && activityDueDate <= dueAfterDate.Value)
+                                        return false;
+
+                                    return true;
+                                }).ToList();
+                            }
+
                             var table = new Table();
                             table.Border(TableBorder.Rounded);
                             table.AddColumn(new TableColumn("ID").NoWrap());
@@ -166,7 +235,7 @@ public static class ActivitiesCommands
                             table.AddColumn(new TableColumn("Association").NoWrap());
                             table.AddColumn("Added");
 
-                            foreach (var activity in response.Data)
+                            foreach (var activity in activities)
                             {
                                 var dueDateTime = !string.IsNullOrWhiteSpace(activity.DueTime)
                                     ? $"{activity.DueDate} {activity.DueTime}"
@@ -203,11 +272,11 @@ public static class ActivitiesCommands
                             if (response.AdditionalData?.Pagination != null)
                             {
                                 var pagination = response.AdditionalData.Pagination;
-                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} " +
+                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} (filtered to {activities.Count}) " +
                                     $"| More available: {pagination.MoreItemsInCollection}[/]");
                             }
 
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} activit{(response.Data.Count == 1 ? "y" : "ies")}");
+                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {activities.Count} activit{(activities.Count == 1 ? "y" : "ies")}");
                         }
                         else
                         {
