@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Text.Json;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
 using PipedriveCLI.Utilities;
@@ -312,10 +313,21 @@ public static class PersonsCommands
             aliases: new[] { "--org-id", "-o" },
             description: "Organization ID to associate the person with");
 
+        var addressOption = new Option<string?>(
+            aliases: new[] { "--address", "-a" },
+            description: "Postal address (updates postal_address_formatted_address field)");
+
+        var customFieldsOption = new Option<string[]?>(
+            aliases: new[] { "--custom-field", "-c" },
+            description: "Custom field in format 'key=value'. Can be specified multiple times. Use 'persons get <id>' to see available custom field keys.")
+        { AllowMultipleArgumentsPerToken = true };
+
         updateCommand.AddOption(nameOption);
         updateCommand.AddOption(emailOption);
         updateCommand.AddOption(phoneOption);
         updateCommand.AddOption(orgIdOption);
+        updateCommand.AddOption(addressOption);
+        updateCommand.AddOption(customFieldsOption);
 
         updateCommand.SetHandler(async context =>
         {
@@ -324,14 +336,45 @@ public static class PersonsCommands
             var email = context.ParseResult.GetValueForOption(emailOption);
             var phone = context.ParseResult.GetValueForOption(phoneOption);
             var orgId = context.ParseResult.GetValueForOption(orgIdOption);
+            var address = context.ParseResult.GetValueForOption(addressOption);
+            var customFields = context.ParseResult.GetValueForOption(customFieldsOption);
 
             try
             {
                 if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(email) &&
-                    string.IsNullOrWhiteSpace(phone) && !orgId.HasValue)
+                    string.IsNullOrWhiteSpace(phone) && !orgId.HasValue &&
+                    string.IsNullOrWhiteSpace(address) && (customFields == null || customFields.Length == 0))
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one field must be specified to update");
                     return;
+                }
+
+                // Parse custom fields
+                var customFieldsDict = new Dictionary<string, JsonElement>();
+                if (customFields != null && customFields.Length > 0)
+                {
+                    foreach (var field in customFields)
+                    {
+                        var parts = field.Split('=', 2);
+                        if (parts.Length != 2)
+                        {
+                            AnsiConsole.MarkupLine($"[red]Error:[/] Invalid custom field format: '{field}'. Expected 'key=value'");
+                            return;
+                        }
+                        var key = parts[0].Trim();
+                        var value = parts[1].Trim();
+
+                        // Parse the value as a JSON string element
+                        using var doc = JsonDocument.Parse($"\"{value}\"");
+                        customFieldsDict[key] = doc.RootElement.Clone();
+                    }
+                }
+
+                // Add address to custom fields if provided
+                if (!string.IsNullOrWhiteSpace(address))
+                {
+                    using var doc = JsonDocument.Parse($"\"{address}\"");
+                    customFieldsDict["postal_address_formatted_address"] = doc.RootElement.Clone();
                 }
 
                 await apiClient.InitializeAsync();
@@ -359,6 +402,12 @@ public static class PersonsCommands
                 if (orgId.HasValue)
                 {
                     person.OrgId = orgId.Value;
+                }
+
+                // Set custom fields if any were provided
+                if (customFieldsDict.Count > 0)
+                {
+                    person.CustomFields = customFieldsDict;
                 }
 
                 var response = await AnsiConsole.Status()
