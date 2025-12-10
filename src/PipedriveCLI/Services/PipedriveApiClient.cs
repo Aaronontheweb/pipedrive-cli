@@ -932,17 +932,21 @@ public sealed class PipedriveApiClient : IDisposable
     #region Mail Threads Operations
 
     /// <summary>
-    /// Gets mail threads with optional folder filter
+    /// Gets mail threads with optional filters
     /// </summary>
     /// <param name="folder">Filter by folder: inbox, drafts, sent, archive</param>
     /// <param name="limit">Number of threads to return</param>
     /// <param name="start">Pagination start</param>
-    public async Task<PipedriveResponse<List<MailThread>>?> GetMailThreadsAsync(string? folder = null, int? limit = null, int? start = null)
+    /// <param name="personId">Filter by person ID</param>
+    /// <param name="dealId">Filter by deal ID</param>
+    public async Task<PipedriveResponse<List<MailThread>>?> GetMailThreadsAsync(string? folder = null, int? limit = null, int? start = null, int? personId = null, int? dealId = null)
     {
         var queryParams = new Dictionary<string, string>();
         if (!string.IsNullOrWhiteSpace(folder)) queryParams["folder"] = folder;
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
         if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        if (personId.HasValue) queryParams["person_id"] = personId.Value.ToString();
+        if (dealId.HasValue) queryParams["deal_id"] = dealId.Value.ToString();
 
         var jsonResponse = await GetAsync("mailbox/mailThreads", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListMailThread);
