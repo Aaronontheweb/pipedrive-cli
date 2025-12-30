@@ -17,10 +17,10 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0"/>
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1"/>
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0"/>
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1"/>
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1"/>
 
     <!-- Logging (optional, for debugging) -->
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1"/>
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.1"/>
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1"/>
   </ItemGroup>
   <!-- Test dependencies -->
