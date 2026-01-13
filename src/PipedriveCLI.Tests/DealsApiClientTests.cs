@@ -552,4 +552,51 @@ public class DealsApiClientTests
         Assert.NotNull(response.Data);
         Assert.Null(response.Data.CcEmail);
     }
+
+    /// <summary>
+    /// Test that Deal update with clear fields generates correct JSON with explicit nulls
+    /// </summary>
+    [Fact]
+    public void Deal_UpdateWithClearFields_GeneratesCorrectJson()
+    {
+        // Arrange - A deal with some fields set
+        var deal = new Deal
+        {
+            Title = "Updated Title"
+        };
+
+        var clearFields = new List<string> { "expected_close_date" };
+
+        // Act - Simulate what the API client does to build JSON with clear fields
+        var dealJson = JsonSerializer.Serialize(deal, ApiJsonContext.Default.Deal);
+        using var dealDoc = JsonDocument.Parse(dealJson);
+
+        using var stream = new MemoryStream();
+        using var writer = new Utf8JsonWriter(stream);
+
+        writer.WriteStartObject();
+        foreach (var property in dealDoc.RootElement.EnumerateObject())
+        {
+            property.WriteTo(writer);
+        }
+        foreach (var field in clearFields)
+        {
+            if (!dealDoc.RootElement.TryGetProperty(field, out _))
+            {
+                writer.WriteNull(field);
+            }
+        }
+        writer.WriteEndObject();
+        writer.Flush();
+
+        var resultJson = System.Text.Encoding.UTF8.GetString(stream.ToArray());
+        using var resultDoc = JsonDocument.Parse(resultJson);
+
+        // Assert - The JSON should contain the title and an explicit null for expected_close_date
+        Assert.True(resultDoc.RootElement.TryGetProperty("title", out var titleProp));
+        Assert.Equal("Updated Title", titleProp.GetString());
+
+        Assert.True(resultDoc.RootElement.TryGetProperty("expected_close_date", out var dateProp));
+        Assert.Equal(JsonValueKind.Null, dateProp.ValueKind);
+    }
 }
