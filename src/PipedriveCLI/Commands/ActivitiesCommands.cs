@@ -106,6 +106,11 @@ public static class ActivitiesCommands
             aliases: new[] { "--due-after" },
             description: "Filter activities due after the specified date (YYYY-MM-DD)");
 
+        var includeArchivedLeadsOption = new Option<bool>(
+            aliases: new[] { "--include-archived-leads" },
+            description: "Include activities associated with archived leads (excluded by default)",
+            getDefaultValue: () => false);
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
         listCommand.AddOption(doneOption);
@@ -115,6 +120,7 @@ public static class ActivitiesCommands
         listCommand.AddOption(overdueOption);
         listCommand.AddOption(dueBeforeOption);
         listCommand.AddOption(dueAfterOption);
+        listCommand.AddOption(includeArchivedLeadsOption);
 
         listCommand.SetHandler(async context =>
         {
@@ -127,6 +133,7 @@ public static class ActivitiesCommands
             var overdue = context.ParseResult.GetValueForOption(overdueOption);
             var dueBefore = context.ParseResult.GetValueForOption(dueBeforeOption);
             var dueAfter = context.ParseResult.GetValueForOption(dueAfterOption);
+            var includeArchivedLeads = context.ParseResult.GetValueForOption(includeArchivedLeadsOption);
 
             // Validate that only one entity filter is used at a time
             var filterCount = (dealId.HasValue ? 1 : 0) + (personId.HasValue ? 1 : 0) + (orgId.HasValue ? 1 : 0);
@@ -223,6 +230,42 @@ public static class ActivitiesCommands
 
                                     return true;
                                 }).ToList();
+                            }
+
+                            // Filter out activities associated with archived leads (unless --include-archived-leads is specified)
+                            if (!includeArchivedLeads)
+                            {
+                                var activitiesWithLeads = activities.Where(a => !string.IsNullOrWhiteSpace(a.LeadId)).ToList();
+                                if (activitiesWithLeads.Count > 0)
+                                {
+                                    ctx.Status("Checking lead status...");
+                                    var archivedLeadIds = new HashSet<string>();
+
+                                    // Get unique lead IDs and check if they're archived
+                                    var uniqueLeadIds = activitiesWithLeads.Select(a => a.LeadId!).Distinct().ToList();
+                                    foreach (var leadId in uniqueLeadIds)
+                                    {
+                                        try
+                                        {
+                                            var lead = await apiClient.GetLeadByIdAsync(leadId);
+                                            if (lead?.Success == true && lead.Data?.IsArchived == true)
+                                            {
+                                                archivedLeadIds.Add(leadId);
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            // If we can't fetch the lead, don't filter it out
+                                        }
+                                    }
+
+                                    if (archivedLeadIds.Count > 0)
+                                    {
+                                        activities = activities.Where(a =>
+                                            string.IsNullOrWhiteSpace(a.LeadId) || !archivedLeadIds.Contains(a.LeadId)
+                                        ).ToList();
+                                    }
+                                }
                             }
 
                             var table = new Table();
