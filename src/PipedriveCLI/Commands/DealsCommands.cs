@@ -29,6 +29,10 @@ public static class DealsCommands
         dealsCommand.AddCommand(CreateParticipantsCommand(apiClient));
         dealsCommand.AddCommand(CreateAddParticipantCommand(apiClient));
         dealsCommand.AddCommand(CreateRemoveParticipantCommand(apiClient));
+        dealsCommand.AddCommand(CreateProductsCommand(apiClient));
+        dealsCommand.AddCommand(CreateAddProductCommand(apiClient));
+        dealsCommand.AddCommand(CreateRemoveProductCommand(apiClient));
+        dealsCommand.AddCommand(CreateClearProductsCommand(apiClient));
 
         return dealsCommand;
     }
@@ -860,5 +864,330 @@ public static class DealsCommands
         }, dealIdArgument, participantIdOption);
 
         return removeParticipantCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'deals products' command to list products attached to a deal
+    /// </summary>
+    private static Command CreateProductsCommand(PipedriveApiClient apiClient)
+    {
+        var productsCommand = new Command("products", "List products attached to a deal");
+
+        var dealIdArgument = new Argument<int>("deal-id", "Deal ID");
+        productsCommand.AddArgument(dealIdArgument);
+
+        var limitOption = new Option<int?>(
+            aliases: new[] { "--limit", "-l" },
+            description: "Number of products to return (default: 100)");
+
+        productsCommand.AddOption(limitOption);
+
+        productsCommand.SetHandler(async (dealId, limit) =>
+        {
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Fetching products for deal {dealId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.GetDealProductsAsync(dealId, limit);
+                    });
+
+                if (response?.Success == true)
+                {
+                    var products = response.Data ?? new List<DealProduct>();
+
+                    if (products.Count == 0)
+                    {
+                        AnsiConsole.MarkupLine("[yellow]No products attached to this deal[/]");
+                        return;
+                    }
+
+                    var table = new Table();
+                    table.Border(TableBorder.Rounded);
+                    table.AddColumn(new TableColumn("ID").NoWrap());
+                    table.AddColumn("Product ID");
+                    table.AddColumn("Name");
+                    table.AddColumn("Quantity");
+                    table.AddColumn("Item Price");
+                    table.AddColumn("Sum");
+                    table.AddColumn("Discount");
+
+                    foreach (var product in products)
+                    {
+                        var discountDisplay = product.Discount > 0
+                            ? $"{product.Discount}{(product.DiscountType == "percentage" ? "%" : "")}"
+                            : "-";
+
+                        table.AddRow(
+                            product.Id.ToString(),
+                            product.ProductId.ToString(),
+                            Markup.Escape(product.Name ?? "-"),
+                            product.Quantity.ToString(),
+                            $"{product.Currency} {product.ItemPrice:N2}",
+                            $"{product.Currency} {product.Sum:N2}",
+                            discountDisplay);
+                    }
+
+                    AnsiConsole.Write(table);
+                    AnsiConsole.MarkupLine($"\n[dim]Total: {products.Count} product(s)[/]");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to get products: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, dealIdArgument, limitOption);
+
+        return productsCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'deals add-product' command
+    /// </summary>
+    private static Command CreateAddProductCommand(PipedriveApiClient apiClient)
+    {
+        var addProductCommand = new Command("add-product", "Add a product to a deal");
+
+        var dealIdArgument = new Argument<int>("deal-id", "Deal ID");
+        addProductCommand.AddArgument(dealIdArgument);
+
+        var productIdOption = new Option<int>(
+            aliases: new[] { "--product-id", "-p" },
+            description: "Product ID to add")
+        { IsRequired = true };
+
+        var quantityOption = new Option<int>(
+            aliases: new[] { "--quantity", "-q" },
+            description: "Quantity of the product",
+            getDefaultValue: () => 1);
+
+        var priceOption = new Option<decimal>(
+            aliases: new[] { "--price" },
+            description: "Price per item (required)")
+        { IsRequired = true };
+
+        var discountOption = new Option<decimal?>(
+            aliases: new[] { "--discount" },
+            description: "Discount amount");
+
+        var discountTypeOption = new Option<string?>(
+            aliases: new[] { "--discount-type" },
+            description: "Discount type (percentage or amount)",
+            getDefaultValue: () => "percentage");
+
+        var commentsOption = new Option<string?>(
+            aliases: new[] { "--comments" },
+            description: "Comments about the product");
+
+        addProductCommand.AddOption(productIdOption);
+        addProductCommand.AddOption(quantityOption);
+        addProductCommand.AddOption(priceOption);
+        addProductCommand.AddOption(discountOption);
+        addProductCommand.AddOption(discountTypeOption);
+        addProductCommand.AddOption(commentsOption);
+
+        addProductCommand.SetHandler(async context =>
+        {
+            var dealId = context.ParseResult.GetValueForArgument(dealIdArgument);
+            var productId = context.ParseResult.GetValueForOption(productIdOption);
+            var quantity = context.ParseResult.GetValueForOption(quantityOption);
+            var price = context.ParseResult.GetValueForOption(priceOption);
+            var discount = context.ParseResult.GetValueForOption(discountOption);
+            var discountType = context.ParseResult.GetValueForOption(discountTypeOption);
+            var comments = context.ParseResult.GetValueForOption(commentsOption);
+
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                var request = new AddDealProductRequest
+                {
+                    ProductId = productId,
+                    Quantity = quantity,
+                    ItemPrice = price,
+                    Discount = discount,
+                    DiscountType = discountType,
+                    Comments = comments
+                };
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Adding product {productId} to deal {dealId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.AddDealProductAsync(dealId, request);
+                    });
+
+                if (response?.Success == true && response.Data != null)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Product added successfully");
+                    AnsiConsole.MarkupLine($"[dim]Deal-Product ID:[/] {response.Data.Id}");
+                    AnsiConsole.MarkupLine($"[dim]Product:[/] {Markup.Escape(response.Data.Name ?? "")}");
+                    AnsiConsole.MarkupLine($"[dim]Quantity:[/] {response.Data.Quantity}");
+                    AnsiConsole.MarkupLine($"[dim]Sum:[/] {response.Data.Currency} {response.Data.Sum:N2}");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to add product: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        });
+
+        return addProductCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'deals remove-product' command
+    /// </summary>
+    private static Command CreateRemoveProductCommand(PipedriveApiClient apiClient)
+    {
+        var removeProductCommand = new Command("remove-product", "Remove a product from a deal");
+
+        var dealIdArgument = new Argument<int>("deal-id", "Deal ID");
+        removeProductCommand.AddArgument(dealIdArgument);
+
+        var productAttachmentIdOption = new Option<int>(
+            aliases: new[] { "--id" },
+            description: "Deal-product attachment ID (use 'deals products' to find IDs)")
+        { IsRequired = true };
+
+        removeProductCommand.AddOption(productAttachmentIdOption);
+
+        removeProductCommand.SetHandler(async (dealId, productAttachmentId) =>
+        {
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                var success = await AnsiConsole.Status()
+                    .StartAsync($"Removing product attachment {productAttachmentId} from deal {dealId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.RemoveDealProductAsync(dealId, productAttachmentId);
+                    });
+
+                if (success)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Product removed successfully");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to remove product");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, dealIdArgument, productAttachmentIdOption);
+
+        return removeProductCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'deals clear-products' command to remove all products from a deal
+    /// </summary>
+    private static Command CreateClearProductsCommand(PipedriveApiClient apiClient)
+    {
+        var clearProductsCommand = new Command("clear-products", "Remove all products from a deal");
+
+        var dealIdArgument = new Argument<int>("deal-id", "Deal ID");
+        clearProductsCommand.AddArgument(dealIdArgument);
+
+        var forceOption = new Option<bool>(
+            aliases: new[] { "--force", "-f", "-y" },
+            description: "Skip confirmation prompt");
+
+        clearProductsCommand.AddOption(forceOption);
+
+        clearProductsCommand.SetHandler(async (dealId, force) =>
+        {
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                // First, get the list of products
+                var productsResponse = await AnsiConsole.Status()
+                    .StartAsync($"Fetching products for deal {dealId}...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.GetDealProductsAsync(dealId);
+                    });
+
+                if (productsResponse?.Success != true)
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch products: {Markup.Escape(productsResponse?.Error ?? "Unknown error")}");
+                    return;
+                }
+
+                var products = productsResponse.Data ?? new List<DealProduct>();
+
+                if (products.Count == 0)
+                {
+                    AnsiConsole.MarkupLine("[yellow]No products attached to this deal[/]");
+                    return;
+                }
+
+                if (!force)
+                {
+                    var confirm = AnsiConsole.Confirm($"Are you sure you want to remove all {products.Count} product(s) from deal {dealId}?");
+                    if (!confirm)
+                    {
+                        AnsiConsole.MarkupLine("[yellow]Cancelled[/]");
+                        return;
+                    }
+                }
+
+                // Delete each product
+                var successCount = 0;
+                var failCount = 0;
+
+                await AnsiConsole.Status()
+                    .StartAsync($"Removing {products.Count} product(s)...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+
+                        foreach (var product in products)
+                        {
+                            ctx.Status($"Removing product {product.Id} ({product.Name})...");
+                            var success = await apiClient.RemoveDealProductAsync(dealId, product.Id);
+                            if (success)
+                                successCount++;
+                            else
+                                failCount++;
+                        }
+                    });
+
+                if (failCount == 0)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] All {successCount} product(s) removed successfully");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[yellow]![/] Removed {successCount} product(s), {failCount} failed");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, dealIdArgument, forceOption);
+
+        return clearProductsCommand;
     }
 }

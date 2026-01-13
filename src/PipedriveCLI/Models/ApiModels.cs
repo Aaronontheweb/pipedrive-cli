@@ -1307,6 +1307,99 @@ public sealed class OrganizationField : BaseField
 }
 
 /// <summary>
+/// Product attached to a deal
+/// </summary>
+public sealed class DealProduct
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("deal_id")]
+    public int DealId { get; set; }
+
+    [JsonPropertyName("product_id")]
+    public int ProductId { get; set; }
+
+    [JsonPropertyName("product_variation_id")]
+    public int? ProductVariationId { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("order_nr")]
+    public int OrderNr { get; set; }
+
+    [JsonPropertyName("item_price")]
+    public decimal ItemPrice { get; set; }
+
+    [JsonPropertyName("quantity")]
+    public int Quantity { get; set; }
+
+    [JsonPropertyName("sum")]
+    public decimal Sum { get; set; }
+
+    [JsonPropertyName("currency")]
+    public string? Currency { get; set; }
+
+    [JsonPropertyName("active_flag")]
+    public bool ActiveFlag { get; set; }
+
+    [JsonPropertyName("enabled_flag")]
+    public bool EnabledFlag { get; set; }
+
+    [JsonPropertyName("add_time")]
+    public string? AddTime { get; set; }
+
+    [JsonPropertyName("last_edit")]
+    public string? LastEdit { get; set; }
+
+    [JsonPropertyName("comments")]
+    public string? Comments { get; set; }
+
+    [JsonPropertyName("tax")]
+    public decimal Tax { get; set; }
+
+    [JsonPropertyName("discount")]
+    public decimal Discount { get; set; }
+
+    [JsonPropertyName("discount_type")]
+    public string? DiscountType { get; set; }
+
+    [JsonPropertyName("billing_frequency")]
+    public string? BillingFrequency { get; set; }
+
+    [JsonPropertyName("billing_frequency_cycles")]
+    public int? BillingFrequencyCycles { get; set; }
+
+    [JsonPropertyName("billing_start_date")]
+    public string? BillingStartDate { get; set; }
+}
+
+/// <summary>
+/// Request model for adding a product to a deal
+/// </summary>
+public sealed class AddDealProductRequest
+{
+    [JsonPropertyName("product_id")]
+    public int ProductId { get; set; }
+
+    [JsonPropertyName("item_price")]
+    public decimal ItemPrice { get; set; }
+
+    [JsonPropertyName("quantity")]
+    public int Quantity { get; set; }
+
+    [JsonPropertyName("discount")]
+    public decimal? Discount { get; set; }
+
+    [JsonPropertyName("discount_type")]
+    public string? DiscountType { get; set; }
+
+    [JsonPropertyName("comments")]
+    public string? Comments { get; set; }
+}
+
+/// <summary>
 /// JSON source generator context for API models (Native AOT compatibility)
 /// </summary>
 [JsonSourceGenerationOptions(
@@ -1347,6 +1440,11 @@ public sealed class OrganizationField : BaseField
 [JsonSerializable(typeof(DealParticipant))]
 [JsonSerializable(typeof(AddDealParticipantRequest))]
 [JsonSerializable(typeof(List<DealParticipant>))]
+[JsonSerializable(typeof(DealProduct))]
+[JsonSerializable(typeof(AddDealProductRequest))]
+[JsonSerializable(typeof(List<DealProduct>))]
+[JsonSerializable(typeof(PipedriveResponse<DealProduct>))]
+[JsonSerializable(typeof(PipedriveResponse<List<DealProduct>>))]
 [JsonSerializable(typeof(Person))]
 [JsonSerializable(typeof(Organization))]
 [JsonSerializable(typeof(Activity))]
