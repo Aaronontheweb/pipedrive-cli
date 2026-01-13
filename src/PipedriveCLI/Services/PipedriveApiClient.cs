@@ -323,7 +323,15 @@ public sealed class PipedriveApiClient : IDisposable
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
         if (start.HasValue) queryParams["start"] = start.Value.ToString();
-        if (!string.IsNullOrWhiteSpace(status)) queryParams["status"] = status;
+
+        // The /organizations/{id}/deals endpoint uses "all_not_deleted" instead of "all"
+        // Map "all" to "all_not_deleted" for consistency with the main deals endpoint
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            queryParams["status"] = status.Equals("all", StringComparison.OrdinalIgnoreCase)
+                ? "all_not_deleted"
+                : status;
+        }
 
         var jsonResponse = await GetAsync($"organizations/{orgId}/deals", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListDeal);
