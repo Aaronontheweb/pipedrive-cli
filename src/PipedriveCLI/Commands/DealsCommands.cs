@@ -399,7 +399,7 @@ public static class DealsCommands
 
         var expectedCloseDateOption = new Option<string?>(
             aliases: new[] { "--expected-close-date", "-d" },
-            description: "New expected close date (YYYY-MM-DD)");
+            description: "New expected close date (YYYY-MM-DD), or 'clear' to remove the date");
 
         var customFieldsOption = new Option<string?>(
             aliases: new[] { "--custom-fields", "-cf" },
@@ -456,9 +456,12 @@ public static class DealsCommands
 
             try
             {
+                // Check if user wants to clear the date field
+                var clearExpectedCloseDate = IsClearValue(expectedCloseDate);
+
                 if (string.IsNullOrWhiteSpace(title) && !value.HasValue &&
                     string.IsNullOrWhiteSpace(currency) && !stageId.HasValue &&
-                    string.IsNullOrWhiteSpace(status) && string.IsNullOrWhiteSpace(expectedCloseDate) &&
+                    string.IsNullOrWhiteSpace(status) && !clearExpectedCloseDate && string.IsNullOrWhiteSpace(expectedCloseDate) &&
                     string.IsNullOrWhiteSpace(customFields) && string.IsNullOrWhiteSpace(wonTime) &&
                     string.IsNullOrWhiteSpace(lostTime) && !personId.HasValue &&
                     !orgId.HasValue && !probability.HasValue)
@@ -483,13 +486,17 @@ public static class DealsCommands
                 await apiClient.InitializeAsync();
 
                 var deal = new Deal();
+                var fieldsToClears = new List<string>();
 
                 if (!string.IsNullOrWhiteSpace(title)) deal.Title = title;
                 if (value.HasValue) deal.Value = value.Value;
                 if (!string.IsNullOrWhiteSpace(currency)) deal.Currency = currency;
                 if (stageId.HasValue) deal.StageId = stageId;
                 if (!string.IsNullOrWhiteSpace(status)) deal.Status = status;
-                if (!string.IsNullOrWhiteSpace(expectedCloseDate)) deal.ExpectedCloseDate = expectedCloseDate;
+                if (clearExpectedCloseDate)
+                    fieldsToClears.Add("expected_close_date");
+                else if (!string.IsNullOrWhiteSpace(expectedCloseDate))
+                    deal.ExpectedCloseDate = expectedCloseDate;
                 if (!string.IsNullOrWhiteSpace(wonTime)) deal.WonTime = NormalizeDateTimeFormat(wonTime);
                 if (!string.IsNullOrWhiteSpace(lostTime)) deal.LostTime = NormalizeDateTimeFormat(lostTime);
                 if (personId.HasValue) deal.PersonId = personId;
@@ -507,7 +514,9 @@ public static class DealsCommands
                     {
                         ctx.Spinner(Spinner.Known.Dots);
                         ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.UpdateDealAsync(id, deal);
+                        return fieldsToClears.Count > 0
+                            ? await apiClient.UpdateDealAsync(id, deal, fieldsToClears)
+                            : await apiClient.UpdateDealAsync(id, deal);
                     });
 
                 if (response?.Success == true)
@@ -662,6 +671,19 @@ public static class DealsCommands
             return $"{input} 12:00:00";
         }
         return input;
+    }
+
+    /// <summary>
+    /// Checks if a string value indicates the user wants to clear/null the field.
+    /// Accepts "clear", "null", or empty string.
+    /// </summary>
+    private static bool IsClearValue(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return false;
+
+        return value.Equals("clear", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("null", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

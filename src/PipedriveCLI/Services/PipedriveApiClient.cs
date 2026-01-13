@@ -367,6 +367,46 @@ public sealed class PipedriveApiClient : IDisposable
     }
 
     /// <summary>
+    /// Updates an existing deal with support for clearing fields by setting them to null.
+    /// Use this overload when you need to clear date fields or other nullable fields.
+    /// </summary>
+    /// <param name="id">The deal ID</param>
+    /// <param name="deal">The deal object with fields to update</param>
+    /// <param name="clearFields">List of field names to explicitly set to null (e.g., "expected_close_date")</param>
+    public async Task<PipedriveResponse<Deal>?> UpdateDealAsync(int id, Deal deal, IEnumerable<string> clearFields)
+    {
+        // Build JSON manually to include explicit nulls for cleared fields
+        using var stream = new MemoryStream();
+        using var writer = new Utf8JsonWriter(stream);
+
+        writer.WriteStartObject();
+
+        // First, serialize the non-null deal properties
+        var dealJson = JsonSerializer.Serialize(deal, ApiJsonContext.Default.Deal);
+        using var dealDoc = JsonDocument.Parse(dealJson);
+        foreach (var property in dealDoc.RootElement.EnumerateObject())
+        {
+            property.WriteTo(writer);
+        }
+
+        // Then, add explicit nulls for fields to clear (if not already in deal)
+        foreach (var field in clearFields)
+        {
+            if (!dealDoc.RootElement.TryGetProperty(field, out _))
+            {
+                writer.WriteNull(field);
+            }
+        }
+
+        writer.WriteEndObject();
+        writer.Flush();
+
+        var jsonData = System.Text.Encoding.UTF8.GetString(stream.ToArray());
+        var jsonResponse = await PutAsync($"deals/{id}", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseDeal);
+    }
+
+    /// <summary>
     /// Deletes a deal
     /// </summary>
     public async Task<bool> DeleteDealAsync(int id)
