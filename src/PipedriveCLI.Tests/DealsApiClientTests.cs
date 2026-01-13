@@ -599,4 +599,195 @@ public class DealsApiClientTests
         Assert.True(resultDoc.RootElement.TryGetProperty("expected_close_date", out var dateProp));
         Assert.Equal(JsonValueKind.Null, dateProp.ValueKind);
     }
+
+    /// <summary>
+    /// Test that DealProduct deserialization handles the full API response
+    /// </summary>
+    [Fact]
+    public void DealProduct_Deserialization_HandlesFullApiResponse()
+    {
+        // Arrange - Full API response from GET /deals/{id}/products
+        var json = """
+        {
+            "success": true,
+            "data": [
+                {
+                    "id": 547,
+                    "deal_id": 1497,
+                    "product_id": 5,
+                    "product_variation_id": null,
+                    "name": "Consulting Call",
+                    "order_nr": 0,
+                    "item_price": 300,
+                    "quantity": 1,
+                    "sum": 300,
+                    "currency": "USD",
+                    "active_flag": true,
+                    "enabled_flag": true,
+                    "add_time": "2026-01-13 16:55:45",
+                    "last_edit": "2026-01-13 16:55:45",
+                    "comments": null,
+                    "tax": 0,
+                    "discount": 0,
+                    "discount_type": "percentage",
+                    "billing_frequency": "one-time",
+                    "billing_frequency_cycles": null,
+                    "billing_start_date": null
+                }
+            ],
+            "additional_data": {
+                "products_quantity_total": 1,
+                "products_sum_total": 300
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListDealProduct);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Single(response.Data);
+
+        var product = response.Data[0];
+        Assert.Equal(547, product.Id);
+        Assert.Equal(1497, product.DealId);
+        Assert.Equal(5, product.ProductId);
+        Assert.Null(product.ProductVariationId);
+        Assert.Equal("Consulting Call", product.Name);
+        Assert.Equal(0, product.OrderNr);
+        Assert.Equal(300m, product.ItemPrice);
+        Assert.Equal(1, product.Quantity);
+        Assert.Equal(300m, product.Sum);
+        Assert.Equal("USD", product.Currency);
+        Assert.True(product.ActiveFlag);
+        Assert.True(product.EnabledFlag);
+        Assert.Equal("2026-01-13 16:55:45", product.AddTime);
+        Assert.Null(product.Comments);
+        Assert.Equal(0m, product.Tax);
+        Assert.Equal(0m, product.Discount);
+        Assert.Equal("percentage", product.DiscountType);
+        Assert.Equal("one-time", product.BillingFrequency);
+    }
+
+    /// <summary>
+    /// Test single DealProduct deserialization from POST /deals/{id}/products
+    /// </summary>
+    [Fact]
+    public void DealProduct_Deserialization_SingleProduct()
+    {
+        // Arrange - Response from adding a product to a deal
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 548,
+                "company_id": 6850536,
+                "deal_id": 1497,
+                "product_id": 5,
+                "product_variation_id": null,
+                "name": "Consulting Call",
+                "order_nr": 0,
+                "item_price": 300,
+                "quantity": 2,
+                "sum": 600,
+                "currency": "USD",
+                "active_flag": true,
+                "enabled_flag": true,
+                "add_time": "2026-01-13 16:55:45",
+                "last_edit": "2026-01-13 16:55:45",
+                "comments": null,
+                "tax": 0,
+                "discount": 10,
+                "discount_type": "percentage",
+                "billing_frequency": "one-time",
+                "billing_frequency_cycles": null,
+                "billing_start_date": null
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDealProduct);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(548, response.Data.Id);
+        Assert.Equal(1497, response.Data.DealId);
+        Assert.Equal(5, response.Data.ProductId);
+        Assert.Equal("Consulting Call", response.Data.Name);
+        Assert.Equal(2, response.Data.Quantity);
+        Assert.Equal(600m, response.Data.Sum);
+        Assert.Equal(10m, response.Data.Discount);
+        Assert.Equal("percentage", response.Data.DiscountType);
+    }
+
+    /// <summary>
+    /// Test AddDealProductRequest serialization for create operations
+    /// </summary>
+    [Fact]
+    public void AddDealProductRequest_Serialization()
+    {
+        // Arrange
+        var request = new AddDealProductRequest
+        {
+            ProductId = 5,
+            ItemPrice = 300m,
+            Quantity = 2,
+            Discount = 10m,
+            DiscountType = "percentage",
+            Comments = "Test product"
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(request, ApiJsonContext.Default.AddDealProductRequest);
+        var deserialized = JsonSerializer.Deserialize(json, ApiJsonContext.Default.AddDealProductRequest);
+
+        // Assert
+        Assert.NotNull(deserialized);
+        Assert.Equal(5, deserialized.ProductId);
+        Assert.Equal(300m, deserialized.ItemPrice);
+        Assert.Equal(2, deserialized.Quantity);
+        Assert.Equal(10m, deserialized.Discount);
+        Assert.Equal("percentage", deserialized.DiscountType);
+        Assert.Equal("Test product", deserialized.Comments);
+    }
+
+    /// <summary>
+    /// Test DealProduct list with empty data
+    /// </summary>
+    [Fact]
+    public void DealProductList_Deserialization_EmptyList()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": null,
+            "additional_data": {
+                "products_quantity_total": 0,
+                "products_sum_total": 0,
+                "products_quantity_total_formatted": "0",
+                "products_sum_total_formatted": "$0",
+                "pagination": {
+                    "start": 0,
+                    "limit": 100,
+                    "more_items_in_collection": false
+                }
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListDealProduct);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.Null(response.Data); // API returns null for no products
+    }
 }

@@ -459,6 +459,39 @@ public sealed class PipedriveApiClient : IDisposable
         return await DeleteAsync($"deals/{dealId}/participants/{participantId}");
     }
 
+    /// <summary>
+    /// Gets all products attached to a deal
+    /// </summary>
+    public async Task<PipedriveResponse<List<DealProduct>>?> GetDealProductsAsync(int dealId, int? limit = null, int? start = null)
+    {
+        var queryParams = new Dictionary<string, string>();
+        if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
+        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+
+        var jsonResponse = await GetAsync($"deals/{dealId}/products", queryParams);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListDealProduct);
+    }
+
+    /// <summary>
+    /// Adds a product to a deal
+    /// </summary>
+    public async Task<PipedriveResponse<DealProduct>?> AddDealProductAsync(int dealId, AddDealProductRequest request)
+    {
+        var jsonData = JsonSerializer.Serialize(request, ApiJsonContext.Default.AddDealProductRequest);
+        var jsonResponse = await PostAsync($"deals/{dealId}/products", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseDealProduct);
+    }
+
+    /// <summary>
+    /// Removes a product from a deal
+    /// </summary>
+    /// <param name="dealId">The deal ID</param>
+    /// <param name="dealProductId">The deal-product attachment ID (not the product ID)</param>
+    public async Task<bool> RemoveDealProductAsync(int dealId, int dealProductId)
+    {
+        return await DeleteAsync($"deals/{dealId}/products/{dealProductId}");
+    }
+
     #endregion
 
     #region Activities Operations
