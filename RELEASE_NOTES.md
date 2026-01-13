@@ -1,3 +1,41 @@
+#### 0.8.0 January 13 2026 ####
+
+This release adds deal product management capabilities and fixes several important filtering and data management bugs.
+
+**New Features**
+
+- **Deal Product Management** ([#127](https://github.com/Aaronontheweb/pipedrive-cli/issues/127), [#132](https://github.com/Aaronontheweb/pipedrive-cli/pull/132))
+  - `pipedrive deals products <deal-id>` - List all products attached to a deal
+  - `pipedrive deals add-product <deal-id> --product-id <id> --quantity <n> --price <amount>` - Add a product to a deal
+  - `pipedrive deals remove-product <deal-id> --attachment-id <id>` - Remove a product from a deal
+  - `pipedrive deals clear-products <deal-id>` - Remove all products from a deal
+  - Displays product name, quantity, price, and total value
+  - Enables complete product-based deal management directly from CLI
+  - Example: `pipedrive deals add-product 123 --product-id 456 --quantity 5 --price 99.99`
+
+**Bug Fixes**
+
+- **Fixed Organization Deals Filter** ([#125](https://github.com/Aaronontheweb/pipedrive-cli/issues/125), [#129](https://github.com/Aaronontheweb/pipedrive-cli/pull/129))
+  - Fixed `deals list --org-id` filter returning no results
+  - The `/organizations/{id}/deals` endpoint doesn't support `status=all` like the regular `/deals` endpoint
+  - Now maps "all" to "all_not_deleted" for organization deals endpoint
+  - Ensures consistent behavior across different deal listing methods
+
+- **Filter Archived Lead Activities** ([#126](https://github.com/Aaronontheweb/pipedrive-cli/issues/126), [#131](https://github.com/Aaronontheweb/pipedrive-cli/pull/131))
+  - Activities associated with archived leads are now filtered out by default from `activities list`
+  - Prevents stale/irrelevant activities from cluttering activity list during triage
+  - Added `--include-archived-leads` option (default: false) to show activities for archived leads when needed
+  - Automatically fetches lead details for activities with LeadId to determine archived status
+
+- **Support for Clearing Date Fields** ([#128](https://github.com/Aaronontheweb/pipedrive-cli/issues/128), [#130](https://github.com/Aaronontheweb/pipedrive-cli/pull/130))
+  - Fixed inability to clear date fields on deals
+  - The Pipedrive API requires explicit null values to clear date fields
+  - Added support for `--expected-close-date "clear"` or `--expected-close-date "null"` to remove dates
+  - New UpdateDealAsync overload accepts fields to clear
+  - Example: `pipedrive deals update 123 --expected-close-date clear`
+
+---
+
 #### 0.7.3 December 10 2025 ####
 
 This release adds powerful filtering capabilities to activities, persons, and emails commands, making it easier to manage CRM data and review communication history.
