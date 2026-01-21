@@ -758,6 +758,108 @@ public class DealsApiClientTests
     }
 
     /// <summary>
+    /// Test that Deal deserialization handles lost deal with lost_reason
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_LostDealWithLostReason()
+    {
+        // Arrange - A lost deal with lost_time and lost_reason
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 700,
+                "title": "Lost Deal",
+                "value": 25000.00,
+                "currency": "USD",
+                "person_id": 111,
+                "org_id": 222,
+                "status": "lost",
+                "probability": 0,
+                "lost_time": "2024-06-15T14:30:00Z",
+                "lost_reason": "Customer decommissioned their Akka.NET application",
+                "add_time": "2024-01-01T00:00:00Z",
+                "update_time": "2024-06-15T14:30:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal("lost", response.Data.Status);
+        Assert.Equal(0m, response.Data.Probability);
+        Assert.Equal("2024-06-15T14:30:00Z", response.Data.LostTime);
+        Assert.Equal("Customer decommissioned their Akka.NET application", response.Data.LostReason);
+        Assert.Null(response.Data.WonTime);
+    }
+
+    /// <summary>
+    /// Test that Deal serialization includes lost_reason for update operations
+    /// </summary>
+    [Fact]
+    public void Deal_Serialization_WithLostReason()
+    {
+        // Arrange - A deal being marked as lost with a reason
+        var deal = new Deal
+        {
+            Status = "lost",
+            LostTime = "2024-06-15 14:30:00",
+            LostReason = "Budget constraints"
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(deal, ApiJsonContext.Default.Deal);
+        var deserialized = JsonSerializer.Deserialize(json, ApiJsonContext.Default.Deal);
+
+        // Assert
+        Assert.NotNull(deserialized);
+        Assert.Equal("lost", deserialized.Status);
+        Assert.Equal("2024-06-15 14:30:00", deserialized.LostTime);
+        Assert.Equal("Budget constraints", deserialized.LostReason);
+    }
+
+    /// <summary>
+    /// Test that Deal deserialization handles null/missing lost_reason
+    /// </summary>
+    [Fact]
+    public void Deal_Deserialization_LostDealWithoutLostReason()
+    {
+        // Arrange - A lost deal without lost_reason (can happen for older deals)
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 701,
+                "title": "Lost Deal Without Reason",
+                "value": 15000.00,
+                "currency": "USD",
+                "status": "lost",
+                "lost_time": "2024-05-01T10:00:00Z",
+                "lost_reason": null,
+                "add_time": "2024-01-01T00:00:00Z",
+                "update_time": "2024-05-01T10:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseDeal);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal("lost", response.Data.Status);
+        Assert.Equal("2024-05-01T10:00:00Z", response.Data.LostTime);
+        Assert.Null(response.Data.LostReason);
+    }
+
+    /// <summary>
     /// Test DealProduct list with empty data
     /// </summary>
     [Fact]
