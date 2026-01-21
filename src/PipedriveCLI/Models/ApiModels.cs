@@ -493,6 +493,9 @@ public sealed class Deal
     [JsonPropertyName("lost_time")]
     public string? LostTime { get; set; }
 
+    [JsonPropertyName("lost_reason")]
+    public string? LostReason { get; set; }
+
     [JsonPropertyName("expected_close_date")]
     public string? ExpectedCloseDate { get; set; }
 

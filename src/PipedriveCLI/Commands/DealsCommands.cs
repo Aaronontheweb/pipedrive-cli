@@ -417,6 +417,10 @@ public static class DealsCommands
             aliases: new[] { "--lost-time" },
             description: "Date/time when the deal was lost (YYYY-MM-DD or YYYY-MM-DD HH:mm:ss). Use with --status lost or on already lost deals.");
 
+        var lostReasonOption = new Option<string?>(
+            aliases: new[] { "--lost-reason" },
+            description: "Reason why the deal was lost. Use with --status lost or on already lost deals.");
+
         var personIdOption = new Option<int?>(
             aliases: new[] { "--person-id", "-p" },
             description: "Change associated person ID");
@@ -438,6 +442,7 @@ public static class DealsCommands
         updateCommand.AddOption(customFieldsOption);
         updateCommand.AddOption(wonTimeOption);
         updateCommand.AddOption(lostTimeOption);
+        updateCommand.AddOption(lostReasonOption);
         updateCommand.AddOption(personIdOption);
         updateCommand.AddOption(orgIdOption);
         updateCommand.AddOption(probabilityOption);
@@ -454,6 +459,7 @@ public static class DealsCommands
             var customFields = context.ParseResult.GetValueForOption(customFieldsOption);
             var wonTime = context.ParseResult.GetValueForOption(wonTimeOption);
             var lostTime = context.ParseResult.GetValueForOption(lostTimeOption);
+            var lostReason = context.ParseResult.GetValueForOption(lostReasonOption);
             var personId = context.ParseResult.GetValueForOption(personIdOption);
             var orgId = context.ParseResult.GetValueForOption(orgIdOption);
             var probability = context.ParseResult.GetValueForOption(probabilityOption);
@@ -467,8 +473,8 @@ public static class DealsCommands
                     string.IsNullOrWhiteSpace(currency) && !stageId.HasValue &&
                     string.IsNullOrWhiteSpace(status) && !clearExpectedCloseDate && string.IsNullOrWhiteSpace(expectedCloseDate) &&
                     string.IsNullOrWhiteSpace(customFields) && string.IsNullOrWhiteSpace(wonTime) &&
-                    string.IsNullOrWhiteSpace(lostTime) && !personId.HasValue &&
-                    !orgId.HasValue && !probability.HasValue)
+                    string.IsNullOrWhiteSpace(lostTime) && string.IsNullOrWhiteSpace(lostReason) &&
+                    !personId.HasValue && !orgId.HasValue && !probability.HasValue)
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one field must be specified to update");
                     return;
@@ -484,6 +490,12 @@ public static class DealsCommands
                 if (!string.IsNullOrWhiteSpace(lostTime) && status == "won")
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] Cannot use --lost-time with --status won");
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(lostReason) && status == "won")
+                {
+                    AnsiConsole.MarkupLine("[red]Error:[/] Cannot use --lost-reason with --status won");
                     return;
                 }
 
@@ -503,6 +515,7 @@ public static class DealsCommands
                     deal.ExpectedCloseDate = expectedCloseDate;
                 if (!string.IsNullOrWhiteSpace(wonTime)) deal.WonTime = NormalizeDateTimeFormat(wonTime);
                 if (!string.IsNullOrWhiteSpace(lostTime)) deal.LostTime = NormalizeDateTimeFormat(lostTime);
+                if (!string.IsNullOrWhiteSpace(lostReason)) deal.LostReason = lostReason;
                 if (personId.HasValue) deal.PersonId = personId;
                 if (orgId.HasValue) deal.OrgId = orgId;
                 if (probability.HasValue) deal.Probability = probability;

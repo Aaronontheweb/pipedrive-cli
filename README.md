@@ -358,6 +358,9 @@ pipedrive deals create --title "Q4 License" --value 25000 [--currency USD] [--pe
 # Update an existing deal
 pipedrive deals update <id> --title "Updated Deal" [--value 30000] [--status won]
 
+# Mark deal as lost with a reason
+pipedrive deals update <id> --status lost --lost-reason "Customer chose competitor"
+
 # Update deal with custom fields (use hash keys from --raw-keys)
 pipedrive deals update <id> --custom-fields "hash1=value1,hash2=value2"
 
