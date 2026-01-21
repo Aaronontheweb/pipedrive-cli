@@ -1,3 +1,18 @@
+#### 0.8.1 January 21 2026 ####
+
+This release adds the ability to specify a lost reason when marking deals as lost.
+
+**New Features**
+
+- **Lost Reason Support for Deals** ([#136](https://github.com/Aaronontheweb/pipedrive-cli/issues/136), [#137](https://github.com/Aaronontheweb/pipedrive-cli/pull/137))
+  - Added `--lost-reason` option to `deals update` command
+  - When marking a deal as lost, users can now specify the reason directly
+  - The lost reason appears in Pipedrive's deal history and reporting
+  - Validates that `--lost-reason` cannot be used with `--status won`
+  - Example: `pipedrive deals update 123 --status lost --lost-reason "Customer chose competitor"`
+
+---
+
 #### 0.8.0 January 13 2026 ####
 
 This release adds deal product management capabilities and fixes several important filtering and data management bugs.
