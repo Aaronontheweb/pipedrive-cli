@@ -62,6 +62,9 @@ public static class Program
         // Add deal fields command
         rootCommand.AddCommand(DealFieldsCommands.CreateDealFieldsCommand(apiClient));
 
+        // Add organization fields command
+        rootCommand.AddCommand(OrganizationFieldsCommands.CreateOrganizationFieldsCommand(apiClient));
+
         // Add email templates command
         rootCommand.AddCommand(TemplatesCommands.CreateTemplatesCommand(apiClient));
 
