@@ -317,4 +317,87 @@ public class OrganizationsApiClientTests
         Assert.Null(response.Data.Address);
         Assert.Equal(15, response.Data.PeopleCount);
     }
+
+    /// <summary>
+    /// Test organization field deserialization for organizationFields list command
+    /// </summary>
+    [Fact]
+    public void OrganizationField_Deserialization_HandlesApiResponse()
+    {
+        // Arrange - Organization field definitions from GET /organizationFields
+        var json = """
+        {
+            "success": true,
+            "data": [
+                {
+                    "id": 1,
+                    "key": "name",
+                    "name": "Name",
+                    "field_type": "varchar",
+                    "edit_flag": false,
+                    "mandatory_flag": true
+                },
+                {
+                    "id": 5001,
+                    "key": "8fbeabf7c2b6c7146b504802744f7ca9671853c4",
+                    "name": "Industry",
+                    "field_type": "enum",
+                    "edit_flag": true,
+                    "mandatory_flag": false
+                }
+            ]
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListOrganizationField);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(2, response.Data.Count);
+
+        // Built-in field
+        var nameField = response.Data[0];
+        Assert.Equal(1, nameField.Id);
+        Assert.Equal("name", nameField.Key);
+        Assert.Equal("Name", nameField.Name);
+        Assert.Equal("varchar", nameField.FieldType);
+        Assert.False(nameField.EditFlag);
+        Assert.True(nameField.MandatoryFlag);
+
+        // Custom field
+        var customField = response.Data[1];
+        Assert.Equal(5001, customField.Id);
+        Assert.Equal("8fbeabf7c2b6c7146b504802744f7ca9671853c4", customField.Key);
+        Assert.Equal("Industry", customField.Name);
+        Assert.Equal("enum", customField.FieldType);
+        Assert.True(customField.EditFlag);
+        Assert.False(customField.MandatoryFlag);
+    }
+
+    /// <summary>
+    /// Test organization field deserialization handles empty result
+    /// </summary>
+    [Fact]
+    public void OrganizationField_Deserialization_HandlesEmptyList()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": []
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListOrganizationField);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Empty(response.Data);
+    }
 }
