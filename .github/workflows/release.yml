@@ -56,6 +56,8 @@ jobs:
           else
             VERSION=${GITHUB_REF#refs/tags/}
           fi
+          # Strip leading 'v' prefix if present (e.g., v0.8.2 -> 0.8.2)
+          VERSION=${VERSION#v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
           # Extract numeric version for AssemblyVersion (e.g., 1.0.0 from 1.0.0-beta1)
@@ -155,6 +157,8 @@ jobs:
       - name: "Extract version"
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
+          # Strip leading 'v' prefix if present (e.g., v0.8.2 -> 0.8.2)
+          VERSION=${VERSION#v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: "Generate release notes"
