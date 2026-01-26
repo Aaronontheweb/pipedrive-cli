@@ -579,4 +579,102 @@ public class LeadsApiClientTests
             Assert.True(Guid.TryParse(leadId, out _), $"Lead {i + 1} ID should be valid UUID: {leadId}");
         }
     }
+
+    /// <summary>
+    /// Test lead convert request serialization
+    /// </summary>
+    [Fact]
+    public void LeadConvertRequest_Serialization_WithStageId()
+    {
+        // Arrange
+        var request = new LeadConvertRequest
+        {
+            StageId = 5,
+            PipelineId = null
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(request, ApiJsonContext.Default.LeadConvertRequest);
+
+        // Assert
+        Assert.Contains("stage_id", json);
+        Assert.Contains("5", json);
+        // PipelineId should not be included when null (due to JsonIgnoreCondition.WhenWritingDefault)
+        Assert.DoesNotContain("pipeline_id", json);
+    }
+
+    /// <summary>
+    /// Test lead convert request serialization with pipeline_id
+    /// </summary>
+    [Fact]
+    public void LeadConvertRequest_Serialization_WithPipelineId()
+    {
+        // Arrange
+        var request = new LeadConvertRequest
+        {
+            StageId = null,
+            PipelineId = 1
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(request, ApiJsonContext.Default.LeadConvertRequest);
+
+        // Assert
+        Assert.Contains("pipeline_id", json);
+        Assert.Contains("1", json);
+        Assert.DoesNotContain("stage_id", json);
+    }
+
+    /// <summary>
+    /// Test lead convert result deserialization
+    /// </summary>
+    [Fact]
+    public void LeadConvertResult_Deserialization_HandlesApiResponse()
+    {
+        // Arrange - Response from POST /leads/{id}/convert/deal
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "conversion_id": "4b40248b-945a-4802-b996-60fdff8c5c69"
+            },
+            "additional_data": null
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseLeadConvertResult);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal("4b40248b-945a-4802-b996-60fdff8c5c69", response.Data.ConversionId);
+    }
+
+    /// <summary>
+    /// Test lead convert error response deserialization
+    /// </summary>
+    [Fact]
+    public void LeadConvertResult_Deserialization_HandlesErrorResponse()
+    {
+        // Arrange - Error response when lead not found
+        var json = """
+        {
+            "success": false,
+            "error": "Lead not found",
+            "error_info": "No lead found with ID: invalid-id",
+            "data": null
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseLeadConvertResult);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.False(response.Success);
+        Assert.Equal("Lead not found", response.Error);
+        Assert.Null(response.Data);
+    }
 }

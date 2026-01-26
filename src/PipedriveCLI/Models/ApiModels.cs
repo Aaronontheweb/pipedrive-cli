@@ -1403,6 +1403,38 @@ public sealed class AddDealProductRequest
 }
 
 /// <summary>
+/// Request model for converting a lead to a deal via POST /leads/{id}/convert/deal
+/// </summary>
+public sealed class LeadConvertRequest
+{
+    /// <summary>
+    /// The ID of a stage the created deal will be added to.
+    /// If omitted, the deal will be placed in the first stage of the default pipeline.
+    /// </summary>
+    [JsonPropertyName("stage_id")]
+    public int? StageId { get; set; }
+
+    /// <summary>
+    /// The ID of a pipeline the created deal will be added to.
+    /// Note: pipeline_id will be ignored if stage_id is provided.
+    /// </summary>
+    [JsonPropertyName("pipeline_id")]
+    public int? PipelineId { get; set; }
+}
+
+/// <summary>
+/// Response model for lead conversion result
+/// </summary>
+public sealed class LeadConvertResult
+{
+    /// <summary>
+    /// The ID of the conversion job that can be used to retrieve conversion status and details.
+    /// </summary>
+    [JsonPropertyName("conversion_id")]
+    public string? ConversionId { get; set; }
+}
+
+/// <summary>
 /// JSON source generator context for API models (Native AOT compatibility)
 /// </summary>
 [JsonSourceGenerationOptions(
@@ -1413,6 +1445,7 @@ public sealed class AddDealProductRequest
 [JsonSerializable(typeof(PipedriveResponse<Lead>))]
 [JsonSerializable(typeof(PipedriveResponse<List<Lead>>))]
 [JsonSerializable(typeof(PipedriveResponse<LeadSearchData>))]
+[JsonSerializable(typeof(PipedriveResponse<LeadConvertResult>))]
 [JsonSerializable(typeof(PipedriveResponse<OrganizationSearchData>))]
 [JsonSerializable(typeof(PipedriveResponse<PersonSearchData>))]
 [JsonSerializable(typeof(PipedriveResponse<Deal>))]
@@ -1431,6 +1464,8 @@ public sealed class AddDealProductRequest
 [JsonSerializable(typeof(LeadSearchResultLead))]
 [JsonSerializable(typeof(LeadSearchItem))]
 [JsonSerializable(typeof(LeadSearchData))]
+[JsonSerializable(typeof(LeadConvertRequest))]
+[JsonSerializable(typeof(LeadConvertResult))]
 [JsonSerializable(typeof(OrganizationSearchResultOrg))]
 [JsonSerializable(typeof(OrganizationSearchItem))]
 [JsonSerializable(typeof(OrganizationSearchData))]

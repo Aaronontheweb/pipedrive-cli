@@ -26,6 +26,7 @@ public static class LeadsCommands
         leadsCommand.AddCommand(CreateSearchCommand(apiClient));
         leadsCommand.AddCommand(CreateArchiveCommand(apiClient));
         leadsCommand.AddCommand(CreateUnarchiveCommand(apiClient));
+        leadsCommand.AddCommand(CreateConvertCommand(apiClient));
 
         return leadsCommand;
     }
@@ -614,5 +615,66 @@ public static class LeadsCommands
         }, idArgument);
 
         return unarchiveCommand;
+    }
+
+    /// <summary>
+    /// Creates the 'leads convert' command
+    /// </summary>
+    private static Command CreateConvertCommand(PipedriveApiClient apiClient)
+    {
+        var convertCommand = new Command("convert", "Convert a lead to a deal");
+
+        var idArgument = new Argument<string>("id", "Lead ID");
+        convertCommand.AddArgument(idArgument);
+
+        var stageIdOption = new Option<int?>(
+            aliases: new[] { "--stage-id", "-s" },
+            description: "Target stage ID for the new deal (determines pipeline automatically)");
+
+        var pipelineIdOption = new Option<int?>(
+            aliases: new[] { "--pipeline-id", "-p" },
+            description: "Target pipeline ID for the new deal (ignored if stage-id is provided)");
+
+        convertCommand.AddOption(stageIdOption);
+        convertCommand.AddOption(pipelineIdOption);
+
+        convertCommand.SetHandler(async (id, stageId, pipelineId) =>
+        {
+            try
+            {
+                await apiClient.InitializeAsync();
+
+                var request = new LeadConvertRequest
+                {
+                    StageId = stageId,
+                    PipelineId = pipelineId
+                };
+
+                var response = await AnsiConsole.Status()
+                    .StartAsync($"Converting lead {id} to deal...", async ctx =>
+                    {
+                        ctx.Spinner(Spinner.Known.Dots);
+                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.ConvertLeadToDealAsync(id, request);
+                    });
+
+                if (response?.Success == true && response.Data != null)
+                {
+                    AnsiConsole.MarkupLine($"[green]✓[/] Lead converted successfully");
+                    AnsiConsole.MarkupLine($"[dim]Conversion ID:[/] {Markup.Escape(response.Data.ConversionId ?? "-")}");
+                    AnsiConsole.MarkupLine("[dim]Note: Conversion runs asynchronously. The deal will appear shortly in Pipedrive.[/]");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to convert lead: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+            }
+        }, idArgument, stageIdOption, pipelineIdOption);
+
+        return convertCommand;
     }
 }
