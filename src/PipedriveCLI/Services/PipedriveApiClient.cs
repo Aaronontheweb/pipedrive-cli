@@ -242,6 +242,18 @@ public sealed class PipedriveApiClient : IDisposable
     }
 
     /// <summary>
+    /// Converts a lead to a deal
+    /// </summary>
+    /// <param name="id">Lead ID</param>
+    /// <param name="request">Conversion parameters (stage_id, pipeline_id)</param>
+    public async Task<PipedriveResponse<LeadConvertResult>?> ConvertLeadToDealAsync(string id, LeadConvertRequest request)
+    {
+        var jsonData = JsonSerializer.Serialize(request, ApiJsonContext.Default.LeadConvertRequest);
+        var jsonResponse = await PostAsync($"leads/{id}/convert/deal", jsonData);
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseLeadConvertResult);
+    }
+
+    /// <summary>
     /// Searches for leads (uses API v2)
     /// </summary>
     public async Task<PipedriveResponse<List<Lead>>?> SearchLeadsAsync(string term, int? limit = null)
