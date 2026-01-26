@@ -1,3 +1,27 @@
+#### 0.8.2 January 26 2026 ####
+
+This release adds the ability to convert leads to deals and discover organization custom field definitions.
+
+**New Features**
+
+- **Lead Conversion** ([#140](https://github.com/Aaronontheweb/pipedrive-cli/issues/140), [#143](https://github.com/Aaronontheweb/pipedrive-cli/pull/143))
+  - Added `pipedrive leads convert <lead-id>` command to convert a lead to a deal
+  - Uses Pipedrive's async conversion API to preserve lead history and create a properly linked deal
+  - Supports `--stage-id` option to specify target stage (automatically determines pipeline)
+  - Supports `--pipeline-id` option to specify target pipeline (ignored if stage-id is provided)
+  - Eliminates the need to manually create deals and lose audit trail
+  - Example: `pipedrive leads convert abc123 --stage-id 5`
+
+- **Organization Fields Discovery** ([#141](https://github.com/Aaronontheweb/pipedrive-cli/issues/141), [#142](https://github.com/Aaronontheweb/pipedrive-cli/pull/142))
+  - Added `pipedrive organizationFields list` command to discover organization field definitions
+  - Displays custom field keys and their human-readable names
+  - Supports `--custom-only` option to show only custom fields
+  - Supports `--search` option to filter fields by name
+  - Essential for identifying hash keys when updating organization custom fields
+  - Example: `pipedrive organizationFields list --custom-only`
+
+---
+
 #### 0.8.1 January 21 2026 ####
 
 This release adds the ability to specify a lost reason when marking deals as lost.
