@@ -119,7 +119,7 @@ jobs:
           fi
 
       - name: "Upload AOT artifact"
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pipedrive-${{ matrix.runtime }}
           path: ./publish/${{ matrix.runtime }}/
