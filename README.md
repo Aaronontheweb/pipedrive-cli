@@ -5,6 +5,7 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
 ## Table of Contents
 
 - [Features](#features)
+- [Getting Your Pipedrive Credentials](#getting-your-pipedrive-credentials)
 - [Installation](#installation)
   - [Quick Install (Recommended)](#quick-install-recommended)
   - [Manual Installation](#manual-installation)
@@ -24,7 +25,6 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
   - [pipelines - Pipelines Management](#pipelines---pipelines-management)
   - [emails - Email History](#emails---email-history)
   - [update - Auto-Update](#update---auto-update)
-- [Getting Your API Key](#getting-your-api-key)
 - [Building from Source](#building-from-source)
 - [Roadmap](#roadmap)
 - [Architecture](#architecture)
@@ -46,6 +46,50 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
 - **🔧 Pipeline Management** - View pipelines and stages to understand your sales process
 - **🤖 Scriptable** - JSON output mode for automation and scripting
 - **⬆️ Auto-Update** - Background update checking with self-update capability
+
+## Getting Your Pipedrive Credentials
+
+Before installing the CLI, you'll need two things from your Pipedrive account: a **personal API token** and your **company domain**.
+
+### Finding Your API Token
+
+1. Log in to [Pipedrive](https://app.pipedrive.com)
+2. Click **Settings** (gear icon, top-right)
+3. Go to **Personal preferences** → **API**
+4. Copy your personal API token
+
+> **Security note:** Your API token grants full access to your Pipedrive account. Never share it or commit it to source control.
+
+> **Permission note:** If you don't see the API tab, your account's permission set may not allow API access. Contact your Pipedrive administrator.
+
+### Finding Your Domain
+
+Your domain is the subdomain visible in your browser's address bar when logged into Pipedrive:
+
+```
+https://acme.pipedrive.com/...
+         ^^^^
+         this is your domain
+```
+
+Use the full subdomain including `.pipedrive.com` — for example, `acme.pipedrive.com`.
+
+### Configuring the CLI (Recommended)
+
+Use the CLI itself as your primary way to configure credentials — it stores them securely in `~/.pipedrive/config.json` with restricted file permissions (600):
+
+```bash
+# Set your API key and domain
+pipedrive config set --api-key YOUR_TOKEN --domain acme.pipedrive.com
+
+# Verify the connection
+pipedrive config test
+
+# View your stored configuration (API key is masked)
+pipedrive config get
+```
+
+For detailed configuration options including multiple profiles, see [Configuration](#configuration).
 
 ## Installation
 
@@ -582,12 +626,7 @@ pipedrive update --beta --force
 
 ## Getting Your API Key
 
-1. Log in to your Pipedrive account
-2. Go to **Settings** → **Personal preferences** → **API**
-3. Copy your personal API token
-4. Use it with `pipedrive config set --api-key YOUR_TOKEN`
-
-For more information, see the [Pipedrive API Documentation](https://developers.pipedrive.com/docs/api/v1).
+See [Getting Your Pipedrive Credentials](#getting-your-pipedrive-credentials) near the top of this document.
 
 ## Building from Source
 
