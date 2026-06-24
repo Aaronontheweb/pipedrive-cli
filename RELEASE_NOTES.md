@@ -1,3 +1,33 @@
+#### 0.9.0 June 24 2026 ####
+
+This release adds time-window filtering and cursor-based pagination to the `deals list` and `activities list` commands, making it practical to sync only recently changed records at scale. It also includes an improved credentials setup guide in the README.
+
+**New Features**
+
+- **Update-Window Filters for Deals and Activities**
+  - Added `--updated-since` and `--updated-until` options to `deals list` and `activities list` to retrieve only records changed within a specified time window
+  - Supports ISO 8601 timestamps (e.g. `2026-06-24T00:00:00Z`)
+  - Useful for incremental sync workflows where you only need to process recently modified records
+  - Example: `pipedrive deals list --updated-since 2026-06-01T00:00:00Z --updated-until 2026-06-24T00:00:00Z`
+  - Example: `pipedrive activities list --updated-since 2026-06-24T00:00:00Z`
+
+- **Cursor-Based Pagination**
+  - Added `--cursor` option to `deals list` and `activities list` for efficient traversal of large result sets using Pipedrive v2 API pagination
+  - The API returns a `next_cursor` value when more pages are available; pass it to subsequent calls to continue
+  - Example: `pipedrive deals list --limit 500 --cursor <next_cursor_value>`
+
+- **Activity Sorting**
+  - Activities can now be retrieved in a consistent sort order when using update-window filters
+
+**Documentation**
+
+- **Credentials Setup Guide** ([#151](https://github.com/Aaronontheweb/pipedrive-cli/issues/151))
+  - Added a prominent **Getting Your Pipedrive Credentials** section to the README, visible without scrolling
+  - Covers how to find your API token (Settings → Personal preferences → API) and your Pipedrive domain
+  - Guides users to use `pipedrive config set` / `pipedrive config test` as the primary setup path
+
+---
+
 #### 0.8.2 January 26 2026 ####
 
 This release adds the ability to convert leads to deals and discover organization custom field definitions.
