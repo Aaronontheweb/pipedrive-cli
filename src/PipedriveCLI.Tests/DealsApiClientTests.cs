@@ -322,6 +322,36 @@ public class DealsApiClientTests
         Assert.Empty(response.Data);
     }
 
+    [Fact]
+    public void DealsList_Deserialization_WithNextCursor()
+    {
+        var json = """
+        {
+            "success": true,
+            "data": [
+                {
+                    "id": 100,
+                    "title": "Deal One",
+                    "value": 10000.00,
+                    "currency": "USD",
+                    "status": "open",
+                    "add_time": "2024-01-01T10:00:00Z",
+                    "update_time": "2024-01-01T10:00:00Z"
+                }
+            ],
+            "additional_data": {
+                "next_cursor": "eyJkZWFscyI6MTAwfQ"
+            }
+        }
+        """;
+
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListDeal);
+
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.Equal("eyJkZWFscyI6MTAwfQ", response.AdditionalData?.NextCursor);
+    }
+
     /// <summary>
     /// Test that Deal deserialization handles reference fields as objects (from actual API GET responses)
     /// The PipedriveReferenceConverter should extract the "value" property from nested objects

@@ -385,7 +385,10 @@ Manage deals with status filtering, custom field support, and merge capabilities
 
 ```bash
 # List all deals
-pipedrive deals list [--status open|won|lost] [--limit 100] [--start 0]
+pipedrive deals list [--status open|won|lost|deleted|all_not_deleted] [--pipeline-id 1] [--org-id 123] [--limit 100] [--start 0]
+
+# List deals updated since a timestamp, including won/lost changes
+pipedrive deals list --updated-since 2026-06-24T00:00:00Z [--updated-until 2026-06-25T00:00:00Z] [--limit 500] [--cursor next_cursor]
 
 # Get specific deal details (shows custom fields with friendly names)
 pipedrive deals get <id>
@@ -482,7 +485,13 @@ Manage tasks, calls, meetings, and other activities with due date tracking and u
 
 ```bash
 # List all activities
-pipedrive activities list [--done 0|1] [--limit 100] [--start 0]
+pipedrive activities list [--done true|false] [--deal-id 123] [--person-id 456] [--org-id 789] [--limit 100] [--start 0]
+
+# List activities updated since a timestamp
+pipedrive activities list --updated-since 2026-06-24T00:00:00Z [--updated-until 2026-06-25T00:00:00Z] [--limit 500] [--cursor next_cursor]
+
+# Sort activities by API-supported fields
+pipedrive activities list --sort-by add_time --sort-dir desc
 
 # Get specific activity details
 pipedrive activities get <id>

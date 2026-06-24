@@ -315,37 +315,45 @@ public sealed class PipedriveApiClient : IDisposable
     /// <summary>
     /// Gets all deals
     /// </summary>
-    public async Task<PipedriveResponse<List<Deal>>?> GetDealsAsync(int? limit = null, int? start = null, string? status = null, int? pipelineId = null)
+    public async Task<PipedriveResponse<List<Deal>>?> GetDealsAsync(int? limit = null, int? start = null, string? status = null, int? pipelineId = null, string? updatedSince = null, string? updatedUntil = null, string? cursor = null)
     {
+        var useV2 = !string.IsNullOrWhiteSpace(updatedSince)
+            || !string.IsNullOrWhiteSpace(updatedUntil)
+            || !string.IsNullOrWhiteSpace(cursor);
+
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
-        if (start.HasValue) queryParams["start"] = start.Value.ToString();
-        if (!string.IsNullOrWhiteSpace(status)) queryParams["status"] = status;
+        AddStartQueryParam(queryParams, start, useV2);
+        AddDealStatusQueryParam(queryParams, status, useV2, mapAllToAllNotDeleted: false);
         if (pipelineId.HasValue) queryParams["pipeline_id"] = pipelineId.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(updatedSince)) queryParams["updated_since"] = updatedSince;
+        if (!string.IsNullOrWhiteSpace(updatedUntil)) queryParams["updated_until"] = updatedUntil;
+        if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
-        var jsonResponse = await GetAsync("deals", queryParams);
+        var jsonResponse = await GetAsync(useV2 ? "v2/deals" : "deals", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListDeal);
     }
 
     /// <summary>
     /// Gets deals associated with a specific organization
     /// </summary>
-    public async Task<PipedriveResponse<List<Deal>>?> GetOrganizationDealsAsync(int orgId, int? limit = null, int? start = null, string? status = null)
+    public async Task<PipedriveResponse<List<Deal>>?> GetOrganizationDealsAsync(int orgId, int? limit = null, int? start = null, string? status = null, string? updatedSince = null, string? updatedUntil = null, string? cursor = null)
     {
+        var useV2 = !string.IsNullOrWhiteSpace(updatedSince)
+            || !string.IsNullOrWhiteSpace(updatedUntil)
+            || !string.IsNullOrWhiteSpace(cursor);
+
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
-        if (start.HasValue) queryParams["start"] = start.Value.ToString();
+        AddStartQueryParam(queryParams, start, useV2);
+        if (useV2) queryParams["org_id"] = orgId.ToString();
+        if (!string.IsNullOrWhiteSpace(updatedSince)) queryParams["updated_since"] = updatedSince;
+        if (!string.IsNullOrWhiteSpace(updatedUntil)) queryParams["updated_until"] = updatedUntil;
+        if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
-        // The /organizations/{id}/deals endpoint uses "all_not_deleted" instead of "all"
-        // Map "all" to "all_not_deleted" for consistency with the main deals endpoint
-        if (!string.IsNullOrWhiteSpace(status))
-        {
-            queryParams["status"] = status.Equals("all", StringComparison.OrdinalIgnoreCase)
-                ? "all_not_deleted"
-                : status;
-        }
+        AddDealStatusQueryParam(queryParams, status, useV2, mapAllToAllNotDeleted: true);
 
-        var jsonResponse = await GetAsync($"organizations/{orgId}/deals", queryParams);
+        var jsonResponse = await GetAsync(useV2 ? "v2/deals" : $"organizations/{orgId}/deals", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListDeal);
     }
 
@@ -511,14 +519,25 @@ public sealed class PipedriveApiClient : IDisposable
     /// <summary>
     /// Gets all activities
     /// </summary>
-    public async Task<PipedriveResponse<List<Activity>>?> GetActivitiesAsync(int? limit = null, int? start = null, bool? done = null)
+    public async Task<PipedriveResponse<List<Activity>>?> GetActivitiesAsync(int? limit = null, int? start = null, bool? done = null, string? updatedSince = null, string? updatedUntil = null, string? sortBy = null, string? sortDirection = null, string? cursor = null)
     {
+        var useV2 = !string.IsNullOrWhiteSpace(updatedSince)
+            || !string.IsNullOrWhiteSpace(updatedUntil)
+            || !string.IsNullOrWhiteSpace(sortBy)
+            || !string.IsNullOrWhiteSpace(sortDirection)
+            || !string.IsNullOrWhiteSpace(cursor);
+
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
-        if (start.HasValue) queryParams["start"] = start.Value.ToString();
-        if (done.HasValue) queryParams["done"] = done.Value ? "1" : "0";
+        AddStartQueryParam(queryParams, start, useV2);
+        if (done.HasValue) queryParams["done"] = useV2 ? done.Value.ToString().ToLowerInvariant() : done.Value ? "1" : "0";
+        if (!string.IsNullOrWhiteSpace(updatedSince)) queryParams["updated_since"] = updatedSince;
+        if (!string.IsNullOrWhiteSpace(updatedUntil)) queryParams["updated_until"] = updatedUntil;
+        if (!string.IsNullOrWhiteSpace(sortBy)) queryParams["sort_by"] = sortBy;
+        if (!string.IsNullOrWhiteSpace(sortDirection)) queryParams["sort_direction"] = sortDirection;
+        if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
-        var jsonResponse = await GetAsync("activities", queryParams);
+        var jsonResponse = await GetAsync(useV2 ? "v2/activities" : "activities", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
     }
 
@@ -573,42 +592,78 @@ public sealed class PipedriveApiClient : IDisposable
     /// <summary>
     /// Gets activities associated with a specific deal
     /// </summary>
-    public async Task<PipedriveResponse<List<Activity>>?> GetDealActivitiesAsync(int dealId, int? limit = null, int? start = null, bool? done = null)
+    public async Task<PipedriveResponse<List<Activity>>?> GetDealActivitiesAsync(int dealId, int? limit = null, int? start = null, bool? done = null, string? updatedSince = null, string? updatedUntil = null, string? sortBy = null, string? sortDirection = null, string? cursor = null)
     {
+        var useV2 = !string.IsNullOrWhiteSpace(updatedSince)
+            || !string.IsNullOrWhiteSpace(updatedUntil)
+            || !string.IsNullOrWhiteSpace(sortBy)
+            || !string.IsNullOrWhiteSpace(sortDirection)
+            || !string.IsNullOrWhiteSpace(cursor);
+
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
-        if (start.HasValue) queryParams["start"] = start.Value.ToString();
-        if (done.HasValue) queryParams["done"] = done.Value ? "1" : "0";
+        AddStartQueryParam(queryParams, start, useV2);
+        if (done.HasValue) queryParams["done"] = useV2 ? done.Value.ToString().ToLowerInvariant() : done.Value ? "1" : "0";
+        if (useV2) queryParams["deal_id"] = dealId.ToString();
+        if (!string.IsNullOrWhiteSpace(updatedSince)) queryParams["updated_since"] = updatedSince;
+        if (!string.IsNullOrWhiteSpace(updatedUntil)) queryParams["updated_until"] = updatedUntil;
+        if (!string.IsNullOrWhiteSpace(sortBy)) queryParams["sort_by"] = sortBy;
+        if (!string.IsNullOrWhiteSpace(sortDirection)) queryParams["sort_direction"] = sortDirection;
+        if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
-        var jsonResponse = await GetAsync($"deals/{dealId}/activities", queryParams);
+        var jsonResponse = await GetAsync(useV2 ? "v2/activities" : $"deals/{dealId}/activities", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
     }
 
     /// <summary>
     /// Gets activities associated with a specific person
     /// </summary>
-    public async Task<PipedriveResponse<List<Activity>>?> GetPersonActivitiesAsync(int personId, int? limit = null, int? start = null, bool? done = null)
+    public async Task<PipedriveResponse<List<Activity>>?> GetPersonActivitiesAsync(int personId, int? limit = null, int? start = null, bool? done = null, string? updatedSince = null, string? updatedUntil = null, string? sortBy = null, string? sortDirection = null, string? cursor = null)
     {
+        var useV2 = !string.IsNullOrWhiteSpace(updatedSince)
+            || !string.IsNullOrWhiteSpace(updatedUntil)
+            || !string.IsNullOrWhiteSpace(sortBy)
+            || !string.IsNullOrWhiteSpace(sortDirection)
+            || !string.IsNullOrWhiteSpace(cursor);
+
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
-        if (start.HasValue) queryParams["start"] = start.Value.ToString();
-        if (done.HasValue) queryParams["done"] = done.Value ? "1" : "0";
+        AddStartQueryParam(queryParams, start, useV2);
+        if (done.HasValue) queryParams["done"] = useV2 ? done.Value.ToString().ToLowerInvariant() : done.Value ? "1" : "0";
+        if (useV2) queryParams["person_id"] = personId.ToString();
+        if (!string.IsNullOrWhiteSpace(updatedSince)) queryParams["updated_since"] = updatedSince;
+        if (!string.IsNullOrWhiteSpace(updatedUntil)) queryParams["updated_until"] = updatedUntil;
+        if (!string.IsNullOrWhiteSpace(sortBy)) queryParams["sort_by"] = sortBy;
+        if (!string.IsNullOrWhiteSpace(sortDirection)) queryParams["sort_direction"] = sortDirection;
+        if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
-        var jsonResponse = await GetAsync($"persons/{personId}/activities", queryParams);
+        var jsonResponse = await GetAsync(useV2 ? "v2/activities" : $"persons/{personId}/activities", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
     }
 
     /// <summary>
     /// Gets activities associated with a specific organization
     /// </summary>
-    public async Task<PipedriveResponse<List<Activity>>?> GetOrganizationActivitiesAsync(int orgId, int? limit = null, int? start = null, bool? done = null)
+    public async Task<PipedriveResponse<List<Activity>>?> GetOrganizationActivitiesAsync(int orgId, int? limit = null, int? start = null, bool? done = null, string? updatedSince = null, string? updatedUntil = null, string? sortBy = null, string? sortDirection = null, string? cursor = null)
     {
+        var useV2 = !string.IsNullOrWhiteSpace(updatedSince)
+            || !string.IsNullOrWhiteSpace(updatedUntil)
+            || !string.IsNullOrWhiteSpace(sortBy)
+            || !string.IsNullOrWhiteSpace(sortDirection)
+            || !string.IsNullOrWhiteSpace(cursor);
+
         var queryParams = new Dictionary<string, string>();
         if (limit.HasValue) queryParams["limit"] = limit.Value.ToString();
-        if (start.HasValue) queryParams["start"] = start.Value.ToString();
-        if (done.HasValue) queryParams["done"] = done.Value ? "1" : "0";
+        AddStartQueryParam(queryParams, start, useV2);
+        if (done.HasValue) queryParams["done"] = useV2 ? done.Value.ToString().ToLowerInvariant() : done.Value ? "1" : "0";
+        if (useV2) queryParams["org_id"] = orgId.ToString();
+        if (!string.IsNullOrWhiteSpace(updatedSince)) queryParams["updated_since"] = updatedSince;
+        if (!string.IsNullOrWhiteSpace(updatedUntil)) queryParams["updated_until"] = updatedUntil;
+        if (!string.IsNullOrWhiteSpace(sortBy)) queryParams["sort_by"] = sortBy;
+        if (!string.IsNullOrWhiteSpace(sortDirection)) queryParams["sort_direction"] = sortDirection;
+        if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
-        var jsonResponse = await GetAsync($"organizations/{orgId}/activities", queryParams);
+        var jsonResponse = await GetAsync(useV2 ? "v2/activities" : $"organizations/{orgId}/activities", queryParams);
         return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
     }
 
@@ -1103,7 +1158,48 @@ public sealed class PipedriveApiClient : IDisposable
         var queryString = string.Join("&", query);
         var trimmedEndpoint = endpoint.TrimStart('/');
 
+        if (trimmedEndpoint.StartsWith("v2/", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"https://{profile.Domain}/api/{trimmedEndpoint}?{queryString}";
+        }
+
+        if (trimmedEndpoint.StartsWith("api/", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"https://{profile.Domain}/{trimmedEndpoint}?{queryString}";
+        }
+
         return $"{trimmedEndpoint}?{queryString}";
+    }
+
+    private static void AddStartQueryParam(Dictionary<string, string> queryParams, int? start, bool useV2)
+    {
+        if (!start.HasValue)
+            return;
+
+        if (useV2)
+        {
+            if (start.Value != 0)
+            {
+                throw new InvalidOperationException("--start is not supported with filters that use Pipedrive API v2 cursor pagination. Use --limit without --start.");
+            }
+
+            return;
+        }
+
+        queryParams["start"] = start.Value.ToString();
+    }
+
+    private static void AddDealStatusQueryParam(Dictionary<string, string> queryParams, string? status, bool useV2, bool mapAllToAllNotDeleted)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return;
+
+        if (useV2 && (status.Equals("all", StringComparison.OrdinalIgnoreCase) || status.Equals("all_not_deleted", StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        queryParams["status"] = !useV2 && mapAllToAllNotDeleted && status.Equals("all", StringComparison.OrdinalIgnoreCase)
+            ? "all_not_deleted"
+            : status;
     }
 
     private void EnsureConfigured()

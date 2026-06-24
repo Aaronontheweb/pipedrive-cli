@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Globalization;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
 using Spectre.Console;
@@ -77,6 +78,10 @@ public static class ActivitiesCommands
             aliases: new[] { "--start", "-s" },
             description: "Pagination start (default: 0)");
 
+        var cursorOption = new Option<string?>(
+            aliases: new[] { "--cursor" },
+            description: "Cursor for the next page when using update filters or sorting");
+
         var doneOption = new Option<bool?>(
             aliases: new[] { "--done", "-d" },
             description: "Filter by done status (true/false, default: false)",
@@ -111,8 +116,27 @@ public static class ActivitiesCommands
             description: "Include activities associated with archived leads (excluded by default)",
             getDefaultValue: () => false);
 
+        var updatedSinceOption = new Option<string?>(
+            aliases: new[] { "--updated-since" },
+            description: "Filter activities updated at or after this RFC3339 timestamp (e.g. 2026-06-24T00:00:00Z)");
+
+        var updatedUntilOption = new Option<string?>(
+            aliases: new[] { "--updated-until" },
+            description: "Filter activities updated before this RFC3339 timestamp (e.g. 2026-06-24T00:00:00Z)");
+
+        var sortByOption = new Option<string?>(
+            aliases: new[] { "--sort-by" },
+            description: "Sort activities by id, update_time, add_time, or due_date")
+            .FromAmong("id", "update_time", "add_time", "due_date");
+
+        var sortDirOption = new Option<string?>(
+            aliases: new[] { "--sort-dir" },
+            description: "Sort direction: asc or desc")
+            .FromAmong("asc", "desc");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
+        listCommand.AddOption(cursorOption);
         listCommand.AddOption(doneOption);
         listCommand.AddOption(dealIdOption);
         listCommand.AddOption(personIdOption);
@@ -121,11 +145,16 @@ public static class ActivitiesCommands
         listCommand.AddOption(dueBeforeOption);
         listCommand.AddOption(dueAfterOption);
         listCommand.AddOption(includeArchivedLeadsOption);
+        listCommand.AddOption(updatedSinceOption);
+        listCommand.AddOption(updatedUntilOption);
+        listCommand.AddOption(sortByOption);
+        listCommand.AddOption(sortDirOption);
 
         listCommand.SetHandler(async context =>
         {
             var limit = context.ParseResult.GetValueForOption(limitOption);
             var start = context.ParseResult.GetValueForOption(startOption);
+            var cursor = context.ParseResult.GetValueForOption(cursorOption);
             var done = context.ParseResult.GetValueForOption(doneOption);
             var dealId = context.ParseResult.GetValueForOption(dealIdOption);
             var personId = context.ParseResult.GetValueForOption(personIdOption);
@@ -134,6 +163,10 @@ public static class ActivitiesCommands
             var dueBefore = context.ParseResult.GetValueForOption(dueBeforeOption);
             var dueAfter = context.ParseResult.GetValueForOption(dueAfterOption);
             var includeArchivedLeads = context.ParseResult.GetValueForOption(includeArchivedLeadsOption);
+            var updatedSince = context.ParseResult.GetValueForOption(updatedSinceOption);
+            var updatedUntil = context.ParseResult.GetValueForOption(updatedUntilOption);
+            var sortBy = context.ParseResult.GetValueForOption(sortByOption);
+            var sortDir = context.ParseResult.GetValueForOption(sortDirOption);
 
             // Validate that only one entity filter is used at a time
             var filterCount = (dealId.HasValue ? 1 : 0) + (personId.HasValue ? 1 : 0) + (orgId.HasValue ? 1 : 0);
@@ -172,6 +205,20 @@ public static class ActivitiesCommands
                 dueAfterDate = parsedDate;
             }
 
+            if (!string.IsNullOrWhiteSpace(updatedSince) &&
+                !DateTimeOffset.TryParse(updatedSince, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] Invalid timestamp format for --updated-since. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(updatedUntil) &&
+                !DateTimeOffset.TryParse(updatedUntil, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] Invalid timestamp format for --updated-until. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
+                return;
+            }
+
             try
             {
                 await apiClient.InitializeAsync();
@@ -191,19 +238,19 @@ public static class ActivitiesCommands
 
                         if (dealId.HasValue)
                         {
-                            response = await apiClient.GetDealActivitiesAsync(dealId.Value, limit, start, done);
+                            response = await apiClient.GetDealActivitiesAsync(dealId.Value, limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
                         }
                         else if (personId.HasValue)
                         {
-                            response = await apiClient.GetPersonActivitiesAsync(personId.Value, limit, start, done);
+                            response = await apiClient.GetPersonActivitiesAsync(personId.Value, limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
                         }
                         else if (orgId.HasValue)
                         {
-                            response = await apiClient.GetOrganizationActivitiesAsync(orgId.Value, limit, start, done);
+                            response = await apiClient.GetOrganizationActivitiesAsync(orgId.Value, limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
                         }
                         else
                         {
-                            response = await apiClient.GetActivitiesAsync(limit, start, done);
+                            response = await apiClient.GetActivitiesAsync(limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
                         }
 
                         if (response?.Success == true && response.Data != null)
@@ -317,6 +364,11 @@ public static class ActivitiesCommands
                                 var pagination = response.AdditionalData.Pagination;
                                 AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} (filtered to {activities.Count}) " +
                                     $"| More available: {pagination.MoreItemsInCollection}[/]");
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(response.AdditionalData?.NextCursor))
+                            {
+                                AnsiConsole.MarkupLine($"[dim]Next cursor: {Markup.Escape(response.AdditionalData.NextCursor)}[/]");
                             }
 
                             AnsiConsole.MarkupLine($"\n[green]✓[/] Found {activities.Count} activit{(activities.Count == 1 ? "y" : "ies")}");

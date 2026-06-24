@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Globalization;
 using System.Text.Json;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
@@ -52,6 +53,10 @@ public static class DealsCommands
             aliases: new[] { "--start", "-s" },
             description: "Pagination start (default: 0)");
 
+        var cursorOption = new Option<string?>(
+            aliases: new[] { "--cursor" },
+            description: "Cursor for the next page when using update filters");
+
         var statusOption = new Option<string?>(
             aliases: new[] { "--status" },
             description: "Filter by status (open, won, lost, deleted, all_not_deleted)",
@@ -65,19 +70,56 @@ public static class DealsCommands
             aliases: new[] { "--org-id", "-o" },
             description: "Filter deals by organization ID");
 
+        var updatedSinceOption = new Option<string?>(
+            aliases: new[] { "--updated-since" },
+            description: "Filter deals updated at or after this RFC3339 timestamp (e.g. 2026-06-24T00:00:00Z)");
+
+        var updatedUntilOption = new Option<string?>(
+            aliases: new[] { "--updated-until" },
+            description: "Filter deals updated before this RFC3339 timestamp (e.g. 2026-06-24T00:00:00Z)");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
+        listCommand.AddOption(cursorOption);
         listCommand.AddOption(statusOption);
         listCommand.AddOption(pipelineIdOption);
         listCommand.AddOption(orgIdOption);
+        listCommand.AddOption(updatedSinceOption);
+        listCommand.AddOption(updatedUntilOption);
 
         listCommand.SetHandler(async (context) =>
         {
             var limit = context.ParseResult.GetValueForOption(limitOption);
             var start = context.ParseResult.GetValueForOption(startOption);
+            var cursor = context.ParseResult.GetValueForOption(cursorOption);
             var status = context.ParseResult.GetValueForOption(statusOption);
             var pipelineId = context.ParseResult.GetValueForOption(pipelineIdOption);
             var orgId = context.ParseResult.GetValueForOption(orgIdOption);
+            var statusWasSpecified = context.ParseResult.FindResultFor(statusOption) != null;
+
+            var updatedSince = context.ParseResult.GetValueForOption(updatedSinceOption);
+            var updatedUntil = context.ParseResult.GetValueForOption(updatedUntilOption);
+
+            if (!string.IsNullOrWhiteSpace(updatedSince) &&
+                !DateTimeOffset.TryParse(updatedSince, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] Invalid timestamp format for --updated-since. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(updatedUntil) &&
+                !DateTimeOffset.TryParse(updatedUntil, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] Invalid timestamp format for --updated-until. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
+                return;
+            }
+
+            var effectiveStatus = status;
+            if (!statusWasSpecified && (!string.IsNullOrWhiteSpace(updatedSince) || !string.IsNullOrWhiteSpace(updatedUntil)))
+            {
+                // Let update-window queries include won/lost deals unless the user explicitly narrows status.
+                effectiveStatus = null;
+            }
 
             try
             {
@@ -93,12 +135,11 @@ public static class DealsCommands
 
                         if (orgId.HasValue)
                         {
-                            // Use organization-specific endpoint when filtering by org
-                            response = await apiClient.GetOrganizationDealsAsync(orgId.Value, limit, start, status);
+                            response = await apiClient.GetOrganizationDealsAsync(orgId.Value, limit, start, effectiveStatus, updatedSince, updatedUntil, cursor);
                         }
                         else
                         {
-                            response = await apiClient.GetDealsAsync(limit, start, status, pipelineId);
+                            response = await apiClient.GetDealsAsync(limit, start, effectiveStatus, pipelineId, updatedSince, updatedUntil, cursor);
                         }
 
                         if (response?.Success == true)
@@ -149,6 +190,11 @@ public static class DealsCommands
                                     var pagination = response.AdditionalData.Pagination;
                                     AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + deals.Count} " +
                                         $"| More available: {pagination.MoreItemsInCollection}[/]");
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(response.AdditionalData?.NextCursor))
+                                {
+                                    AnsiConsole.MarkupLine($"[dim]Next cursor: {Markup.Escape(response.AdditionalData.NextCursor)}[/]");
                                 }
                             }
 
