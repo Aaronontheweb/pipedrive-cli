@@ -47,6 +47,9 @@ public sealed class AdditionalData
 {
     [JsonPropertyName("pagination")]
     public Pagination? Pagination { get; set; }
+
+    [JsonPropertyName("next_cursor")]
+    public string? NextCursor { get; set; }
 }
 
 /// <summary>

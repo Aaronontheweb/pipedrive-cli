@@ -329,6 +329,37 @@ public class ActivitiesApiClientTests
         Assert.Empty(response.Data);
     }
 
+    [Fact]
+    public void ActivitiesList_Deserialization_WithNextCursor()
+    {
+        var json = """
+        {
+            "success": true,
+            "data": [
+                {
+                    "id": 100,
+                    "subject": "Meeting with client",
+                    "type": "meeting",
+                    "due_date": "2024-01-20",
+                    "due_time": "10:00",
+                    "done": false,
+                    "add_time": "2024-01-01T10:00:00Z",
+                    "update_time": "2024-01-01T10:00:00Z"
+                }
+            ],
+            "additional_data": {
+                "next_cursor": "eyJhY3Rpdml0aWVzIjoyN30"
+            }
+        }
+        """;
+
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseListActivity);
+
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.Equal("eyJhY3Rpdml0aWVzIjoyN30", response.AdditionalData?.NextCursor);
+    }
+
     /// <summary>
     /// Test activity without due time (all-day activity)
     /// </summary>
