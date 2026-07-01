@@ -390,7 +390,14 @@ pipedrive deals list [--status open|won|lost|deleted|all_not_deleted] [--pipelin
 # List deals updated since a timestamp, including won/lost changes
 pipedrive deals list --updated-since 2026-06-24T00:00:00Z [--updated-until 2026-06-25T00:00:00Z] [--limit 500] [--cursor next_cursor]
 
-# Get specific deal details (shows custom fields with friendly names)
+# Filter by expected close date range
+pipedrive deals list --closing-after 2026-04-01 --closing-before 2026-06-30
+
+# Filter by actual won time (revenue reporting)
+pipedrive deals list --status won --won-after 2026-04-01 --won-before 2026-06-30
+# Note: --won-after/--won-before work best with --status won; a warning is shown without it
+
+# Get specific deal details (shows won_time/lost_time, custom fields with friendly names)
 pipedrive deals get <id>
 
 # Get deal with raw custom field hash keys (for scripting)
