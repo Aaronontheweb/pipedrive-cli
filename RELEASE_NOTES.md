@@ -1,3 +1,22 @@
+#### 0.10.0 July 01 2026 ####
+
+This release adds powerful date range filtering to `deals list` — filter by expected close date (`--closing-after` / `--closing-before`) or by when deals were actually won (`--won-after` / `--won-before`). It also surfaces won and lost timestamps in `deals get` output.
+
+**New Features**
+
+- **Closing Date Filtering** ([#146](https://github.com/Aaronontheweb/pipedrive-cli/issues/146), [#165](https://github.com/Aaronontheweb/pipedrive-cli/pull/165))
+  - Added `--closing-after <date>` and `--closing-before <date>` options to `deals list` to filter by expected close date
+  - Supports YYYY-MM-DD format (e.g. `2026-04-01`)
+  - Example: `pipedrive deals list --closing-after 2026-04-01 --closing-before 2026-06-30`
+
+- **Won/Lost Date Filtering** ([#164](https://github.com/Aaronontheweb/pipedrive-cli/issues/164), [#165](https://github.com/Aaronontheweb/pipedrive-cli/pull/165))
+  - Added `--won-after <date>` and `--won-before <date>` options to `deals list` to filter by actual won time
+  - Useful for reporting on closed-won deals within a specific period
+  - Example: `pipedrive deals list --status won --won-after 2026-04-01 --won-before 2026-06-30`
+
+- **Won/Lost Time Display** ([#163](https://github.com/Aaronontheweb/pipedrive-cli/issues/163), [#165](https://github.com/Aaronontheweb/pipedrive-cli/pull/165))
+  - `deals get` now displays `won_time` and `lost_time` for closed deals
+
 #### 0.9.0 June 24 2026 ####
 
 This release adds time-window filtering and cursor-based pagination to the `deals list` and `activities list` commands, making it practical to sync only recently changed records at scale. It also includes an improved credentials setup guide in the README.
