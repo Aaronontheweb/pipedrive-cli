@@ -78,6 +78,24 @@ public static class DealsCommands
             aliases: new[] { "--updated-until" },
             description: "Filter deals updated before this RFC3339 timestamp (e.g. 2026-06-24T00:00:00Z)");
 
+        // Date range filters for expected_close_date (#146)
+        var closingAfterOption = new Option<string?>(
+            aliases: new[] { "--closing-after" },
+            description: "Filter deals with expected_close_date >= this date (YYYY-MM-DD)");
+
+        var closingBeforeOption = new Option<string?>(
+            aliases: new[] { "--closing-before" },
+            description: "Filter deals with expected_close_date <= this date (YYYY-MM-DD)");
+
+        // Date range filters for won_time (#164)
+        var wonAfterOption = new Option<string?>(
+            aliases: new[] { "--won-after" },
+            description: "Filter won deals with won_time >= this date (YYYY-MM-DD)");
+
+        var wonBeforeOption = new Option<string?>(
+            aliases: new[] { "--won-before" },
+            description: "Filter won deals with won_time <= this date (YYYY-MM-DD)");
+
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
         listCommand.AddOption(cursorOption);
@@ -86,6 +104,10 @@ public static class DealsCommands
         listCommand.AddOption(orgIdOption);
         listCommand.AddOption(updatedSinceOption);
         listCommand.AddOption(updatedUntilOption);
+        listCommand.AddOption(closingAfterOption);
+        listCommand.AddOption(closingBeforeOption);
+        listCommand.AddOption(wonAfterOption);
+        listCommand.AddOption(wonBeforeOption);
 
         listCommand.SetHandler(async (context) =>
         {
@@ -99,7 +121,12 @@ public static class DealsCommands
 
             var updatedSince = context.ParseResult.GetValueForOption(updatedSinceOption);
             var updatedUntil = context.ParseResult.GetValueForOption(updatedUntilOption);
+            var closingAfterInput = context.ParseResult.GetValueForOption(closingAfterOption);
+            var closingBeforeInput = context.ParseResult.GetValueForOption(closingBeforeOption);
+            var wonAfterInput = context.ParseResult.GetValueForOption(wonAfterOption);
+            var wonBeforeInput = context.ParseResult.GetValueForOption(wonBeforeOption);
 
+            // Validate existing timestamp formats
             if (!string.IsNullOrWhiteSpace(updatedSince) &&
                 !DateTimeOffset.TryParse(updatedSince, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
             {
@@ -114,10 +141,76 @@ public static class DealsCommands
                 return;
             }
 
-            var effectiveStatus = status;
-            if (!statusWasSpecified && (!string.IsNullOrWhiteSpace(updatedSince) || !string.IsNullOrWhiteSpace(updatedUntil)))
+            // Validate date filters
+            if (!DateFilterHelper.TryParseDateFilter(closingAfterInput, out var closingAfter))
             {
-                // Let update-window queries include won/lost deals unless the user explicitly narrows status.
+                AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --closing-after. Use YYYY-MM-DD (e.g., 2024-01-15).");
+                return;
+            }
+
+            if (!DateFilterHelper.TryParseDateFilter(closingBeforeInput, out var closingBefore))
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --closing-before. Use YYYY-MM-DD (e.g., 2024-12-31).");
+                return;
+            }
+
+            if (!DateFilterHelper.TryParseDateFilter(wonAfterInput, out var wonAfterDate))
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --won-after. Use YYYY-MM-DD (e.g., 2024-01-15).");
+                return;
+            }
+
+            if (!DateFilterHelper.TryParseDateFilter(wonBeforeInput, out var wonBeforeDate))
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --won-before. Use YYYY-MM-DD (e.g., 2024-12-31).");
+                return;
+            }
+
+            // Validate: after must be before before
+            if (closingAfter.HasValue && closingBefore.HasValue && closingAfter.Value > closingBefore.Value)
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] --closing-after must be before --closing-before.");
+                return;
+            }
+
+            if (wonAfterDate.HasValue && wonBeforeDate.HasValue && wonAfterDate.Value > wonBeforeDate.Value)
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] --won-after must be before --won-before.");
+                return;
+            }
+
+            // Convert won date filters to DateTimeOffset (UTC)
+            var wonAfter = wonAfterDate.HasValue ? new DateTimeOffset(wonAfterDate.Value.Date, TimeSpan.Zero) : (DateTimeOffset?)null;
+            var wonBefore = wonBeforeDate.HasValue ? new DateTimeOffset(wonBeforeDate.Value.Date, TimeSpan.Zero) : (DateTimeOffset?)null;
+
+            var hasClosingFilter = closingAfter.HasValue || closingBefore.HasValue;
+            var hasWonFilter = wonAfter.HasValue || wonBefore.HasValue;
+
+            if (hasClosingFilter && hasWonFilter)
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] Cannot use --closing-after/--closing-before together with --won-after/--won-before.");
+                return;
+            }
+
+            if (hasWonFilter && status?.Equals("won", StringComparison.OrdinalIgnoreCase) != true)
+            {
+                AnsiConsole.MarkupLine("[yellow]Warning:[/] Using --won-after/--won-before without --status won. Consider adding --status won for accurate results.[/]");
+            }
+
+            // Derive server-side pre-filter bounds from date filters (with 3-day buffer)
+            string? dateFilterSince = null, dateFilterUntil = null;
+            if (hasClosingFilter || hasWonFilter)
+            {
+                var boundAfter = hasClosingFilter ? closingAfter : wonAfterDate;
+                var boundBefore = hasClosingFilter ? closingBefore : wonBeforeDate;
+                var bounds = DateFilterHelper.DeriveUpdateBounds(boundAfter, boundBefore);
+                dateFilterSince = bounds.since;
+                dateFilterUntil = bounds.until;
+            }
+
+            var effectiveStatus = status;
+            if (!statusWasSpecified && (!string.IsNullOrWhiteSpace(updatedSince) || !string.IsNullOrWhiteSpace(updatedUntil) || !string.IsNullOrWhiteSpace(dateFilterSince) || !string.IsNullOrWhiteSpace(dateFilterUntil)))
+            {
                 effectiveStatus = null;
             }
 
@@ -125,85 +218,138 @@ public static class DealsCommands
             {
                 await apiClient.InitializeAsync();
 
+                List<Deal> deals;
+                bool hasDateFilter = hasClosingFilter || hasWonFilter;
+
                 await AnsiConsole.Status()
                     .StartAsync("Fetching deals...", async ctx =>
                     {
                         ctx.Spinner(Spinner.Known.Dots);
                         ctx.SpinnerStyle(Style.Parse("green"));
 
-                        PipedriveResponse<List<Deal>>? response;
-
-                        if (orgId.HasValue)
+                        if (hasDateFilter)
                         {
-                            response = await apiClient.GetOrganizationDealsAsync(orgId.Value, limit, start, effectiveStatus, updatedSince, updatedUntil, cursor);
-                        }
-                        else
-                        {
-                            response = await apiClient.GetDealsAsync(limit, start, effectiveStatus, pipelineId, updatedSince, updatedUntil, cursor);
-                        }
+                            // Date filter active: use hybrid filtering with pagination
+                            ctx.Status("Fetching deals with date filter (this may take a moment)...");
 
-                        if (response?.Success == true)
-                        {
-                            ctx.Status("Formatting results...");
-
-                            var deals = response.Data ?? new List<Deal>();
-
-                            if (deals.Count == 0)
+                            if (orgId.HasValue)
                             {
-                                AnsiConsole.MarkupLine("[yellow]No deals found[/]");
+                                // Organization-specific: no updated_since/until support on that endpoint
+                                // Fall back to fetch-all + client-side filter
+                                deals = await PaginationHelper.FetchAllOrganizationDealsAsync(apiClient, orgId.Value, effectiveStatus);
                             }
                             else
                             {
-                                var table = new Table();
-                                table.Border(TableBorder.Rounded);
-                                table.AddColumn(new TableColumn("ID").NoWrap());
-                                table.AddColumn("Title");
-                                table.AddColumn("Value");
-                                table.AddColumn("Status");
-                                table.AddColumn("Stage ID");
-                                table.AddColumn("Person/Org ID");
-                                table.AddColumn("Expected Close");
-
-                                foreach (var deal in deals)
-                                {
-                                    var valueDisplay = $"{deal.Currency} {deal.Value:N2}";
-
-                                    var entityId = deal.PersonId?.ToString()
-                                        ?? deal.OrgId?.ToString()
-                                        ?? "-";
-
-                                    table.AddRow(
-                                        deal.Id.ToString(),
-                                        Markup.Escape(deal.Title ?? "-"),
-                                        valueDisplay,
-                                        Markup.Escape(deal.Status ?? "-"),
-                                        deal.StageId?.ToString() ?? "-",
-                                        entityId,
-                                        Markup.Escape(deal.ExpectedCloseDate ?? "-")
-                                    );
-                                }
-
-                                AnsiConsole.Write(table);
-
-                                if (response.AdditionalData?.Pagination != null)
-                                {
-                                    var pagination = response.AdditionalData.Pagination;
-                                    AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + deals.Count} " +
-                                        $"| More available: {pagination.MoreItemsInCollection}[/]");
-                                }
-
-                                if (!string.IsNullOrWhiteSpace(response.AdditionalData?.NextCursor))
-                                {
-                                    AnsiConsole.MarkupLine($"[dim]Next cursor: {Markup.Escape(response.AdditionalData.NextCursor)}[/]");
-                                }
+                                // Full hybrid filtering: server-side pre-filter + pagination + client-side filter
+                                deals = await PaginationHelper.FetchAllDealsAsync(
+                                    apiClient,
+                                    status: effectiveStatus,
+                                    pipelineId: pipelineId,
+                                    updatedSince: dateFilterSince,
+                                    updatedUntil: dateFilterUntil);
                             }
 
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {deals.Count} deal(s)");
+
+
+                            // Apply precise client-side filtering
+                            if (hasClosingFilter)
+                            {
+                                deals = DateFilterHelper.FilterByExpectedCloseDate(deals, closingAfter, closingBefore).ToList();
+                            }
+
+                            if (hasWonFilter)
+                            {
+                                deals = DateFilterHelper.FilterByWonTime(deals, wonAfter, wonBefore).ToList();
+                            }
+
+                            // Apply limit/start after filtering
+                            if (limit.HasValue)
+                            {
+                                var startIndex = start ?? 0;
+                                if (startIndex >= deals.Count)
+                                    deals = new List<Deal>();
+                                else
+                                    deals = deals.Skip(startIndex).Take(limit.Value).ToList();
+                            }
                         }
                         else
                         {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deals: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                            // No date filter: single API call (existing behavior)
+                            PipedriveResponse<List<Deal>>? response;
+
+                            if (orgId.HasValue)
+                            {
+                                response = await apiClient.GetOrganizationDealsAsync(orgId.Value, limit, start, effectiveStatus, updatedSince, updatedUntil, cursor);
+                            }
+                            else
+                            {
+                                response = await apiClient.GetDealsAsync(limit, start, effectiveStatus, pipelineId, updatedSince, updatedUntil, cursor);
+                            }
+
+                            if (response?.Success != true)
+                            {
+                                AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deals: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                                return;
+                            }
+
+                            deals = response.Data ?? new List<Deal>();
+
+                            ctx.Status("Formatting results...");
+
+                            // Show pagination/cursor info for non-date-filter queries
+                            if (response.AdditionalData?.Pagination != null)
+                            {
+                                var pagination = response.AdditionalData.Pagination;
+                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + deals.Count} " +
+                                    $"| More available: {pagination.MoreItemsInCollection}[/]");
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(response.AdditionalData?.NextCursor))
+                            {
+                                AnsiConsole.MarkupLine($"[dim]Next cursor: {Markup.Escape(response.AdditionalData.NextCursor)}[/]");
+                            }
                         }
+
+                        // Render results
+                        if (deals.Count == 0)
+                        {
+                            AnsiConsole.MarkupLine("[yellow]No deals found[/]");
+                        }
+                        else
+                        {
+                            var table = new Table();
+                            table.Border(TableBorder.Rounded);
+                            table.AddColumn(new TableColumn("ID").NoWrap());
+                            table.AddColumn("Title");
+                            table.AddColumn("Value");
+                            table.AddColumn("Status");
+                            table.AddColumn("Stage ID");
+                            table.AddColumn("Person/Org ID");
+                            table.AddColumn("Expected Close");
+
+                            foreach (var deal in deals)
+                            {
+                                var valueDisplay = $"{deal.Currency} {deal.Value:N2}";
+
+                                var entityId = deal.PersonId?.ToString()
+                                    ?? deal.OrgId?.ToString()
+                                    ?? "-";
+
+                                table.AddRow(
+                                    deal.Id.ToString(),
+                                    Markup.Escape(deal.Title ?? "-"),
+                                    valueDisplay,
+                                    Markup.Escape(deal.Status ?? "-"),
+                                    deal.StageId?.ToString() ?? "-",
+                                    entityId,
+                                    Markup.Escape(deal.ExpectedCloseDate ?? "-")
+                                );
+                            }
+
+                            AnsiConsole.Write(table);
+                        }
+
+                        AnsiConsole.MarkupLine($"\n[green]✓[/] Found {deals.Count} deal(s)");
                     });
             }
             catch (Exception ex)
@@ -292,6 +438,8 @@ public static class DealsCommands
                             $"[bold]Organization ID:[/] {deal.OrgId?.ToString() ?? "N/A"}\n" +
                             $"[bold]Probability:[/] {(deal.Probability.HasValue ? $"{deal.Probability.Value}%" : "N/A")}\n" +
                             $"[bold]Expected Close Date:[/] {Markup.Escape(deal.ExpectedCloseDate ?? "N/A")}\n" +
+                            (string.IsNullOrEmpty(deal.WonTime) ? "" : $"[bold]Won Time:[/] {Markup.Escape(deal.WonTime)}\n") +
+                            (string.IsNullOrEmpty(deal.LostTime) ? "" : $"[bold]Lost Time:[/] {Markup.Escape(deal.LostTime)}\n") +
                             $"[bold]CC Email:[/] {Markup.Escape(deal.CcEmail ?? "N/A")}\n" +
                             $"[bold]Added:[/] {Markup.Escape(deal.AddTime ?? "N/A")}\n" +
                             $"[bold]Updated:[/] {Markup.Escape(deal.UpdateTime ?? "N/A")}" +
