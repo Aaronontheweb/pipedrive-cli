@@ -7,32 +7,23 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.9.0</VersionPrefix>
-    <PackageReleaseNotes>This release adds time-window filtering and cursor-based pagination to the `deals list` and `activities list` commands, making it practical to sync only recently changed records at scale. It also includes an improved credentials setup guide in the README.
+    <VersionPrefix>0.10.0</VersionPrefix>
+    <PackageReleaseNotes>This release adds powerful date range filtering to `deals list` — filter by expected close date (`--closing-after` / `--closing-before`) or by when deals were actually won (`--won-after` / `--won-before`). It also surfaces won and lost timestamps in `deals get` output.
 
 **New Features**
 
-- **Update-Window Filters for Deals and Activities**
-  - Added `--updated-since` and `--updated-until` options to `deals list` and `activities list` to retrieve only records changed within a specified time window
-  - Supports ISO 8601 timestamps (e.g. `2026-06-24T00:00:00Z`)
-  - Useful for incremental sync workflows where you only need to process recently modified records
-  - Example: `pipedrive deals list --updated-since 2026-06-01T00:00:00Z --updated-until 2026-06-24T00:00:00Z`
-  - Example: `pipedrive activities list --updated-since 2026-06-24T00:00:00Z`
+- **Closing Date Filtering**
+  - Added `--closing-after &lt;date&gt;` and `--closing-before &lt;date&gt;` options to `deals list` to filter by expected close date
+  - Supports YYYY-MM-DD format (e.g. `2026-04-01`)
+  - Example: `pipedrive deals list --closing-after 2026-04-01 --closing-before 2026-06-30`
 
-- **Cursor-Based Pagination**
-  - Added `--cursor` option to `deals list` and `activities list` for efficient traversal of large result sets using Pipedrive v2 API pagination
-  - The API returns a `next_cursor` value when more pages are available; pass it to subsequent calls to continue
-  - Example: `pipedrive deals list --limit 500 --cursor &lt;next_cursor_value&gt;`
+- **Won/Lost Date Filtering**
+  - Added `--won-after &lt;date&gt;` and `--won-before &lt;date&gt;` options to `deals list` to filter by actual won time
+  - Useful for reporting on closed-won deals within a specific period
+  - Example: `pipedrive deals list --status won --won-after 2026-04-01 --won-before 2026-06-30`
 
-- **Activity Sorting**
-  - Activities can now be retrieved in a consistent sort order when using update-window filters
-
-**Documentation**
-
-- **Credentials Setup Guide** ([#151](https://github.com/Aaronontheweb/pipedrive-cli/issues/151))
-  - Added a prominent **Getting Your Pipedrive Credentials** section to the README, visible without scrolling
-  - Covers how to find your API token (Settings → Personal preferences → API) and your Pipedrive domain
-  - Guides users to use `pipedrive config set` / `pipedrive config test` as the primary setup path
+- **Won/Lost Time Display**
+  - `deals get` now displays `won_time` and `lost_time` for closed deals
 
 ---</PackageReleaseNotes>
   </PropertyGroup>
