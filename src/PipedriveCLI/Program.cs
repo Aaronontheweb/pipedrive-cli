@@ -1,8 +1,11 @@
 ﻿using System.CommandLine;
+using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using PipedriveCLI.Commands;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI;
@@ -19,8 +22,12 @@ public static class Program
         var versionAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         var currentVersion = versionAttribute?.InformationalVersion ?? "0.1.0";
 
-        // Start background update check (non-blocking)
-        var updateCheckTask = CheckForUpdateInBackground(currentVersion);
+        var jsonOutputRequested = args.Contains("--json", StringComparer.Ordinal);
+
+        // Start background update check (non-blocking). Suppress this in JSON mode so stdout remains machine-readable.
+        var updateCheckTask = jsonOutputRequested
+            ? Task.FromResult<UpdateInfo?>(null)
+            : CheckForUpdateInBackground(currentVersion);
 
         // Set up dependency injection
         var services = new ServiceCollection();
@@ -76,8 +83,16 @@ public static class Program
 
         // TODO: Add more commands (export)
 
-        // Execute command
-        var result = await rootCommand.InvokeAsync(args);
+        // Execute command. Handle parse failures explicitly in JSON mode because command handlers
+        // are not reached when System.CommandLine rejects arguments or options.
+        var parseResult = rootCommand.Parse(args);
+        if (jsonOutputRequested && parseResult.Errors.Count > 0)
+        {
+            JsonOutputHelper.WriteError(string.Join(Environment.NewLine, parseResult.Errors.Select(e => e.Message)));
+            return 1;
+        }
+
+        var result = await parseResult.InvokeAsync(new SystemConsole());
 
         // Wait for update check to complete and display if available
         var updateInfo = await updateCheckTask;

@@ -1,6 +1,7 @@
 using System.CommandLine;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI.Commands;
@@ -64,6 +65,8 @@ public static class NotesCommands
         listCommand.AddOption(personIdOption);
         listCommand.AddOption(orgIdOption);
         listCommand.AddOption(leadIdOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
         listCommand.SetHandler(async (context) =>
         {
@@ -73,86 +76,91 @@ public static class NotesCommands
             var personId = context.ParseResult.GetValueForOption(personIdOption);
             var orgId = context.ParseResult.GetValueForOption(orgIdOption);
             var leadId = context.ParseResult.GetValueForOption(leadIdOption);
+            var json = context.ParseResult.GetValueForOption(jsonOption);
 
             try
             {
                 await apiClient.InitializeAsync();
 
-                await AnsiConsole.Status()
-                    .StartAsync("Fetching notes...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    "Fetching notes...",
+                    () => apiClient.GetNotesAsync(limit, start, dealId, personId, orgId, leadId));
+
+                if (response?.Success == true)
+                {
+                    var notes = response.Data ?? new List<Note>();
+                    response.Data = notes;
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListNote);
+                        return;
+                    }
 
-                        var response = await apiClient.GetNotesAsync(limit, start, dealId, personId, orgId, leadId);
+                    if (notes.Count == 0)
+                    {
+                        AnsiConsole.MarkupLine("[yellow]No notes found[/]");
+                    }
+                    else
+                    {
+                        var table = new Table();
+                        table.Border(TableBorder.Rounded);
+                        table.AddColumn(new TableColumn("ID").NoWrap());
+                        table.AddColumn("Content Preview");
+                        table.AddColumn(new TableColumn("Deal/Person/Org/Lead").NoWrap());
+                        table.AddColumn("User ID");
+                        table.AddColumn("Added");
 
-                        if (response?.Success == true)
+                        foreach (var note in notes)
                         {
-                            ctx.Status("Formatting results...");
-
-                            var notes = response.Data ?? new List<Note>();
-
-                            if (notes.Count == 0)
+                            var contentPreview = note.Content ?? "-";
+                            if (contentPreview.Length > 50)
                             {
-                                AnsiConsole.MarkupLine("[yellow]No notes found[/]");
+                                contentPreview = contentPreview.Substring(0, 50) + "...";
                             }
-                            else
-                            {
-                                var table = new Table();
-                                table.Border(TableBorder.Rounded);
-                                table.AddColumn(new TableColumn("ID").NoWrap());
-                                table.AddColumn("Content Preview");
-                                table.AddColumn(new TableColumn("Deal/Person/Org/Lead").NoWrap());
-                                table.AddColumn("User ID");
-                                table.AddColumn("Added");
+                            contentPreview = Markup.Escape(contentPreview.Replace("\n", " ").Replace("\r", ""));
 
-                                foreach (var note in notes)
-                                {
-                                    // Truncate and sanitize content for display
-                                    var contentPreview = note.Content ?? "-";
-                                    if (contentPreview.Length > 50)
-                                    {
-                                        contentPreview = contentPreview.Substring(0, 50) + "...";
-                                    }
-                                    contentPreview = Markup.Escape(contentPreview.Replace("\n", " ").Replace("\r", ""));
+                            var entityInfo = note.DealId?.ToString()
+                                ?? note.PersonId?.ToString()
+                                ?? note.OrgId?.ToString()
+                                ?? note.LeadId
+                                ?? note.ProjectId?.ToString()
+                                ?? "-";
 
-                                    var entityInfo = note.DealId?.ToString()
-                                        ?? note.PersonId?.ToString()
-                                        ?? note.OrgId?.ToString()
-                                        ?? note.LeadId
-                                        ?? note.ProjectId?.ToString()
-                                        ?? "-";
-
-                                    table.AddRow(
-                                        note.Id.ToString(),
-                                        contentPreview,
-                                        entityInfo,
-                                        note.UserId?.ToString() ?? "-",
-                                        note.AddTime ?? "-"
-                                    );
-                                }
-
-                                AnsiConsole.Write(table);
-
-                                if (response.AdditionalData?.Pagination != null)
-                                {
-                                    var pagination = response.AdditionalData.Pagination;
-                                    AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + notes.Count} " +
-                                        $"| More available: {pagination.MoreItemsInCollection}[/]");
-                                }
-                            }
-
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {notes.Count} note(s)");
+                            table.AddRow(
+                                note.Id.ToString(),
+                                contentPreview,
+                                entityInfo,
+                                note.UserId?.ToString() ?? "-",
+                                note.AddTime ?? "-"
+                            );
                         }
-                        else
+
+                        AnsiConsole.Write(table);
+
+                        if (response.AdditionalData?.Pagination != null)
                         {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch notes: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                            var pagination = response.AdditionalData.Pagination;
+                            AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + notes.Count} " +
+                                $"| More available: {pagination.MoreItemsInCollection}[/]");
                         }
-                    });
+                    }
+
+                    AnsiConsole.MarkupLine($"\n[green]✓[/] Found {notes.Count} note(s)");
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch notes: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
         });
 
@@ -169,22 +177,28 @@ public static class NotesCommands
         var idArgument = new Argument<int>("id", "Note ID");
         getCommand.AddArgument(idArgument);
 
-        getCommand.SetHandler(async (id) =>
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        getCommand.AddOption(jsonOption);
+
+        getCommand.SetHandler(async (id, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching note {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetNoteByIdAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching note {id}...",
+                    () => apiClient.GetNoteByIdAsync(id));
 
                 if (response?.Success == true && response.Data != null)
                 {
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Note);
+                        return;
+                    }
+
                     var note = response.Data;
                     var content = Markup.Escape(note.Content ?? "");
 
@@ -210,6 +224,10 @@ public static class NotesCommands
 
                     AnsiConsole.Write(panel);
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch note: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -217,9 +235,9 @@ public static class NotesCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, idArgument);
+        }, idArgument, jsonOption);
 
         return getCommand;
     }

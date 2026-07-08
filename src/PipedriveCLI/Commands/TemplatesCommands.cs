@@ -1,6 +1,7 @@
 using System.CommandLine;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI.Commands;
@@ -30,58 +31,66 @@ public static class TemplatesCommands
     private static Command CreateListCommand(PipedriveApiClient apiClient)
     {
         var listCommand = new Command("list", "List all email templates");
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
-        listCommand.SetHandler(async () =>
+        listCommand.SetHandler(async (json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                await AnsiConsole.Status()
-                    .StartAsync("Fetching email templates...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    "Fetching email templates...",
+                    () => apiClient.GetEmailTemplatesAsync());
+
+                if (response?.Success == true)
+                {
+                    response.Data ??= new List<EmailTemplate>();
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListEmailTemplate);
+                        return;
+                    }
 
-                        var response = await apiClient.GetEmailTemplatesAsync();
+                    var table = new Table();
+                    table.Border(TableBorder.Rounded);
+                    table.AddColumn(new TableColumn("ID").NoWrap());
+                    table.AddColumn("Name");
+                    table.AddColumn("Shared");
+                    table.AddColumn("Updated");
 
-                        if (response?.Success == true && response.Data != null)
-                        {
-                            ctx.Status("Formatting results...");
+                    foreach (var template in response.Data)
+                    {
+                        var sharedDisplay = template.SharedFlag == 1 ? "Yes" : "No";
 
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn(new TableColumn("ID").NoWrap());
-                            table.AddColumn("Name");
-                            table.AddColumn("Shared");
-                            table.AddColumn("Updated");
+                        table.AddRow(
+                            template.Id.ToString(),
+                            Markup.Escape(template.Name ?? "-"),
+                            sharedDisplay,
+                            template.UpdateTime ?? "-"
+                        );
+                    }
 
-                            foreach (var template in response.Data)
-                            {
-                                var sharedDisplay = template.SharedFlag == 1 ? "Yes" : "No";
-
-                                table.AddRow(
-                                    template.Id.ToString(),
-                                    Markup.Escape(template.Name ?? "-"),
-                                    sharedDisplay,
-                                    template.UpdateTime ?? "-"
-                                );
-                            }
-
-                            AnsiConsole.Write(table);
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} template(s)");
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch templates: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                    AnsiConsole.Write(table);
+                    AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} template(s)");
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch templates: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        });
+        }, jsonOption);
 
         return listCommand;
     }
@@ -101,23 +110,28 @@ public static class TemplatesCommands
             description: "Show the full HTML content of the template");
 
         getCommand.AddOption(showContentOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        getCommand.AddOption(jsonOption);
 
-        getCommand.SetHandler(async (id, showContent) =>
+        getCommand.SetHandler(async (id, showContent, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching template {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetEmailTemplateByIdAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching template {id}...",
+                    () => apiClient.GetEmailTemplateByIdAsync(id));
 
                 if (response?.Success == true && response.Data != null)
                 {
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.EmailTemplate);
+                        return;
+                    }
+
                     var template = response.Data;
 
                     var panel = new Panel(new Markup(
@@ -162,6 +176,10 @@ public static class TemplatesCommands
                         AnsiConsole.MarkupLine("\n[dim]Tip: Use --content or -c to see the template content[/]");
                     }
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch template: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -169,9 +187,9 @@ public static class TemplatesCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, idArgument, showContentOption);
+        }, idArgument, showContentOption, jsonOption);
 
         return getCommand;
     }

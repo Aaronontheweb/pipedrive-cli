@@ -48,78 +48,86 @@ public static class PersonsCommands
 
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
-        listCommand.SetHandler(async (limit, start) =>
+        listCommand.SetHandler(async (limit, start, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                await AnsiConsole.Status()
-                    .StartAsync("Fetching persons...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    "Fetching persons...",
+                    () => apiClient.GetPersonsAsync(limit, start));
+
+                if (response?.Success == true)
+                {
+                    response.Data ??= new List<Person>();
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListPerson);
+                        return;
+                    }
 
-                        var response = await apiClient.GetPersonsAsync(limit, start);
+                    var table = new Table();
+                    table.Border(TableBorder.Rounded);
+                    table.AddColumn(new TableColumn("ID").NoWrap());
+                    table.AddColumn("Name");
+                    table.AddColumn("Email");
+                    table.AddColumn("Phone");
+                    table.AddColumn("Org ID");
+                    table.AddColumn("Owner ID");
+                    table.AddColumn("Added");
 
-                        if (response?.Success == true && response.Data != null)
-                        {
-                            ctx.Status("Formatting results...");
+                    foreach (var person in response.Data)
+                    {
+                        var primaryEmail = person.Email?.FirstOrDefault(e => e.Primary)?.Value
+                            ?? person.Email?.FirstOrDefault()?.Value
+                            ?? "-";
 
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn(new TableColumn("ID").NoWrap());
-                            table.AddColumn("Name");
-                            table.AddColumn("Email");
-                            table.AddColumn("Phone");
-                            table.AddColumn("Org ID");
-                            table.AddColumn("Owner ID");
-                            table.AddColumn("Added");
+                        var primaryPhone = person.Phone?.FirstOrDefault(p => p.Primary)?.Value
+                            ?? person.Phone?.FirstOrDefault()?.Value
+                            ?? "-";
 
-                            foreach (var person in response.Data)
-                            {
-                                var primaryEmail = person.Email?.FirstOrDefault(e => e.Primary)?.Value
-                                    ?? person.Email?.FirstOrDefault()?.Value
-                                    ?? "-";
+                        table.AddRow(
+                            person.Id.ToString(),
+                            person.Name ?? "-",
+                            primaryEmail,
+                            primaryPhone,
+                            person.OrgId?.ToString() ?? "-",
+                            person.OwnerId?.ToString() ?? "-",
+                            person.AddTime ?? "-"
+                        );
+                    }
 
-                                var primaryPhone = person.Phone?.FirstOrDefault(p => p.Primary)?.Value
-                                    ?? person.Phone?.FirstOrDefault()?.Value
-                                    ?? "-";
+                    AnsiConsole.Write(table);
 
-                                table.AddRow(
-                                    person.Id.ToString(),
-                                    person.Name ?? "-",
-                                    primaryEmail,
-                                    primaryPhone,
-                                    person.OrgId?.ToString() ?? "-",
-                                    person.OwnerId?.ToString() ?? "-",
-                                    person.AddTime ?? "-"
-                                );
-                            }
+                    if (response.AdditionalData?.Pagination != null)
+                    {
+                        var pagination = response.AdditionalData.Pagination;
+                        AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} " +
+                            $"| More available: {pagination.MoreItemsInCollection}[/]");
+                    }
 
-                            AnsiConsole.Write(table);
-
-                            if (response.AdditionalData?.Pagination != null)
-                            {
-                                var pagination = response.AdditionalData.Pagination;
-                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} " +
-                                    $"| More available: {pagination.MoreItemsInCollection}[/]");
-                            }
-
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} person(s)");
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch persons: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                    AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} person(s)");
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch persons: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, limitOption, startOption);
+        }, limitOption, startOption, jsonOption);
 
         return listCommand;
     }
@@ -134,22 +142,28 @@ public static class PersonsCommands
         var idArgument = new Argument<int>("id", "Person ID");
         getCommand.AddArgument(idArgument);
 
-        getCommand.SetHandler(async (id) =>
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        getCommand.AddOption(jsonOption);
+
+        getCommand.SetHandler(async (id, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching person {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetPersonByIdAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching person {id}...",
+                    () => apiClient.GetPersonByIdAsync(id));
 
                 if (response?.Success == true && response.Data != null)
                 {
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Person);
+                        return;
+                    }
+
                     var person = response.Data;
 
                     var emails = person.Email != null && person.Email.Count > 0
@@ -186,6 +200,10 @@ public static class PersonsCommands
 
                     AnsiConsole.Write(panel);
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch person: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -193,9 +211,9 @@ public static class PersonsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, idArgument);
+        }, idArgument, jsonOption);
 
         return getCommand;
     }
@@ -509,23 +527,30 @@ public static class PersonsCommands
             description: "Maximum number of results (default: 100)");
 
         searchCommand.AddOption(limitOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        searchCommand.AddOption(jsonOption);
 
-        searchCommand.SetHandler(async (term, limit) =>
+        searchCommand.SetHandler(async (term, limit, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Searching for '{term}'...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.SearchPersonsAsync(term, limit);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Searching for '{term}'...",
+                    () => apiClient.SearchPersonsAsync(term, limit));
 
-                if (response?.Success == true && response.Data != null)
+                if (response?.Success == true)
                 {
+                    response.Data ??= new List<Person>();
+
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListPerson);
+                        return;
+                    }
+
                     if (response.Data.Count == 0)
                     {
                         AnsiConsole.MarkupLine($"[yellow]No persons found matching '{term}'[/]");
@@ -562,6 +587,10 @@ public static class PersonsCommands
                     AnsiConsole.Write(table);
                     AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} person(s) matching '{term}'");
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Search failed: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -569,9 +598,9 @@ public static class PersonsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, termArgument, limitOption);
+        }, termArgument, limitOption, jsonOption);
 
         return searchCommand;
     }

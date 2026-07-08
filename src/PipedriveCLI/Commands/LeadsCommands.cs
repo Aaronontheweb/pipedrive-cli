@@ -1,6 +1,7 @@
 using System.CommandLine;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI.Commands;
@@ -55,8 +56,10 @@ public static class LeadsCommands
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
         listCommand.AddOption(statusOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
-        listCommand.SetHandler(async (limit, start, status) =>
+        listCommand.SetHandler(async (limit, start, status, json) =>
         {
             try
             {
@@ -73,69 +76,75 @@ public static class LeadsCommands
 
                 var statusLabel = status == "active" ? "active " : (status == "archived" ? "archived " : "");
 
-                await AnsiConsole.Status()
-                    .StartAsync($"Fetching {statusLabel}leads...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching {statusLabel}leads...",
+                    () => apiClient.GetLeadsAsync(limit, start, archivedStatus));
+
+                if (response?.Success == true)
+                {
+                    response.Data ??= new List<Lead>();
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListLead);
+                        return;
+                    }
 
-                        var response = await apiClient.GetLeadsAsync(limit, start, archivedStatus);
+                    var table = new Table();
+                    table.Border(TableBorder.Rounded);
+                    table.AddColumn(new TableColumn("ID").NoWrap());
+                    table.AddColumn("Title");
+                    table.AddColumn("Value");
+                    table.AddColumn("Person/Org ID");
+                    table.AddColumn("Owner ID");
+                    table.AddColumn("Added");
 
-                        if (response?.Success == true && response.Data != null)
-                        {
-                            ctx.Status("Formatting results...");
+                    foreach (var lead in response.Data)
+                    {
+                        var valueDisplay = lead.Value != null
+                            ? $"{lead.Value.Currency} {lead.Value.Amount:N2}"
+                            : "-";
 
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn(new TableColumn("ID").NoWrap());
-                            table.AddColumn("Title");
-                            table.AddColumn("Value");
-                            table.AddColumn("Person/Org ID");
-                            table.AddColumn("Owner ID");
-                            table.AddColumn("Added");
+                        var entityId = lead.PersonId?.ToString()
+                            ?? lead.OrganizationId?.ToString()
+                            ?? "-";
 
-                            foreach (var lead in response.Data)
-                            {
-                                var valueDisplay = lead.Value != null
-                                    ? $"{lead.Value.Currency} {lead.Value.Amount:N2}"
-                                    : "-";
+                        table.AddRow(
+                            Markup.Escape(lead.Id ?? "-"),
+                            Markup.Escape(lead.Title ?? "-"),
+                            valueDisplay,
+                            entityId,
+                            lead.OwnerId?.ToString() ?? "-",
+                            lead.AddTime ?? "-"
+                        );
+                    }
 
-                                var entityId = lead.PersonId?.ToString()
-                                    ?? lead.OrganizationId?.ToString()
-                                    ?? "-";
+                    AnsiConsole.Write(table);
 
-                                table.AddRow(
-                                    Markup.Escape(lead.Id ?? "-"),
-                                    Markup.Escape(lead.Title ?? "-"),
-                                    valueDisplay,
-                                    entityId,
-                                    lead.OwnerId?.ToString() ?? "-",
-                                    lead.AddTime ?? "-"
-                                );
-                            }
+                    if (response.AdditionalData?.Pagination != null)
+                    {
+                        var pagination = response.AdditionalData.Pagination;
+                        AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} " +
+                            $"| More available: {pagination.MoreItemsInCollection}[/]");
+                    }
 
-                            AnsiConsole.Write(table);
-
-                            if (response.AdditionalData?.Pagination != null)
-                            {
-                                var pagination = response.AdditionalData.Pagination;
-                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} " +
-                                    $"| More available: {pagination.MoreItemsInCollection}[/]");
-                            }
-
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} lead(s)");
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch leads: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                    AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} lead(s)");
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch leads: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, limitOption, startOption, statusOption);
+        }, limitOption, startOption, statusOption, jsonOption);
 
         return listCommand;
     }
@@ -150,22 +159,28 @@ public static class LeadsCommands
         var idArgument = new Argument<string>("id", "Lead ID");
         getCommand.AddArgument(idArgument);
 
-        getCommand.SetHandler(async (id) =>
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        getCommand.AddOption(jsonOption);
+
+        getCommand.SetHandler(async (id, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching lead {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetLeadByIdAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching lead {id}...",
+                    () => apiClient.GetLeadByIdAsync(id));
 
                 if (response?.Success == true && response.Data != null)
                 {
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Lead);
+                        return;
+                    }
+
                     var lead = response.Data;
 
                     var panel = new Panel(new Markup(
@@ -187,6 +202,10 @@ public static class LeadsCommands
 
                     AnsiConsole.Write(panel);
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch lead: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -194,9 +213,9 @@ public static class LeadsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, idArgument);
+        }, idArgument, jsonOption);
 
         return getCommand;
     }
@@ -468,23 +487,30 @@ public static class LeadsCommands
             description: "Maximum number of results (default: 100)");
 
         searchCommand.AddOption(limitOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        searchCommand.AddOption(jsonOption);
 
-        searchCommand.SetHandler(async (term, limit) =>
+        searchCommand.SetHandler(async (term, limit, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Searching for '{term}'...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.SearchLeadsAsync(term, limit);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Searching for '{term}'...",
+                    () => apiClient.SearchLeadsAsync(term, limit));
 
-                if (response?.Success == true && response.Data != null)
+                if (response?.Success == true)
                 {
+                    response.Data ??= new List<Lead>();
+
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListLead);
+                        return;
+                    }
+
                     if (response.Data.Count == 0)
                     {
                         AnsiConsole.MarkupLine($"[yellow]No leads found matching '{term}'[/]");
@@ -515,6 +541,10 @@ public static class LeadsCommands
                     AnsiConsole.Write(table);
                     AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} lead(s) matching '{term}'");
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Search failed: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -522,9 +552,9 @@ public static class LeadsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, termArgument, limitOption);
+        }, termArgument, limitOption, jsonOption);
 
         return searchCommand;
     }

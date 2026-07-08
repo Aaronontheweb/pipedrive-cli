@@ -25,6 +25,7 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
   - [pipelines - Pipelines Management](#pipelines---pipelines-management)
   - [emails - Email History](#emails---email-history)
   - [update - Auto-Update](#update---auto-update)
+- [Scriptable JSON Output](#scriptable-json-output)
 - [Building from Source](#building-from-source)
 - [Roadmap](#roadmap)
 - [Architecture](#architecture)
@@ -44,7 +45,7 @@ A fast, lightweight command-line interface for managing your Pipedrive CRM. Buil
 - **🔀 Entity Merging** - Merge duplicate persons, deals, and organizations with confirmation prompts
 - **🏷️ Custom Fields** - View custom fields with friendly names and update them via CLI
 - **🔧 Pipeline Management** - View pipelines and stages to understand your sales process
-- **🤖 Scriptable** - JSON output mode for automation and scripting
+- **🤖 Scriptable** - `--json` output mode on read commands for automation and scripting
 - **⬆️ Auto-Update** - Background update checking with self-update capability
 
 ## Getting Your Pipedrive Credentials
@@ -361,10 +362,10 @@ Manage Pipedrive leads with full CRUD operations and search capabilities.
 
 ```bash
 # List all leads
-pipedrive leads list [--limit 100] [--start 0]
+pipedrive leads list [--limit 100] [--start 0] [--json]
 
 # Get specific lead details
-pipedrive leads get <id>
+pipedrive leads get <id> [--json]
 
 # Create a new lead
 pipedrive leads create --title "Enterprise Deal" [--value 50000] [--expected-close-date "2025-12-31"]
@@ -376,7 +377,7 @@ pipedrive leads update <id> --title "Updated Title" [--value 75000]
 pipedrive leads delete <id> [--force]
 
 # Search leads
-pipedrive leads search "search term" [--limit 100]
+pipedrive leads search "search term" [--limit 100] [--json]
 ```
 
 ### `deals` - Deals Management
@@ -385,26 +386,30 @@ Manage deals with status filtering, custom field support, and merge capabilities
 
 ```bash
 # List all deals
-pipedrive deals list [--status open|won|lost|deleted|all_not_deleted] [--pipeline-id 1] [--org-id 123] [--limit 100] [--start 0]
+pipedrive deals list [--status open|won|lost|deleted|all_not_deleted] [--pipeline-id 1] [--org-id 123] [--limit 100] [--start 0] [--json]
 
 # List deals updated since a timestamp, including won/lost changes
-pipedrive deals list --updated-since 2026-06-24T00:00:00Z [--updated-until 2026-06-25T00:00:00Z] [--limit 500] [--cursor next_cursor]
+pipedrive deals list --updated-since 2026-06-24T00:00:00Z [--updated-until 2026-06-25T00:00:00Z] [--limit 500] [--cursor next_cursor] [--json]
 
 # Filter by expected close date range
-pipedrive deals list --closing-after 2026-04-01 --closing-before 2026-06-30
+pipedrive deals list --closing-after 2026-04-01 --closing-before 2026-06-30 [--json]
 
 # Filter by actual won time (revenue reporting)
-pipedrive deals list --status won --won-after 2026-04-01 --won-before 2026-06-30
+pipedrive deals list --status won --won-after 2026-04-01 --won-before 2026-06-30 [--json]
 # Note: --won-after/--won-before work best with --status won; a warning is shown without it
 
 # Get specific deal details (shows won_time/lost_time, custom fields with friendly names)
-pipedrive deals get <id>
+pipedrive deals get <id> [--json]
 
 # Get deal with raw custom field hash keys (for scripting)
 pipedrive deals get <id> --raw-keys
 
 # Get deal as JSON (for scripting/automation)
 pipedrive deals get <id> --json
+
+# List deal participants or attached products
+pipedrive deals participants <deal-id> [--json]
+pipedrive deals products <deal-id> [--json]
 
 # Create a new deal
 pipedrive deals create --title "Q4 License" --value 25000 [--currency USD] [--person-id 123] [--org-id 456]
@@ -435,10 +440,10 @@ Manage contacts with email, phone, and organization associations.
 
 ```bash
 # List all persons
-pipedrive persons list [--limit 100] [--start 0]
+pipedrive persons list [--limit 100] [--start 0] [--json]
 
 # Get specific person details (includes custom fields)
-pipedrive persons get <id>
+pipedrive persons get <id> [--json]
 
 # Create a new person
 pipedrive persons create --name "John Doe" [--email john@example.com] [--phone "+1234567890"] [--org-id 123]
@@ -450,7 +455,7 @@ pipedrive persons update <id> --name "Jane Doe" [--email jane@example.com]
 pipedrive persons delete <id> [--force]
 
 # Search persons
-pipedrive persons search "search term" [--limit 100]
+pipedrive persons search "search term" [--limit 100] [--json]
 
 # Merge duplicate persons
 pipedrive persons merge <source-id> <target-id> [--force]
@@ -462,10 +467,10 @@ Manage companies and organizations with search and merge capabilities.
 
 ```bash
 # List all organizations
-pipedrive organizations list [--limit 100] [--start 0]
+pipedrive organizations list [--limit 100] [--start 0] [--json]
 
 # Get specific organization details (includes custom fields)
-pipedrive organizations get <id>
+pipedrive organizations get <id> [--json]
 
 # Get organization as JSON (for scripting/automation)
 pipedrive organizations get <id> --json
@@ -480,7 +485,7 @@ pipedrive organizations update <id> --name "Updated Corp" [--address "New Addres
 pipedrive organizations delete <id> [--force]
 
 # Search organizations
-pipedrive organizations search "search term" [--limit 100]
+pipedrive organizations search "search term" [--limit 100] [--json]
 
 # Merge duplicate organizations
 pipedrive organizations merge <source-id> <target-id> [--force]
@@ -492,16 +497,16 @@ Manage tasks, calls, meetings, and other activities with due date tracking and u
 
 ```bash
 # List all activities
-pipedrive activities list [--done true|false] [--deal-id 123] [--person-id 456] [--org-id 789] [--limit 100] [--start 0]
+pipedrive activities list [--done true|false] [--deal-id 123] [--person-id 456] [--org-id 789] [--limit 100] [--start 0] [--json]
 
 # List activities updated since a timestamp
-pipedrive activities list --updated-since 2026-06-24T00:00:00Z [--updated-until 2026-06-25T00:00:00Z] [--limit 500] [--cursor next_cursor]
+pipedrive activities list --updated-since 2026-06-24T00:00:00Z [--updated-until 2026-06-25T00:00:00Z] [--limit 500] [--cursor next_cursor] [--json]
 
 # Sort activities by API-supported fields
-pipedrive activities list --sort-by add_time --sort-dir desc
+pipedrive activities list --sort-by add_time --sort-dir desc [--json]
 
 # Get specific activity details
-pipedrive activities get <id>
+pipedrive activities get <id> [--json]
 
 # Create a new activity
 pipedrive activities create --subject "Follow-up call" --type call [--due-date "2025-12-31"]
@@ -528,10 +533,10 @@ Manage notes with HTML content support and entity associations.
 
 ```bash
 # List all notes
-pipedrive notes list [--limit 100] [--start 0]
+pipedrive notes list [--limit 100] [--start 0] [--json]
 
 # Get specific note details
-pipedrive notes get <id>
+pipedrive notes get <id> [--json]
 
 # Create a new note
 pipedrive notes create --content "Meeting notes here" [--deal-id 123] [--person-id 456] [--org-id 789]
@@ -549,13 +554,13 @@ View pipelines and their stages to understand your sales process structure.
 
 ```bash
 # List all pipelines
-pipedrive pipelines list
+pipedrive pipelines list [--json]
 
 # Get specific pipeline details
-pipedrive pipelines get <id>
+pipedrive pipelines get <id> [--json]
 
 # List all stages in a pipeline
-pipedrive pipelines stages <id>
+pipedrive pipelines stages [--pipeline-id <id>] [--json]
 ```
 
 Example output for `pipelines list`:
@@ -586,28 +591,28 @@ View email conversations and threads associated with deals and contacts. Essenti
 
 ```bash
 # List emails for a deal
-pipedrive emails list-for-deal <deal-id> [--limit 50] [--start 0]
+pipedrive emails list-for-deal <deal-id> [--limit 50] [--start 0] [--json]
 
 # List emails for a person
-pipedrive emails list-for-person <person-id> [--limit 50] [--start 0]
+pipedrive emails list-for-person <person-id> [--limit 50] [--start 0] [--json]
 
 # Get a specific email message
-pipedrive emails get <message-id>
+pipedrive emails get <message-id> [--json]
 
 # Get email with full body content
-pipedrive emails get <message-id> --include-body
+pipedrive emails get <message-id> --include-body [--json]
 
 # List mail threads by folder
-pipedrive emails threads [--folder inbox|sent|drafts|archive] [--limit 50] [--start 0]
+pipedrive emails threads [--folder inbox|sent|drafts|archive] [--limit 50] [--start 0] [--json]
 
 # Get a specific mail thread
-pipedrive emails thread <thread-id>
+pipedrive emails thread <thread-id> [--json]
 
 # Get all messages in a thread
-pipedrive emails thread-messages <thread-id>
+pipedrive emails thread-messages <thread-id> [--json]
 
 # Get all messages in a thread with full body content
-pipedrive emails thread-messages <thread-id> --include-body
+pipedrive emails thread-messages <thread-id> --include-body [--json]
 ```
 
 Example workflow for understanding deal history:
@@ -639,6 +644,40 @@ pipedrive update --check --beta
 # Install latest update (including betas) without confirmation
 pipedrive update --beta --force
 ```
+
+## Scriptable JSON Output
+
+Read-only Pipedrive data commands support `--json` for automation. JSON mode writes only JSON to stdout and disables tables, progress spinners, summary lines, tips, and background update notices.
+
+Use JSON mode when piping to tools such as `jq`, cron jobs, MCP integrations, or custom scripts:
+
+```bash
+pipedrive leads search "acme" --json
+pipedrive deals list --status won --won-after 2026-04-01 --won-before 2026-06-30 --json
+pipedrive emails thread-messages 12345 --include-body --json
+```
+
+Output shape:
+
+- Single-record commands such as `get`, `emails get`, and `emails thread` output the entity object directly.
+- List/search commands output a response object with `success`, `data`, and any available `additional_data` pagination or cursor metadata.
+- Client-filtered list commands return the filtered data in `data`.
+- Error paths in JSON mode emit a JSON error object instead of Spectre.Console markup.
+
+Supported read commands include:
+
+- `leads list`, `leads get`, `leads search`
+- `deals list`, `deals get`, `deals participants`, `deals products`
+- `activities list`, `activities get`
+- `notes list`, `notes get`
+- `persons list`, `persons get`, `persons search`
+- `organizations list`, `organizations get`, `organizations search`
+- `pipelines list`, `pipelines get`, `pipelines stages`
+- `dealFields list`, `organizationFields list`
+- `templates list`, `templates get`
+- `emails list-for-deal`, `emails list-for-person`, `emails get`, `emails threads`, `emails thread`, `emails thread-messages`
+
+Configuration commands intentionally do not expose JSON output because they display credential-bearing local configuration, even when the human-readable table masks API keys.
 
 ## Getting Your API Key
 
