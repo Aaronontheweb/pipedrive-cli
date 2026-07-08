@@ -1,3 +1,27 @@
+#### 0.11.0 2026-07-08 ####
+
+This release adds machine-readable JSON output for read commands so scripts and integrations can consume CLI results directly, with consistent JSON-formatted errors and quieter output behavior in JSON mode.
+
+**New Features**
+
+- **Scriptable JSON Output for Read Commands** ([#170](https://github.com/Aaronontheweb/pipedrive-cli/pull/170))
+  - Added `--json` support to read/list/get/search-style commands including `activities`, `deals`, `emails`, `leads`, `notes`, `persons`, `organizations`, `pipelines`, `templates`, `dealFields`, and `organizationFields`
+  - JSON mode returns raw JSON for command output, making it easier to integrate automation and CI scripts
+  - Examples are updated in README with command usage showing `--json` for supported reads
+
+**Bug Fixes**
+
+- **Machine-Readable Errors in JSON Mode** ([#170](https://github.com/Aaronontheweb/pipedrive-cli/pull/170))
+  - JSON mode now suppresses status/progress text and renders validation/parsing failures as JSON error payloads
+  - Prevents mixed plain-text and JSON output during automation so downstream parsers receive valid JSON consistently
+
+**Documentation**
+
+- **JSON Output Guide** ([#170](https://github.com/Aaronontheweb/pipedrive-cli/pull/170))
+  - Added a dedicated `Scriptable JSON Output` section to README with usage examples and behavior notes
+
+---
+
 #### 0.10.0 July 01 2026 ####
 
 This release adds powerful date range filtering to `deals list` — filter by expected close date (`--closing-after` / `--closing-before`) or by when deals were actually won (`--won-after` / `--won-before`). It also surfaces won and lost timestamps in `deals get` output.
