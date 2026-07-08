@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Text.RegularExpressions;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI.Commands;
@@ -49,42 +50,54 @@ public static class EmailsCommands
 
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
-        listCommand.SetHandler(async (dealId, limit, start) =>
+        listCommand.SetHandler(async (dealId, limit, start, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                await AnsiConsole.Status()
-                    .StartAsync($"Fetching emails for deal {dealId}...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching emails for deal {dealId}...",
+                    () => apiClient.GetMailMessagesForDealAsync(dealId, limit ?? 50, start));
+
+                if (response?.Success == true)
+                {
+                    var messages = (response.Data ?? new List<MailMessageWrapper>())
+                        .Where(w => w.Data != null)
+                        .Select(w => w.Data!)
+                        .ToList();
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-
-                        var response = await apiClient.GetMailMessagesForDealAsync(dealId, limit ?? 50, start);
-
-                        if (response?.Success == true && response.Data != null)
+                        JsonOutputHelper.Write(new PipedriveResponse<List<MailMessage>>
                         {
-                            ctx.Status("Formatting results...");
-                            // Extract inner MailMessage objects from the wrapper structure
-                            var messages = response.Data
-                                .Where(w => w.Data != null)
-                                .Select(w => w.Data!)
-                                .ToList();
-                            DisplayMailMessageList(messages, response.AdditionalData?.Pagination);
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch emails: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                            Success = true,
+                            Data = messages,
+                            AdditionalData = response.AdditionalData
+                        }, ApiJsonContext.Default.PipedriveResponseListMailMessage);
+                        return;
+                    }
+
+                    DisplayMailMessageList(messages, response.AdditionalData?.Pagination);
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch emails: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, dealIdArgument, limitOption, startOption);
+        }, dealIdArgument, limitOption, startOption, jsonOption);
 
         return listCommand;
     }
@@ -109,42 +122,54 @@ public static class EmailsCommands
 
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
-        listCommand.SetHandler(async (personId, limit, start) =>
+        listCommand.SetHandler(async (personId, limit, start, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                await AnsiConsole.Status()
-                    .StartAsync($"Fetching emails for person {personId}...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching emails for person {personId}...",
+                    () => apiClient.GetMailMessagesForPersonAsync(personId, limit ?? 50, start));
+
+                if (response?.Success == true)
+                {
+                    var messages = (response.Data ?? new List<MailMessageWrapper>())
+                        .Where(w => w.Data != null)
+                        .Select(w => w.Data!)
+                        .ToList();
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-
-                        var response = await apiClient.GetMailMessagesForPersonAsync(personId, limit ?? 50, start);
-
-                        if (response?.Success == true && response.Data != null)
+                        JsonOutputHelper.Write(new PipedriveResponse<List<MailMessage>>
                         {
-                            ctx.Status("Formatting results...");
-                            // Extract inner MailMessage objects from the wrapper structure
-                            var messages = response.Data
-                                .Where(w => w.Data != null)
-                                .Select(w => w.Data!)
-                                .ToList();
-                            DisplayMailMessageList(messages, response.AdditionalData?.Pagination);
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch emails: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                            Success = true,
+                            Data = messages,
+                            AdditionalData = response.AdditionalData
+                        }, ApiJsonContext.Default.PipedriveResponseListMailMessage);
+                        return;
+                    }
+
+                    DisplayMailMessageList(messages, response.AdditionalData?.Pagination);
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch emails: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, personIdArgument, limitOption, startOption);
+        }, personIdArgument, limitOption, startOption, jsonOption);
 
         return listCommand;
     }
@@ -164,24 +189,33 @@ public static class EmailsCommands
             description: "Include the full email body content");
 
         getCommand.AddOption(includeBodyOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        getCommand.AddOption(jsonOption);
 
-        getCommand.SetHandler(async (id, includeBody) =>
+        getCommand.SetHandler(async (id, includeBody, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching email {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetMailMessageByIdAsync(id, includeBody);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching email {id}...",
+                    () => apiClient.GetMailMessageByIdAsync(id, includeBody));
 
                 if (response?.Success == true && response.Data != null)
                 {
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.MailMessage);
+                        return;
+                    }
+
                     DisplayMailMessageDetail(response.Data, includeBody);
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
                 }
                 else
                 {
@@ -190,9 +224,9 @@ public static class EmailsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, idArgument, includeBodyOption);
+        }, idArgument, includeBodyOption, jsonOption);
 
         return getCommand;
     }
@@ -229,6 +263,8 @@ public static class EmailsCommands
         threadsCommand.AddOption(startOption);
         threadsCommand.AddOption(personIdOption);
         threadsCommand.AddOption(dealIdOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        threadsCommand.AddOption(jsonOption);
 
         threadsCommand.SetHandler(async context =>
         {
@@ -237,6 +273,7 @@ public static class EmailsCommands
             var start = context.ParseResult.GetValueForOption(startOption);
             var personId = context.ParseResult.GetValueForOption(personIdOption);
             var dealId = context.ParseResult.GetValueForOption(dealIdOption);
+            var json = context.ParseResult.GetValueForOption(jsonOption);
 
             try
             {
@@ -252,28 +289,35 @@ public static class EmailsCommands
                     ? $"Fetching mail threads for {string.Join(", ", statusParts)}..."
                     : "Fetching mail threads...";
 
-                await AnsiConsole.Status()
-                    .StartAsync(statusText, async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    statusText,
+                    () => apiClient.GetMailThreadsAsync(folder, limit ?? 50, start, personId, dealId));
+
+                if (response?.Success == true)
+                {
+                    response.Data ??= new List<MailThread>();
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListMailThread);
+                        return;
+                    }
 
-                        var response = await apiClient.GetMailThreadsAsync(folder, limit ?? 50, start, personId, dealId);
-
-                        if (response?.Success == true && response.Data != null)
-                        {
-                            ctx.Status("Formatting results...");
-                            DisplayMailThreadList(response.Data, response.AdditionalData?.Pagination);
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch mail threads: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                    DisplayMailThreadList(response.Data, response.AdditionalData?.Pagination);
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch mail threads: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
         });
 
@@ -290,23 +334,33 @@ public static class EmailsCommands
         var idArgument = new Argument<int>("thread-id", "Thread ID");
         threadCommand.AddArgument(idArgument);
 
-        threadCommand.SetHandler(async (id) =>
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        threadCommand.AddOption(jsonOption);
+
+        threadCommand.SetHandler(async (id, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching thread {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetMailThreadByIdAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching thread {id}...",
+                    () => apiClient.GetMailThreadByIdAsync(id));
 
                 if (response?.Success == true && response.Data != null)
                 {
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.MailThread);
+                        return;
+                    }
+
                     DisplayMailThreadDetail(response.Data);
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
                 }
                 else
                 {
@@ -315,9 +369,9 @@ public static class EmailsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, idArgument);
+        }, idArgument, jsonOption);
 
         return threadCommand;
     }
@@ -337,23 +391,30 @@ public static class EmailsCommands
             description: "Include the full email body content for each message");
 
         threadMessagesCommand.AddOption(includeBodyOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        threadMessagesCommand.AddOption(jsonOption);
 
-        threadMessagesCommand.SetHandler(async (id, includeBody) =>
+        threadMessagesCommand.SetHandler(async (id, includeBody, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching messages in thread {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetMailThreadMessagesAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching messages in thread {id}...",
+                    () => apiClient.GetMailThreadMessagesAsync(id));
 
-                if (response?.Success == true && response.Data != null)
+                if (response?.Success == true)
                 {
+                    response.Data ??= new List<MailMessage>();
+
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListMailMessage);
+                        return;
+                    }
+
                     if (includeBody)
                     {
                         // Display each message with full body
@@ -369,6 +430,10 @@ public static class EmailsCommands
                         DisplayMailMessageList(response.Data, null);
                     }
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch thread messages: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -376,9 +441,9 @@ public static class EmailsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, idArgument, includeBodyOption);
+        }, idArgument, includeBodyOption, jsonOption);
 
         return threadMessagesCommand;
     }

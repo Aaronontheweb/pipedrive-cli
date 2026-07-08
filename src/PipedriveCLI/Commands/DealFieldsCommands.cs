@@ -1,5 +1,7 @@
 using System.CommandLine;
+using PipedriveCLI.Models;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI.Commands;
@@ -39,88 +41,92 @@ public static class DealFieldsCommands
 
         listCommand.AddOption(searchOption);
         listCommand.AddOption(customOnlyOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
-        listCommand.SetHandler(async (search, customOnly) =>
+        listCommand.SetHandler(async (search, customOnly, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                await AnsiConsole.Status()
-                    .StartAsync("Fetching deal fields...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    "Fetching deal fields...",
+                    () => apiClient.GetDealFieldsAsync());
+
+                if (response?.Success == true)
+                {
+                    var fields = (response.Data ?? new List<DealField>()).AsEnumerable();
+
+                    if (customOnly)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        fields = fields.Where(f => f.EditFlag == true);
+                    }
 
-                        var response = await apiClient.GetDealFieldsAsync();
+                    if (!string.IsNullOrWhiteSpace(search))
+                    {
+                        fields = fields.Where(f =>
+                            f.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) == true);
+                    }
 
-                        if (response?.Success == true && response.Data != null)
+                    var fieldList = fields.ToList();
+                    response.Data = fieldList;
+
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListDealField);
+                        return;
+                    }
+
+                    if (fieldList.Count == 0)
+                    {
+                        AnsiConsole.MarkupLine("[yellow]No matching fields found[/]");
+                    }
+                    else
+                    {
+                        var table = new Table();
+                        table.Border(TableBorder.Rounded);
+                        table.AddColumn(new TableColumn("ID").NoWrap());
+                        table.AddColumn("Key");
+                        table.AddColumn("Name");
+                        table.AddColumn("Type");
+                        table.AddColumn("Editable");
+                        table.AddColumn("Required");
+
+                        foreach (var field in fieldList)
                         {
-                            ctx.Status("Formatting results...");
-
-                            var fields = response.Data.AsEnumerable();
-
-                            // Filter by custom only if requested
-                            if (customOnly)
-                            {
-                                fields = fields.Where(f => f.EditFlag == true);
-                            }
-
-                            // Filter by search term if provided
-                            if (!string.IsNullOrWhiteSpace(search))
-                            {
-                                fields = fields.Where(f =>
-                                    f.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) == true);
-                            }
-
-                            var fieldList = fields.ToList();
-
-                            if (fieldList.Count == 0)
-                            {
-                                AnsiConsole.MarkupLine("[yellow]No matching fields found[/]");
-                            }
-                            else
-                            {
-                                var table = new Table();
-                                table.Border(TableBorder.Rounded);
-                                table.AddColumn(new TableColumn("ID").NoWrap());
-                                table.AddColumn("Key");
-                                table.AddColumn("Name");
-                                table.AddColumn("Type");
-                                table.AddColumn("Editable");
-                                table.AddColumn("Required");
-
-                                foreach (var field in fieldList)
-                                {
-                                    table.AddRow(
-                                        field.Id?.ToString() ?? "-",
-                                        Markup.Escape(field.Key ?? "-"),
-                                        Markup.Escape(field.Name ?? "-"),
-                                        Markup.Escape(field.FieldType ?? "-"),
-                                        field.EditFlag == true ? "[green]Yes[/]" : "[dim]No[/]",
-                                        field.MandatoryFlag == true ? "[yellow]Yes[/]" : "[dim]No[/]"
-                                    );
-                                }
-
-                                AnsiConsole.Write(table);
-
-                                // Show hint about using keys for custom fields
-                                AnsiConsole.MarkupLine($"\n[green]✓[/] Found {fieldList.Count} field(s)");
-                                AnsiConsole.MarkupLine("[dim]Use the 'Key' value with --custom-fields when updating deals, e.g.:[/]");
-                                AnsiConsole.MarkupLine("[dim]  pipedrive deals update <id> --custom-fields \"<key>=<value>\"[/]");
-                            }
+                            table.AddRow(
+                                field.Id?.ToString() ?? "-",
+                                Markup.Escape(field.Key ?? "-"),
+                                Markup.Escape(field.Name ?? "-"),
+                                Markup.Escape(field.FieldType ?? "-"),
+                                field.EditFlag == true ? "[green]Yes[/]" : "[dim]No[/]",
+                                field.MandatoryFlag == true ? "[yellow]Yes[/]" : "[dim]No[/]"
+                            );
                         }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deal fields: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+
+                        AnsiConsole.Write(table);
+
+                        AnsiConsole.MarkupLine($"\n[green]✓[/] Found {fieldList.Count} field(s)");
+                        AnsiConsole.MarkupLine("[dim]Use the 'Key' value with --custom-fields when updating deals, e.g.:[/]");
+                        AnsiConsole.MarkupLine("[dim]  pipedrive deals update <id> --custom-fields \"<key>=<value>\"[/]");
+                    }
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deal fields: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, searchOption, customOnlyOption);
+        }, searchOption, customOnlyOption, jsonOption);
 
         return listCommand;
     }

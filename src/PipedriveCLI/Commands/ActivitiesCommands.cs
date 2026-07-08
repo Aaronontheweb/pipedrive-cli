@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Globalization;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI.Commands;
@@ -149,6 +150,8 @@ public static class ActivitiesCommands
         listCommand.AddOption(updatedUntilOption);
         listCommand.AddOption(sortByOption);
         listCommand.AddOption(sortDirOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
         listCommand.SetHandler(async context =>
         {
@@ -167,12 +170,15 @@ public static class ActivitiesCommands
             var updatedUntil = context.ParseResult.GetValueForOption(updatedUntilOption);
             var sortBy = context.ParseResult.GetValueForOption(sortByOption);
             var sortDir = context.ParseResult.GetValueForOption(sortDirOption);
+            var json = context.ParseResult.GetValueForOption(jsonOption);
 
             // Validate that only one entity filter is used at a time
             var filterCount = (dealId.HasValue ? 1 : 0) + (personId.HasValue ? 1 : 0) + (orgId.HasValue ? 1 : 0);
             if (filterCount > 1)
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Only one of --deal-id, --person-id, or --org-id can be specified at a time");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Only one of --deal-id, --person-id, or --org-id can be specified at a time",
+                    "[red]Error:[/] Only one of --deal-id, --person-id, or --org-id can be specified at a time");
                 return;
             }
 
@@ -189,7 +195,9 @@ public static class ActivitiesCommands
             {
                 if (!DateOnly.TryParseExact(dueBefore, "yyyy-MM-dd", out var parsedDate))
                 {
-                    AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --due-before. Expected YYYY-MM-DD");
+                    JsonOutputHelper.WriteErrorOrMarkup(json,
+                        "Invalid date format for --due-before. Expected YYYY-MM-DD",
+                        "[red]Error:[/] Invalid date format for --due-before. Expected YYYY-MM-DD");
                     return;
                 }
                 dueBeforeDate = parsedDate;
@@ -199,7 +207,9 @@ public static class ActivitiesCommands
             {
                 if (!DateOnly.TryParseExact(dueAfter, "yyyy-MM-dd", out var parsedDate))
                 {
-                    AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --due-after. Expected YYYY-MM-DD");
+                    JsonOutputHelper.WriteErrorOrMarkup(json,
+                        "Invalid date format for --due-after. Expected YYYY-MM-DD",
+                        "[red]Error:[/] Invalid date format for --due-after. Expected YYYY-MM-DD");
                     return;
                 }
                 dueAfterDate = parsedDate;
@@ -208,14 +218,18 @@ public static class ActivitiesCommands
             if (!string.IsNullOrWhiteSpace(updatedSince) &&
                 !DateTimeOffset.TryParse(updatedSince, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Invalid timestamp format for --updated-since. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Invalid timestamp format for --updated-since. Expected RFC3339, e.g. 2026-06-24T00:00:00Z",
+                    "[red]Error:[/] Invalid timestamp format for --updated-since. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
                 return;
             }
 
             if (!string.IsNullOrWhiteSpace(updatedUntil) &&
                 !DateTimeOffset.TryParse(updatedUntil, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Invalid timestamp format for --updated-until. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Invalid timestamp format for --updated-until. Expected RFC3339, e.g. 2026-06-24T00:00:00Z",
+                    "[red]Error:[/] Invalid timestamp format for --updated-until. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
                 return;
             }
 
@@ -228,160 +242,160 @@ public static class ActivitiesCommands
                     : orgId.HasValue ? $"Fetching activities for organization {orgId}..."
                     : "Fetching activities...";
 
-                await AnsiConsole.Status()
-                    .StartAsync(statusMessage, async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(json, statusMessage, async () =>
+                {
+                    if (dealId.HasValue)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        return await apiClient.GetDealActivitiesAsync(dealId.Value, limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
+                    }
 
-                        PipedriveResponse<List<Activity>>? response;
+                    if (personId.HasValue)
+                    {
+                        return await apiClient.GetPersonActivitiesAsync(personId.Value, limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
+                    }
 
-                        if (dealId.HasValue)
-                        {
-                            response = await apiClient.GetDealActivitiesAsync(dealId.Value, limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
-                        }
-                        else if (personId.HasValue)
-                        {
-                            response = await apiClient.GetPersonActivitiesAsync(personId.Value, limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
-                        }
-                        else if (orgId.HasValue)
-                        {
-                            response = await apiClient.GetOrganizationActivitiesAsync(orgId.Value, limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
-                        }
-                        else
-                        {
-                            response = await apiClient.GetActivitiesAsync(limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
-                        }
+                    if (orgId.HasValue)
+                    {
+                        return await apiClient.GetOrganizationActivitiesAsync(orgId.Value, limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
+                    }
 
-                        if (response?.Success == true && response.Data != null)
-                        {
-                            ctx.Status("Formatting results...");
+                    return await apiClient.GetActivitiesAsync(limit, start, done, updatedSince, updatedUntil, sortBy, sortDir, cursor);
+                });
 
-                            // Apply client-side date filtering
-                            var activities = response.Data;
-                            if (dueBeforeDate.HasValue || dueAfterDate.HasValue)
+                if (response?.Success == true)
+                {
+                    var activities = response.Data ?? new List<Activity>();
+
+                    if (dueBeforeDate.HasValue || dueAfterDate.HasValue)
+                    {
+                        activities = activities.Where(activity =>
+                        {
+                            if (string.IsNullOrWhiteSpace(activity.DueDate))
+                                return false;
+
+                            if (!DateOnly.TryParseExact(activity.DueDate, "yyyy-MM-dd", out var activityDueDate))
+                                return false;
+
+                            if (dueBeforeDate.HasValue && activityDueDate >= dueBeforeDate.Value)
+                                return false;
+
+                            if (dueAfterDate.HasValue && activityDueDate <= dueAfterDate.Value)
+                                return false;
+
+                            return true;
+                        }).ToList();
+                    }
+
+                    if (!includeArchivedLeads)
+                    {
+                        var activitiesWithLeads = activities.Where(a => !string.IsNullOrWhiteSpace(a.LeadId)).ToList();
+                        if (activitiesWithLeads.Count > 0)
+                        {
+                            var archivedLeadIds = new HashSet<string>();
+
+                            var uniqueLeadIds = activitiesWithLeads.Select(a => a.LeadId!).Distinct().ToList();
+                            foreach (var leadId in uniqueLeadIds)
                             {
-                                activities = activities.Where(activity =>
+                                try
                                 {
-                                    if (string.IsNullOrWhiteSpace(activity.DueDate))
-                                        return false; // Exclude activities without a due date
-
-                                    if (!DateOnly.TryParseExact(activity.DueDate, "yyyy-MM-dd", out var activityDueDate))
-                                        return false; // Exclude activities with invalid date format
-
-                                    if (dueBeforeDate.HasValue && activityDueDate >= dueBeforeDate.Value)
-                                        return false;
-
-                                    if (dueAfterDate.HasValue && activityDueDate <= dueAfterDate.Value)
-                                        return false;
-
-                                    return true;
-                                }).ToList();
-                            }
-
-                            // Filter out activities associated with archived leads (unless --include-archived-leads is specified)
-                            if (!includeArchivedLeads)
-                            {
-                                var activitiesWithLeads = activities.Where(a => !string.IsNullOrWhiteSpace(a.LeadId)).ToList();
-                                if (activitiesWithLeads.Count > 0)
+                                    var lead = await apiClient.GetLeadByIdAsync(leadId);
+                                    if (lead?.Success == true && lead.Data?.IsArchived == true)
+                                    {
+                                        archivedLeadIds.Add(leadId);
+                                    }
+                                }
+                                catch
                                 {
-                                    ctx.Status("Checking lead status...");
-                                    var archivedLeadIds = new HashSet<string>();
-
-                                    // Get unique lead IDs and check if they're archived
-                                    var uniqueLeadIds = activitiesWithLeads.Select(a => a.LeadId!).Distinct().ToList();
-                                    foreach (var leadId in uniqueLeadIds)
-                                    {
-                                        try
-                                        {
-                                            var lead = await apiClient.GetLeadByIdAsync(leadId);
-                                            if (lead?.Success == true && lead.Data?.IsArchived == true)
-                                            {
-                                                archivedLeadIds.Add(leadId);
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            // If we can't fetch the lead, don't filter it out
-                                        }
-                                    }
-
-                                    if (archivedLeadIds.Count > 0)
-                                    {
-                                        activities = activities.Where(a =>
-                                            string.IsNullOrWhiteSpace(a.LeadId) || !archivedLeadIds.Contains(a.LeadId)
-                                        ).ToList();
-                                    }
+                                    // If we can't fetch the lead, don't filter it out.
                                 }
                             }
 
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn(new TableColumn("ID").NoWrap());
-                            table.AddColumn("Subject");
-                            table.AddColumn("Type");
-                            table.AddColumn("Due Date");
-                            table.AddColumn("Done");
-                            table.AddColumn(new TableColumn("Association").NoWrap());
-                            table.AddColumn("Added");
-
-                            foreach (var activity in activities)
+                            if (archivedLeadIds.Count > 0)
                             {
-                                var dueDateTime = !string.IsNullOrWhiteSpace(activity.DueTime)
-                                    ? $"{activity.DueDate} {activity.DueTime}"
-                                    : activity.DueDate ?? "-";
-
-                                // Show association type with prefix for clarity
-                                string entityInfo;
-                                if (activity.DealId.HasValue)
-                                    entityInfo = $"Deal: {activity.DealId}";
-                                else if (!string.IsNullOrWhiteSpace(activity.LeadId))
-                                    entityInfo = $"Lead: {activity.LeadId}";
-                                else if (activity.PersonId.HasValue)
-                                    entityInfo = $"Person: {activity.PersonId}";
-                                else if (activity.OrgId.HasValue)
-                                    entityInfo = $"Org: {activity.OrgId}";
-                                else
-                                    entityInfo = "[dim](orphaned)[/]";
-
-                                var doneStatus = activity.Done ? "[green]✓[/]" : "[red]✗[/]";
-
-                                table.AddRow(
-                                    activity.Id.ToString(),
-                                    activity.Subject ?? "-",
-                                    activity.Type ?? "-",
-                                    dueDateTime,
-                                    doneStatus,
-                                    entityInfo,
-                                    activity.AddTime ?? "-"
-                                );
+                                activities = activities.Where(a =>
+                                    string.IsNullOrWhiteSpace(a.LeadId) || !archivedLeadIds.Contains(a.LeadId)
+                                ).ToList();
                             }
-
-                            AnsiConsole.Write(table);
-
-                            if (response.AdditionalData?.Pagination != null)
-                            {
-                                var pagination = response.AdditionalData.Pagination;
-                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} (filtered to {activities.Count}) " +
-                                    $"| More available: {pagination.MoreItemsInCollection}[/]");
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(response.AdditionalData?.NextCursor))
-                            {
-                                AnsiConsole.MarkupLine($"[dim]Next cursor: {Markup.Escape(response.AdditionalData.NextCursor)}[/]");
-                            }
-
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {activities.Count} activit{(activities.Count == 1 ? "y" : "ies")}");
                         }
+                    }
+
+                    response.Data = activities;
+
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListActivity);
+                        return;
+                    }
+
+                    var table = new Table();
+                    table.Border(TableBorder.Rounded);
+                    table.AddColumn(new TableColumn("ID").NoWrap());
+                    table.AddColumn("Subject");
+                    table.AddColumn("Type");
+                    table.AddColumn("Due Date");
+                    table.AddColumn("Done");
+                    table.AddColumn(new TableColumn("Association").NoWrap());
+                    table.AddColumn("Added");
+
+                    foreach (var activity in activities)
+                    {
+                        var dueDateTime = !string.IsNullOrWhiteSpace(activity.DueTime)
+                            ? $"{activity.DueDate} {activity.DueTime}"
+                            : activity.DueDate ?? "-";
+
+                        string entityInfo;
+                        if (activity.DealId.HasValue)
+                            entityInfo = $"Deal: {activity.DealId}";
+                        else if (!string.IsNullOrWhiteSpace(activity.LeadId))
+                            entityInfo = $"Lead: {activity.LeadId}";
+                        else if (activity.PersonId.HasValue)
+                            entityInfo = $"Person: {activity.PersonId}";
+                        else if (activity.OrgId.HasValue)
+                            entityInfo = $"Org: {activity.OrgId}";
                         else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch activities: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                            entityInfo = "[dim](orphaned)[/]";
+
+                        var doneStatus = activity.Done ? "[green]✓[/]" : "[red]✗[/]";
+
+                        table.AddRow(
+                            activity.Id.ToString(),
+                            activity.Subject ?? "-",
+                            activity.Type ?? "-",
+                            dueDateTime,
+                            doneStatus,
+                            entityInfo,
+                            activity.AddTime ?? "-"
+                        );
+                    }
+
+                    AnsiConsole.Write(table);
+
+                    if (response.AdditionalData?.Pagination != null)
+                    {
+                        var pagination = response.AdditionalData.Pagination;
+                        AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + (response.Data?.Count ?? 0)} (filtered to {activities.Count}) " +
+                            $"| More available: {pagination.MoreItemsInCollection}[/]");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(response.AdditionalData?.NextCursor))
+                    {
+                        AnsiConsole.MarkupLine($"[dim]Next cursor: {Markup.Escape(response.AdditionalData.NextCursor)}[/]");
+                    }
+
+                    AnsiConsole.MarkupLine($"\n[green]✓[/] Found {activities.Count} activit{(activities.Count == 1 ? "y" : "ies")}");
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch activities: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
         });
 
@@ -398,22 +412,28 @@ public static class ActivitiesCommands
         var idArgument = new Argument<int>("id", "Activity ID");
         getCommand.AddArgument(idArgument);
 
-        getCommand.SetHandler(async (id) =>
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        getCommand.AddOption(jsonOption);
+
+        getCommand.SetHandler(async (id, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching activity {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetActivityByIdAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching activity {id}...",
+                    () => apiClient.GetActivityByIdAsync(id));
 
                 if (response?.Success == true && response.Data != null)
                 {
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Activity);
+                        return;
+                    }
+
                     var activity = response.Data;
 
                     var dueDateTime = !string.IsNullOrWhiteSpace(activity.DueTime)
@@ -440,6 +460,10 @@ public static class ActivitiesCommands
 
                     AnsiConsole.Write(panel);
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch activity: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -447,9 +471,9 @@ public static class ActivitiesCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, idArgument);
+        }, idArgument, jsonOption);
 
         return getCommand;
     }

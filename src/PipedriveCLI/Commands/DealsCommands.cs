@@ -1,6 +1,5 @@
 using System.CommandLine;
 using System.Globalization;
-using System.Text.Json;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
 using PipedriveCLI.Utilities;
@@ -108,6 +107,8 @@ public static class DealsCommands
         listCommand.AddOption(closingBeforeOption);
         listCommand.AddOption(wonAfterOption);
         listCommand.AddOption(wonBeforeOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
         listCommand.SetHandler(async (context) =>
         {
@@ -125,57 +126,74 @@ public static class DealsCommands
             var closingBeforeInput = context.ParseResult.GetValueForOption(closingBeforeOption);
             var wonAfterInput = context.ParseResult.GetValueForOption(wonAfterOption);
             var wonBeforeInput = context.ParseResult.GetValueForOption(wonBeforeOption);
+            var json = context.ParseResult.GetValueForOption(jsonOption);
 
             // Validate existing timestamp formats
             if (!string.IsNullOrWhiteSpace(updatedSince) &&
                 !DateTimeOffset.TryParse(updatedSince, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Invalid timestamp format for --updated-since. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Invalid timestamp format for --updated-since. Expected RFC3339, e.g. 2026-06-24T00:00:00Z",
+                    "[red]Error:[/] Invalid timestamp format for --updated-since. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
                 return;
             }
 
             if (!string.IsNullOrWhiteSpace(updatedUntil) &&
                 !DateTimeOffset.TryParse(updatedUntil, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Invalid timestamp format for --updated-until. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Invalid timestamp format for --updated-until. Expected RFC3339, e.g. 2026-06-24T00:00:00Z",
+                    "[red]Error:[/] Invalid timestamp format for --updated-until. Expected RFC3339, e.g. 2026-06-24T00:00:00Z");
                 return;
             }
 
             // Validate date filters
             if (!DateFilterHelper.TryParseDateFilter(closingAfterInput, out var closingAfter))
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --closing-after. Use YYYY-MM-DD (e.g., 2024-01-15).");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Invalid date format for --closing-after. Use YYYY-MM-DD (e.g., 2024-01-15).",
+                    "[red]Error:[/] Invalid date format for --closing-after. Use YYYY-MM-DD (e.g., 2024-01-15).");
                 return;
             }
 
             if (!DateFilterHelper.TryParseDateFilter(closingBeforeInput, out var closingBefore))
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --closing-before. Use YYYY-MM-DD (e.g., 2024-12-31).");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Invalid date format for --closing-before. Use YYYY-MM-DD (e.g., 2024-12-31).",
+                    "[red]Error:[/] Invalid date format for --closing-before. Use YYYY-MM-DD (e.g., 2024-12-31).");
                 return;
             }
 
             if (!DateFilterHelper.TryParseDateFilter(wonAfterInput, out var wonAfterDate))
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --won-after. Use YYYY-MM-DD (e.g., 2024-01-15).");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Invalid date format for --won-after. Use YYYY-MM-DD (e.g., 2024-01-15).",
+                    "[red]Error:[/] Invalid date format for --won-after. Use YYYY-MM-DD (e.g., 2024-01-15).");
                 return;
             }
 
             if (!DateFilterHelper.TryParseDateFilter(wonBeforeInput, out var wonBeforeDate))
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Invalid date format for --won-before. Use YYYY-MM-DD (e.g., 2024-12-31).");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Invalid date format for --won-before. Use YYYY-MM-DD (e.g., 2024-12-31).",
+                    "[red]Error:[/] Invalid date format for --won-before. Use YYYY-MM-DD (e.g., 2024-12-31).");
                 return;
             }
 
             // Validate: after must be before before
             if (closingAfter.HasValue && closingBefore.HasValue && closingAfter.Value > closingBefore.Value)
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] --closing-after must be before --closing-before.");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "--closing-after must be before --closing-before.",
+                    "[red]Error:[/] --closing-after must be before --closing-before.");
                 return;
             }
 
             if (wonAfterDate.HasValue && wonBeforeDate.HasValue && wonAfterDate.Value > wonBeforeDate.Value)
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] --won-after must be before --won-before.");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "--won-after must be before --won-before.",
+                    "[red]Error:[/] --won-after must be before --won-before.");
                 return;
             }
 
@@ -188,11 +206,13 @@ public static class DealsCommands
 
             if (hasClosingFilter && hasWonFilter)
             {
-                AnsiConsole.MarkupLine("[red]Error:[/] Cannot use --closing-after/--closing-before together with --won-after/--won-before.");
+                JsonOutputHelper.WriteErrorOrMarkup(json,
+                    "Cannot use --closing-after/--closing-before together with --won-after/--won-before.",
+                    "[red]Error:[/] Cannot use --closing-after/--closing-before together with --won-after/--won-before.");
                 return;
             }
 
-            if (hasWonFilter && status?.Equals("won", StringComparison.OrdinalIgnoreCase) != true)
+            if (!json && hasWonFilter && status?.Equals("won", StringComparison.OrdinalIgnoreCase) != true)
             {
                 AnsiConsole.MarkupLine("[yellow]Warning:[/] Using --won-after/--won-before without --status won. Consider adding --status won for accurate results.[/]");
             }
@@ -218,143 +238,162 @@ public static class DealsCommands
             {
                 await apiClient.InitializeAsync();
 
-                List<Deal> deals;
                 bool hasDateFilter = hasClosingFilter || hasWonFilter;
 
-                await AnsiConsole.Status()
-                    .StartAsync("Fetching deals...", async ctx =>
+                async Task<(PipedriveResponse<List<Deal>>? Response, List<Deal>? Deals)> FetchDealsAsync(StatusContext? ctx = null)
+                {
+                    List<Deal> deals;
+
+                    if (hasDateFilter)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        // Date filter active: use hybrid filtering with pagination
+                        ctx?.Status("Fetching deals with date filter (this may take a moment)...");
 
-                        if (hasDateFilter)
+                        if (orgId.HasValue)
                         {
-                            // Date filter active: use hybrid filtering with pagination
-                            ctx.Status("Fetching deals with date filter (this may take a moment)...");
-
-                            if (orgId.HasValue)
-                            {
-                                // Organization-specific: no updated_since/until support on that endpoint
-                                // Fall back to fetch-all + client-side filter
-                                deals = await PaginationHelper.FetchAllOrganizationDealsAsync(apiClient, orgId.Value, effectiveStatus);
-                            }
-                            else
-                            {
-                                // Full hybrid filtering: server-side pre-filter + pagination + client-side filter
-                                deals = await PaginationHelper.FetchAllDealsAsync(
-                                    apiClient,
-                                    status: effectiveStatus,
-                                    pipelineId: pipelineId,
-                                    updatedSince: dateFilterSince,
-                                    updatedUntil: dateFilterUntil);
-                            }
-
-
-
-                            // Apply precise client-side filtering
-                            if (hasClosingFilter)
-                            {
-                                deals = DateFilterHelper.FilterByExpectedCloseDate(deals, closingAfter, closingBefore).ToList();
-                            }
-
-                            if (hasWonFilter)
-                            {
-                                deals = DateFilterHelper.FilterByWonTime(deals, wonAfter, wonBefore).ToList();
-                            }
-
-                            // Apply limit/start after filtering
-                            if (limit.HasValue)
-                            {
-                                var startIndex = start ?? 0;
-                                if (startIndex >= deals.Count)
-                                    deals = new List<Deal>();
-                                else
-                                    deals = deals.Skip(startIndex).Take(limit.Value).ToList();
-                            }
+                            // Organization-specific: no updated_since/until support on that endpoint.
+                            // Fall back to fetch-all + client-side filter.
+                            deals = await PaginationHelper.FetchAllOrganizationDealsAsync(apiClient, orgId.Value, effectiveStatus);
                         }
                         else
                         {
-                            // No date filter: single API call (existing behavior)
-                            PipedriveResponse<List<Deal>>? response;
-
-                            if (orgId.HasValue)
-                            {
-                                response = await apiClient.GetOrganizationDealsAsync(orgId.Value, limit, start, effectiveStatus, updatedSince, updatedUntil, cursor);
-                            }
-                            else
-                            {
-                                response = await apiClient.GetDealsAsync(limit, start, effectiveStatus, pipelineId, updatedSince, updatedUntil, cursor);
-                            }
-
-                            if (response?.Success != true)
-                            {
-                                AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deals: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                                return;
-                            }
-
-                            deals = response.Data ?? new List<Deal>();
-
-                            ctx.Status("Formatting results...");
-
-                            // Show pagination/cursor info for non-date-filter queries
-                            if (response.AdditionalData?.Pagination != null)
-                            {
-                                var pagination = response.AdditionalData.Pagination;
-                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + deals.Count} " +
-                                    $"| More available: {pagination.MoreItemsInCollection}[/]");
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(response.AdditionalData?.NextCursor))
-                            {
-                                AnsiConsole.MarkupLine($"[dim]Next cursor: {Markup.Escape(response.AdditionalData.NextCursor)}[/]");
-                            }
+                            // Full hybrid filtering: server-side pre-filter + pagination + client-side filter.
+                            deals = await PaginationHelper.FetchAllDealsAsync(
+                                apiClient,
+                                status: effectiveStatus,
+                                pipelineId: pipelineId,
+                                updatedSince: dateFilterSince,
+                                updatedUntil: dateFilterUntil);
                         }
 
-                        // Render results
-                        if (deals.Count == 0)
+                        if (hasClosingFilter)
                         {
-                            AnsiConsole.MarkupLine("[yellow]No deals found[/]");
+                            deals = DateFilterHelper.FilterByExpectedCloseDate(deals, closingAfter, closingBefore).ToList();
                         }
-                        else
+
+                        if (hasWonFilter)
                         {
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn(new TableColumn("ID").NoWrap());
-                            table.AddColumn("Title");
-                            table.AddColumn("Value");
-                            table.AddColumn("Status");
-                            table.AddColumn("Stage ID");
-                            table.AddColumn("Person/Org ID");
-                            table.AddColumn("Expected Close");
-
-                            foreach (var deal in deals)
-                            {
-                                var valueDisplay = $"{deal.Currency} {deal.Value:N2}";
-
-                                var entityId = deal.PersonId?.ToString()
-                                    ?? deal.OrgId?.ToString()
-                                    ?? "-";
-
-                                table.AddRow(
-                                    deal.Id.ToString(),
-                                    Markup.Escape(deal.Title ?? "-"),
-                                    valueDisplay,
-                                    Markup.Escape(deal.Status ?? "-"),
-                                    deal.StageId?.ToString() ?? "-",
-                                    entityId,
-                                    Markup.Escape(deal.ExpectedCloseDate ?? "-")
-                                );
-                            }
-
-                            AnsiConsole.Write(table);
+                            deals = DateFilterHelper.FilterByWonTime(deals, wonAfter, wonBefore).ToList();
                         }
 
-                        AnsiConsole.MarkupLine($"\n[green]✓[/] Found {deals.Count} deal(s)");
-                    });
+                        if (limit.HasValue)
+                        {
+                            var startIndex = start ?? 0;
+                            deals = startIndex >= deals.Count
+                                ? new List<Deal>()
+                                : deals.Skip(startIndex).Take(limit.Value).ToList();
+                        }
+
+                        return (new PipedriveResponse<List<Deal>> { Success = true, Data = deals }, deals);
+                    }
+
+                    PipedriveResponse<List<Deal>>? response;
+
+                    if (orgId.HasValue)
+                    {
+                        response = await apiClient.GetOrganizationDealsAsync(orgId.Value, limit, start, effectiveStatus, updatedSince, updatedUntil, cursor);
+                    }
+                    else
+                    {
+                        response = await apiClient.GetDealsAsync(limit, start, effectiveStatus, pipelineId, updatedSince, updatedUntil, cursor);
+                    }
+
+                    if (response?.Success != true)
+                    {
+                        return (response, null);
+                    }
+
+                    deals = response.Data ?? new List<Deal>();
+                    response.Data = deals;
+                    ctx?.Status("Formatting results...");
+                    return (response, deals);
+                }
+
+                var (response, deals) = json
+                    ? await FetchDealsAsync()
+                    : await AnsiConsole.Status()
+                        .StartAsync("Fetching deals...", async ctx =>
+                        {
+                            ctx.Spinner(Spinner.Known.Dots);
+                            ctx.SpinnerStyle(Style.Parse("green"));
+                            return await FetchDealsAsync(ctx);
+                        });
+
+                if (response?.Success != true || deals == null)
+                {
+                    if (json)
+                    {
+                        JsonOutputHelper.WriteError(response?.Error);
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch deals: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                    }
+
+                    return;
+                }
+
+                if (json)
+                {
+                    JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListDeal);
+                    return;
+                }
+
+                if (response.AdditionalData?.Pagination != null)
+                {
+                    var pagination = response.AdditionalData.Pagination;
+                    AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + deals.Count} " +
+                        $"| More available: {pagination.MoreItemsInCollection}[/]");
+                }
+
+                if (!string.IsNullOrWhiteSpace(response.AdditionalData?.NextCursor))
+                {
+                    AnsiConsole.MarkupLine($"[dim]Next cursor: {Markup.Escape(response.AdditionalData.NextCursor)}[/]");
+                }
+
+                if (deals.Count == 0)
+                {
+                    AnsiConsole.MarkupLine("[yellow]No deals found[/]");
+                }
+                else
+                {
+                    var table = new Table();
+                    table.Border(TableBorder.Rounded);
+                    table.AddColumn(new TableColumn("ID").NoWrap());
+                    table.AddColumn("Title");
+                    table.AddColumn("Value");
+                    table.AddColumn("Status");
+                    table.AddColumn("Stage ID");
+                    table.AddColumn("Person/Org ID");
+                    table.AddColumn("Expected Close");
+
+                    foreach (var deal in deals)
+                    {
+                        var valueDisplay = $"{deal.Currency} {deal.Value:N2}";
+
+                        var entityId = deal.PersonId?.ToString()
+                            ?? deal.OrgId?.ToString()
+                            ?? "-";
+
+                        table.AddRow(
+                            deal.Id.ToString(),
+                            Markup.Escape(deal.Title ?? "-"),
+                            valueDisplay,
+                            Markup.Escape(deal.Status ?? "-"),
+                            deal.StageId?.ToString() ?? "-",
+                            entityId,
+                            Markup.Escape(deal.ExpectedCloseDate ?? "-")
+                        );
+                    }
+
+                    AnsiConsole.Write(table);
+                }
+
+                AnsiConsole.MarkupLine($"\n[green]✓[/] Found {deals.Count} deal(s)");
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
         });
 
@@ -371,9 +410,7 @@ public static class DealsCommands
         var idArgument = new Argument<int>("id", "Deal ID");
         getCommand.AddArgument(idArgument);
 
-        var jsonOption = new Option<bool>(
-            aliases: new[] { "--json" },
-            description: "Output raw JSON instead of formatted display");
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
         getCommand.AddOption(jsonOption);
 
         var rawKeysOption = new Option<bool>(
@@ -387,21 +424,16 @@ public static class DealsCommands
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching deal {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetDealByIdAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching deal {id}...",
+                    () => apiClient.GetDealByIdAsync(id));
 
                 if (response?.Success == true && response.Data != null)
                 {
                     if (json)
                     {
-                        // Output raw JSON
-                        var jsonOutput = JsonSerializer.Serialize(response.Data, ApiJsonContext.Default.Deal);
-                        Console.WriteLine(jsonOutput);
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Deal);
                     }
                     else
                     {
@@ -456,7 +488,7 @@ public static class DealsCommands
                 {
                     if (json)
                     {
-                        Console.WriteLine($"{{\"success\":false,\"error\":\"{response?.Error ?? "Unknown error"}\"}}");
+                        JsonOutputHelper.WriteError(response?.Error);
                     }
                     else
                     {
@@ -466,7 +498,7 @@ public static class DealsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
         }, idArgument, jsonOption, rawKeysOption);
 
@@ -912,23 +944,30 @@ public static class DealsCommands
             description: "Number of participants to return (default: 100)");
 
         participantsCommand.AddOption(limitOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        participantsCommand.AddOption(jsonOption);
 
-        participantsCommand.SetHandler(async (dealId, limit) =>
+        participantsCommand.SetHandler(async (dealId, limit, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching participants for deal {dealId}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetDealParticipantsAsync(dealId, limit);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching participants for deal {dealId}...",
+                    () => apiClient.GetDealParticipantsAsync(dealId, limit));
 
-                if (response?.Success == true && response.Data != null)
+                if (response?.Success == true)
                 {
+                    response.Data ??= new List<DealParticipant>();
+
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListDealParticipant);
+                        return;
+                    }
+
                     if (response.Data.Count == 0)
                     {
                         AnsiConsole.MarkupLine("[yellow]No participants found for this deal[/]");
@@ -956,6 +995,10 @@ public static class DealsCommands
                     AnsiConsole.Write(table);
                     AnsiConsole.MarkupLine($"[dim]Total: {response.Data.Count} participant(s)[/]");
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Failed to get participants: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -963,9 +1006,9 @@ public static class DealsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, dealIdArgument, limitOption);
+        }, dealIdArgument, limitOption, jsonOption);
 
         return participantsCommand;
     }
@@ -1088,24 +1131,30 @@ public static class DealsCommands
             description: "Number of products to return (default: 100)");
 
         productsCommand.AddOption(limitOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        productsCommand.AddOption(jsonOption);
 
-        productsCommand.SetHandler(async (dealId, limit) =>
+        productsCommand.SetHandler(async (dealId, limit, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching products for deal {dealId}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetDealProductsAsync(dealId, limit);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching products for deal {dealId}...",
+                    () => apiClient.GetDealProductsAsync(dealId, limit));
 
                 if (response?.Success == true)
                 {
                     var products = response.Data ?? new List<DealProduct>();
+                    response.Data = products;
+
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListDealProduct);
+                        return;
+                    }
 
                     if (products.Count == 0)
                     {
@@ -1142,6 +1191,10 @@ public static class DealsCommands
                     AnsiConsole.Write(table);
                     AnsiConsole.MarkupLine($"\n[dim]Total: {products.Count} product(s)[/]");
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Failed to get products: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -1149,9 +1202,9 @@ public static class DealsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, dealIdArgument, limitOption);
+        }, dealIdArgument, limitOption, jsonOption);
 
         return productsCommand;
     }

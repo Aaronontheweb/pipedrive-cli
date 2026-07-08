@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.Text.Json;
 using PipedriveCLI.Models;
 using PipedriveCLI.Services;
 using PipedriveCLI.Utilities;
@@ -48,68 +47,76 @@ public static class OrganizationsCommands
 
         listCommand.AddOption(limitOption);
         listCommand.AddOption(startOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
-        listCommand.SetHandler(async (limit, start) =>
+        listCommand.SetHandler(async (limit, start, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                await AnsiConsole.Status()
-                    .StartAsync("Fetching organizations...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    "Fetching organizations...",
+                    () => apiClient.GetOrganizationsAsync(limit, start));
+
+                if (response?.Success == true)
+                {
+                    response.Data ??= new List<Organization>();
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListOrganization);
+                        return;
+                    }
 
-                        var response = await apiClient.GetOrganizationsAsync(limit, start);
+                    var table = new Table();
+                    table.Border(TableBorder.Rounded);
+                    table.AddColumn(new TableColumn("ID").NoWrap());
+                    table.AddColumn("Name");
+                    table.AddColumn("People Count");
+                    table.AddColumn("Address");
+                    table.AddColumn("Owner ID");
+                    table.AddColumn("Added");
 
-                        if (response?.Success == true && response.Data != null)
-                        {
-                            ctx.Status("Formatting results...");
+                    foreach (var org in response.Data)
+                    {
+                        table.AddRow(
+                            org.Id.ToString(),
+                            org.Name ?? "-",
+                            org.PeopleCount.ToString(),
+                            org.Address ?? "-",
+                            org.OwnerId?.Id.ToString() ?? "-",
+                            org.AddTime ?? "-"
+                        );
+                    }
 
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn(new TableColumn("ID").NoWrap());
-                            table.AddColumn("Name");
-                            table.AddColumn("People Count");
-                            table.AddColumn("Address");
-                            table.AddColumn("Owner ID");
-                            table.AddColumn("Added");
+                    AnsiConsole.Write(table);
 
-                            foreach (var org in response.Data)
-                            {
-                                table.AddRow(
-                                    org.Id.ToString(),
-                                    org.Name ?? "-",
-                                    org.PeopleCount.ToString(),
-                                    org.Address ?? "-",
-                                    org.OwnerId?.Id.ToString() ?? "-",
-                                    org.AddTime ?? "-"
-                                );
-                            }
+                    if (response.AdditionalData?.Pagination != null)
+                    {
+                        var pagination = response.AdditionalData.Pagination;
+                        AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} " +
+                            $"| More available: {pagination.MoreItemsInCollection}[/]");
+                    }
 
-                            AnsiConsole.Write(table);
-
-                            if (response.AdditionalData?.Pagination != null)
-                            {
-                                var pagination = response.AdditionalData.Pagination;
-                                AnsiConsole.MarkupLine($"\n[dim]Showing {pagination.Start + 1}-{pagination.Start + response.Data.Count} " +
-                                    $"| More available: {pagination.MoreItemsInCollection}[/]");
-                            }
-
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} organization(s)");
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch organizations: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                    AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} organization(s)");
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch organizations: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, limitOption, startOption);
+        }, limitOption, startOption, jsonOption);
 
         return listCommand;
     }
@@ -124,9 +131,7 @@ public static class OrganizationsCommands
         var idArgument = new Argument<int>("id", "Organization ID");
         getCommand.AddArgument(idArgument);
 
-        var jsonOption = new Option<bool>(
-            aliases: new[] { "--json" },
-            description: "Output raw JSON instead of formatted display");
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
         getCommand.AddOption(jsonOption);
 
         getCommand.SetHandler(async (id, json) =>
@@ -135,21 +140,16 @@ public static class OrganizationsCommands
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching organization {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetOrganizationByIdAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching organization {id}...",
+                    () => apiClient.GetOrganizationByIdAsync(id));
 
                 if (response?.Success == true && response.Data != null)
                 {
                     if (json)
                     {
-                        // Output raw JSON
-                        var jsonOutput = JsonSerializer.Serialize(response.Data, ApiJsonContext.Default.Organization);
-                        Console.WriteLine(jsonOutput);
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Organization);
                     }
                     else
                     {
@@ -183,7 +183,7 @@ public static class OrganizationsCommands
                 {
                     if (json)
                     {
-                        Console.WriteLine($"{{\"success\":false,\"error\":\"{response?.Error ?? "Unknown error"}\"}}");
+                        JsonOutputHelper.WriteError(response?.Error);
                     }
                     else
                     {
@@ -193,7 +193,7 @@ public static class OrganizationsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
         }, idArgument, jsonOption);
 
@@ -396,23 +396,30 @@ public static class OrganizationsCommands
             description: "Maximum number of results (default: 100)");
 
         searchCommand.AddOption(limitOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        searchCommand.AddOption(jsonOption);
 
-        searchCommand.SetHandler(async (term, limit) =>
+        searchCommand.SetHandler(async (term, limit, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Searching for '{term}'...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.SearchOrganizationsAsync(term, limit);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Searching for '{term}'...",
+                    () => apiClient.SearchOrganizationsAsync(term, limit));
 
-                if (response?.Success == true && response.Data != null)
+                if (response?.Success == true)
                 {
+                    response.Data ??= new List<Organization>();
+
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListOrganization);
+                        return;
+                    }
+
                     if (response.Data.Count == 0)
                     {
                         AnsiConsole.MarkupLine($"[yellow]No organizations found matching '{term}'[/]");
@@ -441,6 +448,10 @@ public static class OrganizationsCommands
                     AnsiConsole.Write(table);
                     AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} organization(s) matching '{term}'");
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Search failed: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -448,9 +459,9 @@ public static class OrganizationsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, termArgument, limitOption);
+        }, termArgument, limitOption, jsonOption);
 
         return searchCommand;
     }

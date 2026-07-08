@@ -1,5 +1,7 @@
 using System.CommandLine;
+using PipedriveCLI.Models;
 using PipedriveCLI.Services;
+using PipedriveCLI.Utilities;
 using Spectre.Console;
 
 namespace PipedriveCLI.Commands;
@@ -30,56 +32,64 @@ public static class PipelinesCommands
     private static Command CreateListCommand(PipedriveApiClient apiClient)
     {
         var listCommand = new Command("list", "List all pipelines");
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        listCommand.AddOption(jsonOption);
 
-        listCommand.SetHandler(async () =>
+        listCommand.SetHandler(async (json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                await AnsiConsole.Status()
-                    .StartAsync("Fetching pipelines...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    "Fetching pipelines...",
+                    () => apiClient.GetPipelinesAsync());
+
+                if (response?.Success == true)
+                {
+                    response.Data ??= new List<Pipeline>();
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListPipeline);
+                        return;
+                    }
 
-                        var response = await apiClient.GetPipelinesAsync();
+                    var table = new Table();
+                    table.Border(TableBorder.Rounded);
+                    table.AddColumn(new TableColumn("ID").NoWrap());
+                    table.AddColumn("Name");
+                    table.AddColumn("Active");
+                    table.AddColumn("Order");
 
-                        if (response?.Success == true && response.Data != null)
-                        {
-                            ctx.Status("Formatting results...");
+                    foreach (var pipeline in response.Data)
+                    {
+                        table.AddRow(
+                            pipeline.Id.ToString(),
+                            Markup.Escape(pipeline.Name ?? "-"),
+                            pipeline.Active ? "[green]Yes[/]" : "[dim]No[/]",
+                            pipeline.OrderNr.ToString()
+                        );
+                    }
 
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn(new TableColumn("ID").NoWrap());
-                            table.AddColumn("Name");
-                            table.AddColumn("Active");
-                            table.AddColumn("Order");
-
-                            foreach (var pipeline in response.Data)
-                            {
-                                table.AddRow(
-                                    pipeline.Id.ToString(),
-                                    Markup.Escape(pipeline.Name ?? "-"),
-                                    pipeline.Active ? "[green]Yes[/]" : "[dim]No[/]",
-                                    pipeline.OrderNr.ToString()
-                                );
-                            }
-
-                            AnsiConsole.Write(table);
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} pipeline(s)");
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch pipelines: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                    AnsiConsole.Write(table);
+                    AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} pipeline(s)");
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch pipelines: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        });
+        }, jsonOption);
 
         return listCommand;
     }
@@ -94,22 +104,28 @@ public static class PipelinesCommands
         var idArgument = new Argument<int>("id", "Pipeline ID");
         getCommand.AddArgument(idArgument);
 
-        getCommand.SetHandler(async (id) =>
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        getCommand.AddOption(jsonOption);
+
+        getCommand.SetHandler(async (id, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync($"Fetching pipeline {id}...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.GetPipelineByIdAsync(id);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    $"Fetching pipeline {id}...",
+                    () => apiClient.GetPipelineByIdAsync(id));
 
                 if (response?.Success == true && response.Data != null)
                 {
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Pipeline);
+                        return;
+                    }
+
                     var pipeline = response.Data;
 
                     var panel = new Panel(new Markup(
@@ -127,6 +143,10 @@ public static class PipelinesCommands
 
                     AnsiConsole.Write(panel);
                 }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
                 else
                 {
                     AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch pipeline: {Markup.Escape(response?.Error ?? "Unknown error")}");
@@ -134,9 +154,9 @@ public static class PipelinesCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, idArgument);
+        }, idArgument, jsonOption);
 
         return getCommand;
     }
@@ -153,60 +173,68 @@ public static class PipelinesCommands
             description: "Filter by pipeline ID (shows all stages if omitted)");
 
         stagesCommand.AddOption(pipelineIdOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        stagesCommand.AddOption(jsonOption);
 
-        stagesCommand.SetHandler(async (pipelineId) =>
+        stagesCommand.SetHandler(async (pipelineId, json) =>
         {
             try
             {
                 await apiClient.InitializeAsync();
 
-                await AnsiConsole.Status()
-                    .StartAsync("Fetching stages...", async ctx =>
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    "Fetching stages...",
+                    () => apiClient.GetStagesAsync(pipelineId));
+
+                if (response?.Success == true)
+                {
+                    response.Data ??= new List<Stage>();
+
+                    if (json)
                     {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseListStage);
+                        return;
+                    }
 
-                        var response = await apiClient.GetStagesAsync(pipelineId);
+                    var table = new Table();
+                    table.Border(TableBorder.Rounded);
+                    table.AddColumn(new TableColumn("ID").NoWrap());
+                    table.AddColumn("Name");
+                    table.AddColumn("Pipeline ID");
+                    table.AddColumn("Active");
+                    table.AddColumn("Order");
+                    table.AddColumn("Deal Prob %");
 
-                        if (response?.Success == true && response.Data != null)
-                        {
-                            ctx.Status("Formatting results...");
+                    foreach (var stage in response.Data)
+                    {
+                        table.AddRow(
+                            stage.Id.ToString(),
+                            Markup.Escape(stage.Name ?? "-"),
+                            stage.PipelineId.ToString(),
+                            stage.ActiveFlag ? "[green]Yes[/]" : "[dim]No[/]",
+                            stage.OrderNr.ToString(),
+                            stage.DealProbability?.ToString() ?? "-"
+                        );
+                    }
 
-                            var table = new Table();
-                            table.Border(TableBorder.Rounded);
-                            table.AddColumn(new TableColumn("ID").NoWrap());
-                            table.AddColumn("Name");
-                            table.AddColumn("Pipeline ID");
-                            table.AddColumn("Active");
-                            table.AddColumn("Order");
-                            table.AddColumn("Deal Prob %");
-
-                            foreach (var stage in response.Data)
-                            {
-                                table.AddRow(
-                                    stage.Id.ToString(),
-                                    Markup.Escape(stage.Name ?? "-"),
-                                    stage.PipelineId.ToString(),
-                                    stage.ActiveFlag ? "[green]Yes[/]" : "[dim]No[/]",
-                                    stage.OrderNr.ToString(),
-                                    stage.DealProbability?.ToString() ?? "-"
-                                );
-                            }
-
-                            AnsiConsole.Write(table);
-                            AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} stage(s)");
-                        }
-                        else
-                        {
-                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch stages: {Markup.Escape(response?.Error ?? "Unknown error")}");
-                        }
-                    });
+                    AnsiConsole.Write(table);
+                    AnsiConsole.MarkupLine($"\n[green]✓[/] Found {response.Data.Count} stage(s)");
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"[red]✗[/] Failed to fetch stages: {Markup.Escape(response?.Error ?? "Unknown error")}");
+                }
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, pipelineIdOption);
+        }, pipelineIdOption, jsonOption);
 
         return stagesCommand;
     }
