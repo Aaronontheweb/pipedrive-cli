@@ -210,7 +210,7 @@ mv '{newPath}' '{currentPath}'
 chmod +x '{currentPath}'
 rm -f '{backupPath}'
 '{currentPath}' --version
-rm -f '$0'
+rm -f ""$0""
 ";
         await File.WriteAllTextAsync(scriptPath, script);
 
