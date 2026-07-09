@@ -481,6 +481,9 @@ pipedrive organizations create --name "Acme Corp" [--address "123 Main St, City,
 # Update an existing organization
 pipedrive organizations update <id> --name "Updated Corp" [--address "New Address"]
 
+# Update custom fields (use 'organizationFields list' to discover field keys)
+pipedrive organizations update <id> --custom-fields "hash1=value1,hash2=value2"
+
 # Delete an organization
 pipedrive organizations delete <id> [--force]
 

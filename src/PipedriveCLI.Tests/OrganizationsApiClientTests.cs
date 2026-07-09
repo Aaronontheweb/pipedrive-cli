@@ -1,5 +1,6 @@
 using System.Text.Json;
 using PipedriveCLI.Models;
+using PipedriveCLI.Utilities;
 using Xunit;
 
 namespace PipedriveCLI.Tests;
@@ -155,6 +156,44 @@ public class OrganizationsApiClientTests
         Assert.NotNull(deserialized);
         Assert.Equal("New Company", deserialized.Name);
         Assert.Equal("789 Business Blvd, New York, NY 10001", deserialized.Address);
+    }
+
+    /// <summary>
+    /// Test that organization custom fields parsed from the '--custom-fields' CLI option
+    /// (as used by 'organizations update') serialize as top-level hash-keyed properties,
+    /// matching how 'deals update' and 'persons update' send custom fields to the API.
+    /// Regression test for the missing --custom-fields option on 'organizations update'.
+    /// </summary>
+    [Fact]
+    public void Organization_Serialization_WithCustomFields_ForUpdate()
+    {
+        // Arrange - simulate `organizations update <id> --custom-fields "hash1=Acme,hash2=42"`
+        var customFields = CustomFieldHelper.ParseCustomFields("8fbeabf7c2b6c7146b504802744f7ca9671853c4=Acme,90a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9=42");
+
+        var organization = new Organization
+        {
+            Name = "Updated Corp",
+            CustomFields = customFields
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(organization, ApiJsonContext.Default.Organization);
+        using var doc = JsonDocument.Parse(json);
+
+        // Assert - custom field hash keys must appear as top-level properties (Pipedrive v1 API contract)
+        Assert.True(doc.RootElement.TryGetProperty("8fbeabf7c2b6c7146b504802744f7ca9671853c4", out var field1));
+        Assert.Equal("Acme", field1.GetString());
+
+        Assert.True(doc.RootElement.TryGetProperty("90a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9", out var field2));
+        Assert.Equal(42, field2.GetInt32());
+
+        // Round-trip: deserializing should capture the hash keys back into CustomFields extension data
+        var deserialized = JsonSerializer.Deserialize(json, ApiJsonContext.Default.Organization);
+        Assert.NotNull(deserialized);
+        Assert.Equal("Updated Corp", deserialized.Name);
+        Assert.NotNull(deserialized.CustomFields);
+        Assert.True(deserialized.CustomFields.ContainsKey("8fbeabf7c2b6c7146b504802744f7ca9671853c4"));
+        Assert.True(deserialized.CustomFields.ContainsKey("90a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9"));
     }
 
     /// <summary>
