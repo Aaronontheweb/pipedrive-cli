@@ -141,12 +141,14 @@ install_binary() {
         info "DRY-RUN: Would install binary to ${INSTALL_DIR}/${BINARY_NAME}"
         info "DRY-RUN: Binary found at: $binary_path"
 
-        # Test the binary
-        if "$binary_path" --version >/dev/null 2>&1; then
-            local test_version=$("$binary_path" --version 2>/dev/null | head -1)
+        # Test the binary. Require non-empty version output, not just a zero exit code,
+        # so a silently-broken binary is flagged instead of passing verification.
+        local test_version
+        test_version=$("$binary_path" --version 2>/dev/null | head -1 || true)
+        if [ -n "$test_version" ]; then
             info "DRY-RUN: Binary test successful: $test_version"
         else
-            warn "DRY-RUN: Binary test failed - may not be compatible with this system"
+            warn "DRY-RUN: Binary test failed - '--version' produced no output (may not be compatible with this system)"
         fi
 
         # Cleanup
@@ -334,11 +336,14 @@ main() {
         info "DRY-RUN complete! No changes were made to your system."
         info "To actually install, run without --dry-run flag"
     else
-        # Verify installation
-        if "${INSTALL_DIR}/${BINARY_NAME}" --version >/dev/null 2>&1; then
-            info "✓ Successfully installed ${BINARY_NAME} ${version}"
+        # Verify installation. Require actual version output, not just a zero exit code:
+        # a binary that runs but prints nothing must NOT be reported as a success.
+        local installed_output
+        installed_output=$("${INSTALL_DIR}/${BINARY_NAME}" --version 2>/dev/null || true)
+        if [ -n "$installed_output" ]; then
+            info "✓ Successfully installed ${BINARY_NAME} ${version} (${installed_output})"
         else
-            error "Installation verification failed"
+            error "Installation verification failed: '${BINARY_NAME} --version' produced no output"
         fi
 
         # Check PATH

@@ -1,3 +1,29 @@
+#### 0.11.1 2026-07-09 ####
+
+This is a critical patch release. It fixes a regression in 0.11.0 where the CLI produced no output for `--version`, `--help`, or unrecognized commands, and it adds the ability to set organization custom fields from the command line.
+
+**Bug Fixes**
+
+- **Restored CLI output for `--version`, `--help`, and invalid commands** ([#174](https://github.com/Aaronontheweb/pipedrive-cli/issues/174), [#173](https://github.com/Aaronontheweb/pipedrive-cli/pull/173))
+  - 0.11.0 built its command parser without the default middleware pipeline, so `pipedrive --version`, `pipedrive --help`, and mistyped commands printed nothing and exited `0`
+  - The default middleware pipeline (help, version, and parse-error reporting) is now restored, so these commands print output again
+  - Added tests that exercise the real invocation/output path so this cannot regress silently again
+
+- **Unix self-update script now cleans itself up** ([#173](https://github.com/Aaronontheweb/pipedrive-cli/pull/173))
+  - The generated update script ended with a single-quoted `rm -f '$0'`, so `$0` never expanded and the temporary script was never removed; it now uses `rm -f "$0"`
+
+- **`install.sh` verifies real output, not just exit code** ([#173](https://github.com/Aaronontheweb/pipedrive-cli/pull/173))
+  - Post-install verification now confirms `pipedrive --version` actually prints output instead of reporting success for a binary that runs but produces nothing
+
+**New Features**
+
+- **Set organization custom fields from the CLI** ([#172](https://github.com/Aaronontheweb/pipedrive-cli/issues/172), [#173](https://github.com/Aaronontheweb/pipedrive-cli/pull/173))
+  - Added `--custom-fields "hash1=value1,hash2=value2"` to `organizations update`, matching the existing option on `deals update`
+  - `organizationFields list` already pointed users to this flag; it now exists and works
+  - Example: `pipedrive organizations update 123 --custom-fields "8fbeabf7c2b6c7146b504802744f7ca9671853c4=Manufacturing"`
+
+---
+
 #### 0.11.0 2026-07-08 ####
 
 This release adds machine-readable JSON output for read commands so scripts and integrations can consume CLI results directly, with consistent JSON-formatted errors and quieter output behavior in JSON mode.

@@ -7,26 +7,25 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.11.0</VersionPrefix>
-    <PackageReleaseNotes>This release adds machine-readable JSON output for read commands so scripts and integrations can consume CLI results directly, with consistent JSON-formatted errors and quieter output behavior in JSON mode.
-
-**New Features**
-
-- **Scriptable JSON Output for Read Commands** ([#170](https://github.com/Aaronontheweb/pipedrive-cli/pull/170))
-  - Added `--json` support to read/list/get/search-style commands including `activities`, `deals`, `emails`, `leads`, `notes`, `persons`, `organizations`, `pipelines`, `templates`, `dealFields`, and `organizationFields`
-  - JSON mode returns raw JSON for command output, making it easier to integrate automation and CI scripts
-  - Examples are updated in README with command usage showing `--json` for supported reads
+    <VersionPrefix>0.11.1</VersionPrefix>
+    <PackageReleaseNotes>This is a critical patch release. It fixes a regression in 0.11.0 where the CLI produced no output for `--version`, `--help`, or unrecognized commands, and it adds the ability to set organization custom fields from the command line.
 
 **Bug Fixes**
 
-- **Machine-Readable Errors in JSON Mode** ([#170](https://github.com/Aaronontheweb/pipedrive-cli/pull/170))
-  - JSON mode now suppresses status/progress text and renders validation/parsing failures as JSON error payloads
-  - Prevents mixed plain-text and JSON output during automation so downstream parsers receive valid JSON consistently
+- **Restored CLI output for `--version`, `--help`, and invalid commands** ([#174](https://github.com/Aaronontheweb/pipedrive-cli/issues/174), [#173](https://github.com/Aaronontheweb/pipedrive-cli/pull/173))
+  - 0.11.0 built its command parser without the default middleware pipeline, so `pipedrive --version`, `pipedrive --help`, and mistyped commands printed nothing and exited `0`
+  - The default middleware pipeline (help, version, and parse-error reporting) is now restored, so these commands print output again
 
-**Documentation**
+- **Unix self-update script now cleans itself up** ([#173](https://github.com/Aaronontheweb/pipedrive-cli/pull/173))
+  - The generated update script ended with a single-quoted `rm -f '$0'`, so the temporary script was never removed; it now uses `rm -f "$0"`
 
-- **JSON Output Guide** ([#170](https://github.com/Aaronontheweb/pipedrive-cli/pull/170))
-  - Added a dedicated `Scriptable JSON Output` section to README with usage examples and behavior notes
+- **`install.sh` verifies real output, not just exit code** ([#173](https://github.com/Aaronontheweb/pipedrive-cli/pull/173))
+  - Post-install verification now confirms `pipedrive --version` actually prints output
+
+**New Features**
+
+- **Set organization custom fields from the CLI** ([#172](https://github.com/Aaronontheweb/pipedrive-cli/issues/172), [#173](https://github.com/Aaronontheweb/pipedrive-cli/pull/173))
+  - Added `--custom-fields "hash1=value1,hash2=value2"` to `organizations update`, matching the existing option on `deals update`
 
 ---</PackageReleaseNotes>
   </PropertyGroup>

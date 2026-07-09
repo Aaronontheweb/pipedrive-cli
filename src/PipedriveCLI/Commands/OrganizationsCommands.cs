@@ -277,14 +277,20 @@ public static class OrganizationsCommands
             aliases: new[] { "--address", "-a" },
             description: "New organization address");
 
+        var customFieldsOption = new Option<string?>(
+            aliases: new[] { "--custom-fields", "-cf" },
+            description: "Custom fields to update in format: hash1=value1,hash2=value2");
+
         updateCommand.AddOption(nameOption);
         updateCommand.AddOption(addressOption);
+        updateCommand.AddOption(customFieldsOption);
 
-        updateCommand.SetHandler(async (id, name, address) =>
+        updateCommand.SetHandler(async (id, name, address, customFields) =>
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(address))
+                if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(address) &&
+                    string.IsNullOrWhiteSpace(customFields))
                 {
                     AnsiConsole.MarkupLine("[red]Error:[/] At least one field must be specified to update");
                     return;
@@ -296,6 +302,12 @@ public static class OrganizationsCommands
 
                 if (!string.IsNullOrWhiteSpace(name)) organization.Name = name;
                 if (!string.IsNullOrWhiteSpace(address)) organization.Address = address;
+
+                // Parse and set custom fields
+                if (!string.IsNullOrWhiteSpace(customFields))
+                {
+                    organization.CustomFields = CustomFieldHelper.ParseCustomFields(customFields);
+                }
 
                 var response = await AnsiConsole.Status()
                     .StartAsync($"Updating organization {id}...", async ctx =>
@@ -318,7 +330,7 @@ public static class OrganizationsCommands
             {
                 AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
             }
-        }, idArgument, nameOption, addressOption);
+        }, idArgument, nameOption, addressOption, customFieldsOption);
 
         return updateCommand;
     }

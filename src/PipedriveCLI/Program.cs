@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using System.CommandLine.Builder;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.Reflection;
@@ -83,9 +84,15 @@ public static class Program
 
         // TODO: Add more commands (export)
 
+        // Build a parser with the default middleware pipeline (help, --version, parse-error
+        // reporting, exception handling). This must be used for BOTH parsing and invocation:
+        // a bare `rootCommand.Parse(args)` uses `new Parser(command)` with no middleware, which
+        // silently drops --version/--help/parse-error output (regression fixed here).
+        var parser = BuildParser(rootCommand);
+
         // Execute command. Handle parse failures explicitly in JSON mode because command handlers
         // are not reached when System.CommandLine rejects arguments or options.
-        var parseResult = rootCommand.Parse(args);
+        var parseResult = parser.Parse(args);
         if (jsonOutputRequested && parseResult.Errors.Count > 0)
         {
             JsonOutputHelper.WriteError(string.Join(Environment.NewLine, parseResult.Errors.Select(e => e.Message)));
@@ -105,6 +112,16 @@ public static class Program
 
         return result;
     }
+
+    /// <summary>
+    /// Builds the command-line parser with the default middleware pipeline (help, --version,
+    /// parse-error reporting, and exception handling). Using <see cref="CommandLineBuilder.UseDefaults"/>
+    /// is required for --version/--help/parse-error output to be emitted; constructing a bare
+    /// <c>new Parser(command)</c> (as <c>Command.Parse</c> does) drops that middleware and produces
+    /// no output. Exposed internally so the output path can be covered by tests.
+    /// </summary>
+    internal static Parser BuildParser(RootCommand rootCommand) =>
+        new CommandLineBuilder(rootCommand).UseDefaults().Build();
 
     /// <summary>
     /// Configures dependency injection services
