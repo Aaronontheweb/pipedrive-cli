@@ -1,3 +1,18 @@
+#### 0.11.2 2026-07-10 ####
+
+This is a patch release. It fixes an intermittent error from `activities list --json` for deals with zero open activities.
+
+**Bug Fixes**
+
+- **`activities list` no longer errors for deals with zero open activities** ([#176](https://github.com/Aaronontheweb/pipedrive-cli/issues/176), [#177](https://github.com/Aaronontheweb/pipedrive-cli/pull/177))
+  - `pipedrive activities list --json` lists open (undone) activities by default and intermittently returned "Unknown error" for deals with `undone_activities_count: 0`, while `--done true` on the same deal succeeded
+  - Pipedrive's v1 list sub-endpoints (deal / person / org / global) return `"data": false` — a scalar boolean, not an array — when there are zero matching activities, so `System.Text.Json` could not bind it to a list and deserialization threw
+  - A scalar `data` payload is now normalized to an empty list in a single shared helper used by all four activity-list methods
+  - Genuine errors are not swallowed: non-2xx responses still throw, and `200` bodies with `success: false` / `error` / `null` data keep their error fields
+  - Added regression tests covering the `"data": false`, empty-string, array, `null`, and error-response shapes
+
+---
+
 #### 0.11.1 2026-07-09 ####
 
 This is a critical patch release. It fixes a regression in 0.11.0 where the CLI produced no output for `--version`, `--help`, or unrecognized commands, and it adds the ability to set organization custom fields from the command line.
