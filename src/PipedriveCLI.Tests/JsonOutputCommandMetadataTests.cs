@@ -8,6 +8,7 @@ using PipedriveCLI.Utilities;
 
 namespace PipedriveCLI.Tests;
 
+[Collection(ConsoleCaptureCollection.Name)]
 public class JsonOutputCommandMetadataTests
 {
     [Theory]

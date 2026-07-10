@@ -177,7 +177,7 @@ public static class LeadsCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Lead);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseLead);
                         return;
                     }
 

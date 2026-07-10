@@ -128,7 +128,7 @@ public static class TemplatesCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.EmailTemplate);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseEmailTemplate);
                         return;
                     }
 

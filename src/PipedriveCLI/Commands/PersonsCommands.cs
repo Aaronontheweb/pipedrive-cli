@@ -160,7 +160,7 @@ public static class PersonsCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Person);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponsePerson);
                         return;
                     }
 

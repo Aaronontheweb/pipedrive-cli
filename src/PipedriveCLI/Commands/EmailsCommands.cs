@@ -207,7 +207,7 @@ public static class EmailsCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.MailMessage);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseMailMessage);
                         return;
                     }
 
@@ -352,7 +352,7 @@ public static class EmailsCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.MailThread);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseMailThread);
                         return;
                     }
 

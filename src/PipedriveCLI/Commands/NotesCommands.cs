@@ -195,7 +195,7 @@ public static class NotesCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Note);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseNote);
                         return;
                     }
 

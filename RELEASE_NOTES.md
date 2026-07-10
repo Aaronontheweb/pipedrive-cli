@@ -1,3 +1,19 @@
+#### 0.12.0 2026-07-10 ####
+
+This is a minor release with a **breaking change** to `--json` output.
+
+**Breaking Changes**
+
+- **Single-object `get --json` now uses the `{ "success", "data" }` envelope** ([#175](https://github.com/Aaronontheweb/pipedrive-cli/issues/175))
+  - Previously, single-object `get` commands emitted the entity at the JSON root under `--json` (e.g. `deals get 123 --json` returned `{ "id": 123, "title": ... }`), while `list`/`search` wrapped their payload in `{ "success", "data", "additional_data" }`
+  - A consumer reading `.data` from a `get` response got `null`, so scripts had to special-case single-object commands
+  - Every single-object `get --json` response is now wrapped in the same envelope as `list`/`search`: `{ "success": true, "data": { ...the entity... } }` (plus `additional_data` when the underlying API response carries it)
+  - Affected commands: `deals get`, `organizations get`, `persons get`, `activities get`, `leads get`, `notes get`, `templates get`, `pipelines get`, `emails get`, `emails thread`
+  - Non-JSON (table/pretty) output is unchanged; `list`/`search`/`stages` were already wrapped and are unaffected
+  - **Migration:** read the entity from `.data` instead of the JSON root (e.g. `jq '.data.title'` instead of `jq '.title'`)
+
+---
+
 #### 0.11.2 2026-07-10 ####
 
 This is a patch release. It fixes an intermittent error from `activities list --json` for deals with zero open activities.
