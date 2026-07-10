@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using PipedriveCLI.Models;
 
 namespace PipedriveCLI.Services;
@@ -517,6 +518,37 @@ public sealed class PipedriveApiClient : IDisposable
     #region Activities Operations
 
     /// <summary>
+    /// Deserializes an activities-list response, tolerating Pipedrive's empty-result quirk.
+    /// </summary>
+    /// <remarks>
+    /// Pipedrive's v1 list sub-endpoints (e.g. <c>GET /deals/{id}/activities?done=0</c>) return
+    /// <c>"data": false</c> — a scalar, not an array — when a deal/person/org has zero matching
+    /// activities. <see cref="JsonSerializer"/> cannot bind a scalar to <c>List&lt;Activity&gt;</c>
+    /// and throws, which previously surfaced to the caller as an error for deals with no open
+    /// activities. We normalize only that scalar payload to an empty list.
+    ///
+    /// This does not mask genuine errors: real API failures arrive either as a non-2xx status
+    /// (handled by <see cref="EnsureSuccessOrThrowApiErrorAsync"/>) or as a 200 body with
+    /// <c>"success": false</c>, an <c>"error"</c> message and <c>"data": null</c>. A null data
+    /// value is left untouched here, and the <c>success</c>/<c>error</c> fields are preserved, so
+    /// callers still observe and report any real failure.
+    /// </remarks>
+    internal static PipedriveResponse<List<Activity>>? DeserializeActivityListResponse(string jsonResponse)
+    {
+        var node = JsonNode.Parse(jsonResponse);
+        if (node is JsonObject obj
+            && obj.TryGetPropertyValue("data", out var dataNode)
+            && dataNode is JsonValue)
+        {
+            // Scalar (false/""/number) instead of an array: treat as "no activities".
+            obj["data"] = new JsonArray();
+            return JsonSerializer.Deserialize(obj, ApiJsonContext.Default.PipedriveResponseListActivity);
+        }
+
+        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
+    }
+
+    /// <summary>
     /// Gets all activities
     /// </summary>
     public async Task<PipedriveResponse<List<Activity>>?> GetActivitiesAsync(int? limit = null, int? start = null, bool? done = null, string? updatedSince = null, string? updatedUntil = null, string? sortBy = null, string? sortDirection = null, string? cursor = null)
@@ -538,7 +570,7 @@ public sealed class PipedriveApiClient : IDisposable
         if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
         var jsonResponse = await GetAsync(useV2 ? "v2/activities" : "activities", queryParams);
-        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
+        return DeserializeActivityListResponse(jsonResponse);
     }
 
     /// <summary>
@@ -612,7 +644,7 @@ public sealed class PipedriveApiClient : IDisposable
         if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
         var jsonResponse = await GetAsync(useV2 ? "v2/activities" : $"deals/{dealId}/activities", queryParams);
-        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
+        return DeserializeActivityListResponse(jsonResponse);
     }
 
     /// <summary>
@@ -638,7 +670,7 @@ public sealed class PipedriveApiClient : IDisposable
         if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
         var jsonResponse = await GetAsync(useV2 ? "v2/activities" : $"persons/{personId}/activities", queryParams);
-        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
+        return DeserializeActivityListResponse(jsonResponse);
     }
 
     /// <summary>
@@ -664,7 +696,7 @@ public sealed class PipedriveApiClient : IDisposable
         if (!string.IsNullOrWhiteSpace(cursor)) queryParams["cursor"] = cursor;
 
         var jsonResponse = await GetAsync(useV2 ? "v2/activities" : $"organizations/{orgId}/activities", queryParams);
-        return JsonSerializer.Deserialize(jsonResponse, ApiJsonContext.Default.PipedriveResponseListActivity);
+        return DeserializeActivityListResponse(jsonResponse);
     }
 
     #endregion
