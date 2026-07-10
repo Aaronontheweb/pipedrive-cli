@@ -662,10 +662,16 @@ pipedrive emails thread-messages 12345 --include-body --json
 
 Output shape:
 
-- Single-record commands such as `get`, `emails get`, and `emails thread` output the entity object directly.
-- List/search commands output a response object with `success`, `data`, and any available `additional_data` pagination or cursor metadata.
+- All read commands output a response object with `success`, `data`, and any available `additional_data` pagination or cursor metadata.
+- Single-record commands such as `get`, `emails get`, and `emails thread` place the entity object under `data` (for example, `deals get 123 --json` returns `{ "success": true, "data": { "id": 123, ... } }`). Read `.data` to get the entity.
+- List/search commands place the array of records under `data`.
 - Client-filtered list commands return the filtered data in `data`.
 - Error paths in JSON mode emit a JSON error object instead of Spectre.Console markup.
+
+> **Breaking change (0.12.0):** single-object `get --json` responses previously emitted the
+> entity at the JSON root (`{ "id": 123, ... }`). They now use the same `{ "success", "data" }`
+> envelope as `list`/`search`, so the entity is under `.data`. Scripts that read fields directly
+> from the root must be updated to read them from `.data`.
 
 Supported read commands include:
 

@@ -122,7 +122,7 @@ public static class PipelinesCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Pipeline);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponsePipeline);
                         return;
                     }
 

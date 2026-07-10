@@ -149,7 +149,7 @@ public static class OrganizationsCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Organization);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseOrganization);
                     }
                     else
                     {

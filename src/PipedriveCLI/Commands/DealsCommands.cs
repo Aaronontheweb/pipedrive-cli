@@ -433,7 +433,7 @@ public static class DealsCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Deal);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseDeal);
                     }
                     else
                     {

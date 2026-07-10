@@ -7,7 +7,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.11.2</VersionPrefix>
+    <VersionPrefix>0.12.0</VersionPrefix>
     <PackageReleaseNotes>This is a patch release. It fixes an intermittent error from `activities list --json` for deals with zero open activities.
 
 **Bug Fixes**

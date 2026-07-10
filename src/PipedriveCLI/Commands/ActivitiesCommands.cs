@@ -430,7 +430,7 @@ public static class ActivitiesCommands
                 {
                     if (json)
                     {
-                        JsonOutputHelper.Write(response.Data, ApiJsonContext.Default.Activity);
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseActivity);
                         return;
                     }
 
