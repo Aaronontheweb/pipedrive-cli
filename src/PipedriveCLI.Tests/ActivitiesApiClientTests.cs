@@ -1,5 +1,6 @@
 using System.Text.Json;
 using PipedriveCLI.Models;
+using PipedriveCLI.Services;
 using Xunit;
 
 namespace PipedriveCLI.Tests;
@@ -358,6 +359,164 @@ public class ActivitiesApiClientTests
         Assert.NotNull(response);
         Assert.True(response.Success);
         Assert.Equal("eyJhY3Rpdml0aWVzIjoyN30", response.AdditionalData?.NextCursor);
+    }
+
+    /// <summary>
+    /// Regression test for #176: Pipedrive's v1 list sub-endpoints (e.g.
+    /// GET /deals/{id}/activities?done=0) return "data": false — a scalar, not an array —
+    /// when a deal has zero matching (open) activities. That payload must be normalized to an
+    /// empty list rather than surfacing as an error.
+    /// </summary>
+    [Fact]
+    public void ActivityList_ScalarFalseData_NormalizesToEmptyList()
+    {
+        // Arrange - the exact shape Pipedrive returns for a deal with no open activities
+        var json = """
+        {
+            "success": true,
+            "data": false,
+            "additional_data": {
+                "pagination": {
+                    "start": 0,
+                    "limit": 100,
+                    "more_items_in_collection": false
+                }
+            }
+        }
+        """;
+
+        // Act
+        var response = PipedriveApiClient.DeserializeActivityListResponse(json);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Empty(response.Data);
+        // Pagination metadata must be preserved through normalization.
+        Assert.NotNull(response.AdditionalData?.Pagination);
+        Assert.Equal(100, response.AdditionalData.Pagination.Limit);
+    }
+
+    /// <summary>
+    /// Some v1 endpoints represent an empty result set as an empty string instead of false;
+    /// that scalar must also normalize to an empty list.
+    /// </summary>
+    [Fact]
+    public void ActivityList_EmptyStringData_NormalizesToEmptyList()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": ""
+        }
+        """;
+
+        // Act
+        var response = PipedriveApiClient.DeserializeActivityListResponse(json);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Empty(response.Data);
+    }
+
+    /// <summary>
+    /// Deals that DO have open activities must still deserialize normally through the helper.
+    /// </summary>
+    [Fact]
+    public void ActivityList_ArrayData_DeserializesActivities()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": [
+                {
+                    "id": 42,
+                    "subject": "Open follow-up",
+                    "type": "call",
+                    "due_date": "2026-07-20",
+                    "done": false,
+                    "deal_id": 7,
+                    "add_time": "2026-07-01T10:00:00Z",
+                    "update_time": "2026-07-01T10:00:00Z"
+                }
+            ],
+            "additional_data": {
+                "pagination": {
+                    "start": 0,
+                    "limit": 100,
+                    "more_items_in_collection": false
+                }
+            }
+        }
+        """;
+
+        // Act
+        var response = PipedriveApiClient.DeserializeActivityListResponse(json);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        var activity = Assert.Single(response.Data);
+        Assert.Equal(42, activity.Id);
+        Assert.Equal("Open follow-up", activity.Subject);
+        Assert.Equal(7, activity.DealId);
+        Assert.False(activity.Done);
+    }
+
+    /// <summary>
+    /// Null data (the standard empty/error shape) must continue to deserialize without throwing.
+    /// </summary>
+    [Fact]
+    public void ActivityList_NullData_DeserializesToNullData()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": true,
+            "data": null
+        }
+        """;
+
+        // Act
+        var response = PipedriveApiClient.DeserializeActivityListResponse(json);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.Null(response.Data);
+    }
+
+    /// <summary>
+    /// A genuine API error (success:false with an error message) must NOT be masked as an empty
+    /// list - the normalization only applies to the scalar payload, and success/error are preserved.
+    /// </summary>
+    [Fact]
+    public void ActivityList_ErrorResponse_PreservesError()
+    {
+        // Arrange
+        var json = """
+        {
+            "success": false,
+            "error": "You are not authorized to access this resource",
+            "error_info": "Please check your permissions",
+            "data": null
+        }
+        """;
+
+        // Act
+        var response = PipedriveApiClient.DeserializeActivityListResponse(json);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.False(response.Success);
+        Assert.Equal("You are not authorized to access this resource", response.Error);
+        Assert.Equal("Please check your permissions", response.ErrorInfo);
     }
 
     /// <summary>
