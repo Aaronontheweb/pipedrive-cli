@@ -245,7 +245,7 @@ public class JsonOutputCommandMetadataTests
         yield return ["activities", new[] { "get", "list" }];
         yield return ["deals", new[] { "list", "get", "participants", "products" }];
         yield return ["emails", new[] { "list-for-deal", "list-for-person", "get", "threads", "thread", "thread-messages" }];
-        yield return ["leads", new[] { "list", "get", "search" }];
+        yield return ["leads", new[] { "list", "get", "create", "search" }];
         yield return ["notes", new[] { "list", "get" }];
         yield return ["persons", new[] { "list", "get", "search" }];
         yield return ["pipelines", new[] { "list", "get", "stages" }];
