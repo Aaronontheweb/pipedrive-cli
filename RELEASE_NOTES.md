@@ -1,3 +1,27 @@
+#### 0.13.0 2026-07-14 ####
+
+This is a minor release adding `--json` to `leads create`, plus two bug fixes. One of the fixes changes which deals a date filter returns for anyone not running in UTC.
+
+**New Features**
+
+- **`leads create` now supports `--json`** ([#180](https://github.com/Aaronontheweb/pipedrive-cli/issues/180), [#181](https://github.com/Aaronontheweb/pipedrive-cli/pull/181))
+  - `leads create` previously rejected the flag other commands accept, so the natural scripting pattern (create a lead, pipe the new ID into `activities create --lead-id`) failed
+  - It failed confusingly: `leads create` errored out and created nothing, leaving the *following* command to surface the error one step downstream
+
+**Bug Fixes**
+
+- **`persons merge` and `organizations merge` no longer fail to deserialize** ([#179](https://github.com/Aaronontheweb/pipedrive-cli/issues/179), [#181](https://github.com/Aaronontheweb/pipedrive-cli/pull/181))
+  - Pipedrive returns `owner_id` as a scalar integer from `PUT /persons/{id}/merge` but as an object from `GET` endpoints, and the model only handled the object form
+  - Merging failed with `The JSON value could not be converted to PipedriveCLI.Models.Owner`, and the merge **did not take effect** while the error left it ambiguous whether the write had landed
+  - `owner_id` is now deserialized via a converter that accepts both shapes
+
+- **Date filters are now anchored in UTC** ([#182](https://github.com/Aaronontheweb/pipedrive-cli/pull/182))
+  - `FilterByWonTime` derived its upper bound from `DateTimeOffset.Date`, producing a `Kind=Unspecified` DateTime that the comparison then interpreted as **local time**, shifting the bound by the machine's UTC offset
+  - Filter inputs are parsed as UTC (`AssumeUniversal`), so the bound now matches
+  - **Behavior change:** `--before` and `--after` on won-time filters return different (correct) results outside UTC. Previously, east of UTC deals won late on the boundary day were wrongly excluded; west of UTC, deals won in the early hours of the following day were wrongly included
+
+---
+
 #### 0.12.0 2026-07-10 ####
 
 This is a minor release with a **breaking change** to `--json` output.
