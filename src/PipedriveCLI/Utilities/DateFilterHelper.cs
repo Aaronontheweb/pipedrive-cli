@@ -93,7 +93,13 @@ public static class DateFilterHelper
     /// <param name="before">Include deals with won_time <= this datetime (inclusive, entire day). Null means no upper bound.</param>
     public static IEnumerable<Deal> FilterByWonTime(IEnumerable<Deal> deals, DateTimeOffset? after, DateTimeOffset? before)
     {
-        var upperBound = before?.Date.AddDays(1).AddTicks(-1); // Include the entire "before" day
+        // Anchor the upper bound in UTC. DateTimeOffset.Date yields a Kind=Unspecified DateTime,
+        // which the DateTime -> DateTimeOffset conversion at the comparison below would interpret
+        // as local time, shifting the bound by the machine's UTC offset. Filter inputs are parsed
+        // with AssumeUniversal, so the "before" day must be bounded in UTC to match.
+        DateTimeOffset? upperBound = before.HasValue
+            ? new DateTimeOffset(before.Value.UtcDateTime.Date, TimeSpan.Zero).AddDays(1).AddTicks(-1)
+            : null;
 
         return deals.Where(d =>
         {

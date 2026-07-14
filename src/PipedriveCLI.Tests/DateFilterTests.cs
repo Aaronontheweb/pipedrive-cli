@@ -299,8 +299,8 @@ public class DateFilterTests
         {
             new Deal { Id = 1, Title = "Won In Range", WonTime = "2024-05-15T12:00:00Z" }
         };
-        var after = new DateTimeOffset(new DateTime(2024, 4, 1));
-        var before = new DateTimeOffset(new DateTime(2024, 6, 30));
+        var after = new DateTimeOffset(2024, 4, 1, 0, 0, 0, TimeSpan.Zero);
+        var before = new DateTimeOffset(2024, 6, 30, 0, 0, 0, TimeSpan.Zero);
 
         // Act
         var result = DateFilterHelper.FilterByWonTime(deals, after, before).ToList();
@@ -318,8 +318,8 @@ public class DateFilterTests
         {
             new Deal { Id = 1, Title = "Won Before", WonTime = "2024-03-15T10:00:00Z" }
         };
-        var after = new DateTimeOffset(new DateTime(2024, 4, 1));
-        var before = new DateTimeOffset(new DateTime(2024, 6, 30));
+        var after = new DateTimeOffset(2024, 4, 1, 0, 0, 0, TimeSpan.Zero);
+        var before = new DateTimeOffset(2024, 6, 30, 0, 0, 0, TimeSpan.Zero);
 
         // Act
         var result = DateFilterHelper.FilterByWonTime(deals, after, before).ToList();
@@ -336,8 +336,8 @@ public class DateFilterTests
         {
             new Deal { Id = 1, Title = "Not Won", WonTime = null }
         };
-        var after = new DateTimeOffset(new DateTime(2024, 4, 1));
-        var before = new DateTimeOffset(new DateTime(2024, 6, 30));
+        var after = new DateTimeOffset(2024, 4, 1, 0, 0, 0, TimeSpan.Zero);
+        var before = new DateTimeOffset(2024, 6, 30, 0, 0, 0, TimeSpan.Zero);
 
         // Act
         var result = DateFilterHelper.FilterByWonTime(deals, after, before).ToList();
@@ -372,7 +372,7 @@ public class DateFilterTests
         {
             new Deal { Id = 1, Title = "Won Late", WonTime = "2024-06-30T23:59:59Z" }
         };
-        var before = new DateTimeOffset(new DateTime(2024, 6, 30));
+        var before = new DateTimeOffset(2024, 6, 30, 0, 0, 0, TimeSpan.Zero);
 
         // Act
         var result = DateFilterHelper.FilterByWonTime(deals, null, before).ToList();
@@ -389,13 +389,34 @@ public class DateFilterTests
         {
             new Deal { Id = 1, Title = "Won At Start", WonTime = "2024-04-01T00:00:00Z" }
         };
-        var after = new DateTimeOffset(new DateTime(2024, 4, 1));
+        var after = new DateTimeOffset(2024, 4, 1, 0, 0, 0, TimeSpan.Zero);
 
         // Act
         var result = DateFilterHelper.FilterByWonTime(deals, after, null).ToList();
 
         // Assert
         Assert.Single(result);
+    }
+
+    [Fact]
+    public void FilterByWonTime_UpperBound_IsAnchoredInUtc_NotMachineLocalTime()
+    {
+        // A deal won at 23:59:59Z on the "before" day must be included regardless of the
+        // machine's timezone. The bound was previously derived from DateTimeOffset.Date,
+        // which produces a Kind=Unspecified DateTime that the comparison interpreted as
+        // local time - dropping this deal east of UTC and wrongly admitting July 1 deals
+        // west of it.
+        var deals = new List<Deal>
+        {
+            new Deal { Id = 1, Title = "Won End Of Day UTC", WonTime = "2024-06-30T23:59:59Z" },
+            new Deal { Id = 2, Title = "Won Next Day UTC", WonTime = "2024-07-01T00:00:00Z" }
+        };
+        var before = new DateTimeOffset(2024, 6, 30, 0, 0, 0, TimeSpan.Zero);
+
+        var result = DateFilterHelper.FilterByWonTime(deals, null, before).ToList();
+
+        var deal = Assert.Single(result);
+        Assert.Equal(1, deal.Id);
     }
 
     #endregion
@@ -482,8 +503,8 @@ public class DateFilterTests
             new Deal { Id = 4, Title = "Not Won", WonTime = null }
         };
 
-        var after = new DateTimeOffset(new DateTime(2024, 4, 1));
-        var before = new DateTimeOffset(new DateTime(2024, 6, 30));
+        var after = new DateTimeOffset(2024, 4, 1, 0, 0, 0, TimeSpan.Zero);
+        var before = new DateTimeOffset(2024, 6, 30, 0, 0, 0, TimeSpan.Zero);
 
         // Act
         var result = DateFilterHelper.FilterByWonTime(deals, after, before).ToList();
