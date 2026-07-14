@@ -258,14 +258,18 @@ public static class LeadsCommands
         createCommand.AddOption(valueOption);
         createCommand.AddOption(currencyOption);
         createCommand.AddOption(expectedCloseDateOption);
+        var jsonOption = JsonOutputHelper.CreateJsonOption();
+        createCommand.AddOption(jsonOption);
 
-        createCommand.SetHandler(async (title, personId, orgId, value, currency, expectedCloseDate) =>
+        createCommand.SetHandler(async (title, personId, orgId, value, currency, expectedCloseDate, json) =>
         {
             try
             {
                 if (!personId.HasValue && !orgId.HasValue)
                 {
-                    AnsiConsole.MarkupLine("[red]Error:[/] Either --person-id or --org-id must be specified");
+                    JsonOutputHelper.WriteErrorOrMarkup(json,
+                        "Either --person-id or --org-id must be specified",
+                        "[red]Error:[/] Either --person-id or --org-id must be specified");
                     return;
                 }
 
@@ -288,19 +292,26 @@ public static class LeadsCommands
                     };
                 }
 
-                var response = await AnsiConsole.Status()
-                    .StartAsync("Creating lead...", async ctx =>
-                    {
-                        ctx.Spinner(Spinner.Known.Dots);
-                        ctx.SpinnerStyle(Style.Parse("green"));
-                        return await apiClient.CreateLeadAsync(lead);
-                    });
+                var response = await JsonOutputHelper.FetchAsync(
+                    json,
+                    "Creating lead...",
+                    () => apiClient.CreateLeadAsync(lead));
 
                 if (response?.Success == true && response.Data != null)
                 {
+                    if (json)
+                    {
+                        JsonOutputHelper.Write(response, ApiJsonContext.Default.PipedriveResponseLead);
+                        return;
+                    }
+
                     AnsiConsole.MarkupLine($"[green]✓[/] Lead created successfully");
                     AnsiConsole.MarkupLine($"[dim]ID:[/] {Markup.Escape(response.Data.Id ?? "")}");
                     AnsiConsole.MarkupLine($"[dim]Title:[/] {Markup.Escape(response.Data.Title ?? "")}");
+                }
+                else if (json)
+                {
+                    JsonOutputHelper.WriteError(response?.Error);
                 }
                 else
                 {
@@ -309,9 +320,9 @@ public static class LeadsCommands
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine($"[red]Error:[/] {Markup.Escape(ex.Message)}");
+                JsonOutputHelper.WriteException(json, ex);
             }
-        }, titleOption, personIdOption, orgIdOption, valueOption, currencyOption, expectedCloseDateOption);
+        }, titleOption, personIdOption, orgIdOption, valueOption, currencyOption, expectedCloseDateOption, jsonOption);
 
         return createCommand;
     }

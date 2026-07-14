@@ -304,6 +304,85 @@ public class MergeApiClientTests
     }
 
     /// <summary>
+    /// Regression test for GitHub issue #179: PUT /persons/{id}/merge returns owner_id as a
+    /// SCALAR INT at the top level of the returned person (unlike GET /persons/{id}, which
+    /// returns owner_id as an object). Before the fix, this payload threw a JSON deserialization
+    /// exception ("The JSON value could not be converted to PipedriveCLI.Models.Owner"), which
+    /// meant a successful merge was reported as a failure/error instead of a success.
+    /// </summary>
+    [Fact]
+    public void PersonMerge_Deserialization_WithScalarOwnerId_ReportsSuccess()
+    {
+        // Arrange - actual PUT /persons/{id}/merge response shape
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 456,
+                "name": "John Smith (Merged)",
+                "first_name": "John",
+                "last_name": "Smith",
+                "owner_id": 10,
+                "org_id": 789,
+                "add_time": "2024-01-01T10:00:00Z",
+                "update_time": "2024-11-05T15:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponsePerson);
+
+        // Assert - deserialization must succeed and report the merge as successful
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(456, response.Data.Id);
+        Assert.Equal("John Smith (Merged)", response.Data.Name);
+        Assert.NotNull(response.Data.OwnerId);
+        Assert.Equal(10, response.Data.OwnerId.Id);
+        Assert.Null(response.Data.OwnerId.Name);
+        Assert.Equal(789, response.Data.OrgId);
+    }
+
+    /// <summary>
+    /// Regression test for GitHub issue #179: PUT /organizations/{id}/merge returns owner_id
+    /// as a SCALAR INT at the top level, same inconsistency as the persons merge endpoint.
+    /// </summary>
+    [Fact]
+    public void OrganizationMerge_Deserialization_WithScalarOwnerId_ReportsSuccess()
+    {
+        // Arrange - actual PUT /organizations/{id}/merge response shape
+        var json = """
+        {
+            "success": true,
+            "data": {
+                "id": 999,
+                "name": "Acme Corporation (Merged)",
+                "people_count": 50,
+                "owner_id": 10,
+                "address": "123 Main St, New York, NY 10001",
+                "add_time": "2024-01-01T10:00:00Z",
+                "update_time": "2024-11-05T15:00:00Z"
+            }
+        }
+        """;
+
+        // Act
+        var response = JsonSerializer.Deserialize(json, ApiJsonContext.Default.PipedriveResponseOrganization);
+
+        // Assert - deserialization must succeed and report the merge as successful
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(999, response.Data.Id);
+        Assert.Equal("Acme Corporation (Merged)", response.Data.Name);
+        Assert.NotNull(response.Data.OwnerId);
+        Assert.Equal(10, response.Data.OwnerId.Id);
+        Assert.Null(response.Data.OwnerId.Name);
+    }
+
+    /// <summary>
     /// Test merge with conflicting data - person with multiple emails and phones
     /// </summary>
     [Fact]

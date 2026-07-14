@@ -577,6 +577,7 @@ public sealed class Person
     public int? OrgId { get; set; }
 
     [JsonPropertyName("owner_id")]
+    [JsonConverter(typeof(OwnerConverter))]
     public Owner? OwnerId { get; set; }
 
     [JsonPropertyName("add_time")]
@@ -644,6 +645,98 @@ public sealed class Owner
 }
 
 /// <summary>
+/// Custom JSON converter for owner_id fields, which Pipedrive returns in two different shapes
+/// depending on the endpoint:
+///   - GET endpoints (e.g. GET /persons/{id}) return owner_id as an object: {"id": .., "name": .., "email": ..}
+///   - Merge endpoints (e.g. PUT /persons/{id}/merge) return owner_id as a scalar integer
+/// This converter accepts both shapes, normalizing the scalar form to an Owner with only Id populated.
+/// </summary>
+public sealed class OwnerConverter : JsonConverter<Owner>
+{
+    public override Owner? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            return null;
+        }
+
+        if (reader.TokenType == JsonTokenType.Number)
+        {
+            return new Owner { Id = reader.GetInt32() };
+        }
+
+        if (reader.TokenType == JsonTokenType.StartObject)
+        {
+            var owner = new Owner();
+            int depth = 1; // We're already at StartObject
+            string? currentProperty = null;
+
+            while (reader.Read())
+            {
+                switch (reader.TokenType)
+                {
+                    case JsonTokenType.StartObject:
+                    case JsonTokenType.StartArray:
+                        depth++;
+                        break;
+                    case JsonTokenType.EndObject:
+                    case JsonTokenType.EndArray:
+                        depth--;
+                        break;
+                    case JsonTokenType.PropertyName when depth == 1:
+                        currentProperty = reader.GetString();
+                        break;
+                    case JsonTokenType.Number when depth == 1 && currentProperty == "id":
+                        owner.Id = reader.GetInt32();
+                        break;
+                    case JsonTokenType.Number when depth == 1 && currentProperty == "value":
+                        owner.Value = reader.GetInt32();
+                        break;
+                    case JsonTokenType.String when depth == 1 && currentProperty == "name":
+                        owner.Name = reader.GetString();
+                        break;
+                    case JsonTokenType.String when depth == 1 && currentProperty == "email":
+                        owner.Email = reader.GetString();
+                        break;
+                }
+
+                // Exit the loop after processing the final EndObject, but before reading the next token
+                if (depth == 0)
+                {
+                    break;
+                }
+            }
+
+            return owner;
+        }
+
+        throw new JsonException($"Cannot convert {reader.TokenType} to Owner");
+    }
+
+    public override void Write(Utf8JsonWriter writer, Owner? value, JsonSerializerOptions options)
+    {
+        if (value == null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        writer.WriteStartObject();
+        writer.WriteNumber("id", value.Id);
+        if (value.Name != null)
+        {
+            writer.WriteString("name", value.Name);
+        }
+        if (value.Email != null)
+        {
+            writer.WriteString("email", value.Email);
+        }
+        writer.WriteNumber("value", value.Value);
+        writer.WriteEndObject();
+    }
+}
+
+/// <summary>
 /// Pipedrive Organization model
 /// </summary>
 public sealed class Organization
@@ -658,6 +751,7 @@ public sealed class Organization
     public int PeopleCount { get; set; }
 
     [JsonPropertyName("owner_id")]
+    [JsonConverter(typeof(OwnerConverter))]
     public Owner? OwnerId { get; set; }
 
     [JsonPropertyName("address")]
